@@ -1,0 +1,43 @@
+{
+  "SubTexture": [
+    {
+      "name": "head",
+      "x": 4,
+      "y": 4,
+      "width": 48,
+      "height": 48
+    },
+    {
+      "name": "torso",
+      "x": 60,
+      "y": 4,
+      "width": 44,
+      "height": 62
+    },
+    {
+      "name": "pelvis",
+      "x": 112,
+      "y": 4,
+      "width": 40,
+      "height": 30
+    },
+    {
+      "name": "arm",
+      "x": 160,
+      "y": 4,
+      "width": 16,
+      "height": 64
+    },
+    {
+      "name": "leg",
+      "x": 184,
+      "y": 4,
+      "width": 18,
+      "height": 86
+    }
+  ],
+  "width": 256,
+  "height": 128,
+  "name": "girl",
+  "imagePath": "girl.png"
+}
