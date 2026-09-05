@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SkelForm x Phaser spike</title>
+  <link rel="stylesheet" href="spike.css" />
+</head>
+<body>
+  <div id="app">
+    <div id="toolbar">
+      <span class="title">SkelForm &rarr; Phaser</span>
+      <div class="group">
+        <button id="btn-stand" type="button">Stand</button>
+        <button id="btn-walk" type="button">Walk</button>
+        <button id="btn-sitting" type="button">Sitting</button>
+      </div>
+      <div class="group">
+        <button id="btn-1x" type="button">1x</button>
+        <button id="btn-3x" type="button">3x</button>
+      </div>
+      <span id="state-label">loading&hellip;</span>
+    </div>
+    <div id="game"></div>
+  </div>
+  <script src="../lib/phaser.min.js"></script>
+  <script src="../lib/skelform/jszip.js"></script>
+  <script src="../lib/skelform/skelform-js.js"></script>
+  <script src="spike.js"></script>
+</body>
+</html>

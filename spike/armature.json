@@ -1,0 +1,5112 @@
+{
+  "version": "0.6.0",
+  "baked_ik": false,
+  "img_format": "PNG",
+  "bones": [
+    {
+      "id": 0,
+      "name": "root",
+      "parent_id": -1,
+      "pos": {
+        "x": 400,
+        "y": -500
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0,
+      "init_pos": {
+        "x": 400,
+        "y": -500
+      },
+      "init_rot": 0,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": -1
+    },
+    {
+      "id": 1,
+      "name": "torso",
+      "parent_id": 0,
+      "tex": "torso",
+      "zindex": 4,
+      "pos": {
+        "x": 0,
+        "y": 76
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0,
+      "init_pos": {
+        "x": 0,
+        "y": 76
+      },
+      "init_rot": 0,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": 0
+    },
+    {
+      "id": 2,
+      "name": "neck",
+      "parent_id": 0,
+      "pos": {
+        "x": 0,
+        "y": 196
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0,
+      "init_pos": {
+        "x": 0,
+        "y": 196
+      },
+      "init_rot": 0,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": -1
+    },
+    {
+      "id": 3,
+      "name": "head",
+      "parent_id": 2,
+      "tex": "head",
+      "zindex": 7,
+      "pos": {
+        "x": 0,
+        "y": 104
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0,
+      "init_pos": {
+        "x": 0,
+        "y": 104
+      },
+      "init_rot": 0,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": 1
+    },
+    {
+      "id": 4,
+      "name": "hair-back",
+      "parent_id": 3,
+      "tex": "hair-back",
+      "zindex": 1,
+      "pos": {
+        "x": 0,
+        "y": -10
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0,
+      "init_pos": {
+        "x": 0,
+        "y": -10
+      },
+      "init_rot": 0,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": 2
+    },
+    {
+      "id": 5,
+      "name": "hair-front",
+      "parent_id": 3,
+      "tex": "hair-front",
+      "zindex": 8,
+      "pos": {
+        "x": 0,
+        "y": 52
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0,
+      "init_pos": {
+        "x": 0,
+        "y": 52
+      },
+      "init_rot": 0,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": 3
+    },
+    {
+      "id": 6,
+      "name": "shoulder-L",
+      "parent_id": 0,
+      "pos": {
+        "x": -60,
+        "y": 164
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0,
+      "init_pos": {
+        "x": -60,
+        "y": 164
+      },
+      "init_rot": 0,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": -1
+    },
+    {
+      "id": 7,
+      "name": "upper-arm-L",
+      "parent_id": 6,
+      "tex": "upper-arm-L",
+      "zindex": 5,
+      "pos": {
+        "x": -5.1644000000000005,
+        "y": -24.296699999999987
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": -0.20943860405908077,
+      "init_pos": {
+        "x": -5.1644000000000005,
+        "y": -24.296699999999987
+      },
+      "init_rot": -0.20943860405908077,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": 4
+    },
+    {
+      "id": 8,
+      "name": "elbow-L",
+      "parent_id": 6,
+      "pos": {
+        "x": -10.328800000000001,
+        "y": -48.593399999999974
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0,
+      "init_pos": {
+        "x": -10.328800000000001,
+        "y": -48.593399999999974
+      },
+      "init_rot": 0,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": -1
+    },
+    {
+      "id": 9,
+      "name": "forearm-hand-L",
+      "parent_id": 8,
+      "tex": "forearm-hand-L",
+      "zindex": 6,
+      "pos": {
+        "x": -4.385899999999992,
+        "y": -20.634000000000015
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": -0.20943987685382548,
+      "init_pos": {
+        "x": -4.385899999999992,
+        "y": -20.634000000000015
+      },
+      "init_rot": -0.20943987685382548,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": 5
+    },
+    {
+      "id": 10,
+      "name": "wrist-L",
+      "parent_id": 8,
+      "pos": {
+        "x": -8.771799999999985,
+        "y": -41.26800000000003
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0,
+      "init_pos": {
+        "x": -8.771799999999985,
+        "y": -41.26800000000003
+      },
+      "init_rot": 0,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": -1
+    },
+    {
+      "id": 11,
+      "name": "shoulder-R",
+      "parent_id": 0,
+      "pos": {
+        "x": 60,
+        "y": 164
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0,
+      "init_pos": {
+        "x": 60,
+        "y": 164
+      },
+      "init_rot": 0,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": -1
+    },
+    {
+      "id": 12,
+      "name": "upper-arm-R",
+      "parent_id": 11,
+      "tex": "upper-arm-R",
+      "zindex": 5,
+      "pos": {
+        "x": 5.1644000000000005,
+        "y": -24.296699999999987
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0.20943860405908055,
+      "init_pos": {
+        "x": 5.1644000000000005,
+        "y": -24.296699999999987
+      },
+      "init_rot": 0.20943860405908055,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": 6
+    },
+    {
+      "id": 13,
+      "name": "elbow-R",
+      "parent_id": 11,
+      "pos": {
+        "x": 10.328800000000001,
+        "y": -48.593399999999974
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0,
+      "init_pos": {
+        "x": 10.328800000000001,
+        "y": -48.593399999999974
+      },
+      "init_rot": 0,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": -1
+    },
+    {
+      "id": 14,
+      "name": "forearm-hand-R",
+      "parent_id": 13,
+      "tex": "forearm-hand-R",
+      "zindex": 6,
+      "pos": {
+        "x": 4.385899999999992,
+        "y": -20.634000000000015
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0.20943987685382526,
+      "init_pos": {
+        "x": 4.385899999999992,
+        "y": -20.634000000000015
+      },
+      "init_rot": 0.20943987685382526,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": 7
+    },
+    {
+      "id": 15,
+      "name": "wrist-R",
+      "parent_id": 13,
+      "pos": {
+        "x": 8.771799999999985,
+        "y": -41.26800000000003
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0,
+      "init_pos": {
+        "x": 8.771799999999985,
+        "y": -41.26800000000003
+      },
+      "init_rot": 0,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": -1
+    },
+    {
+      "id": 16,
+      "name": "hip-L",
+      "parent_id": 0,
+      "pos": {
+        "x": -32,
+        "y": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0,
+      "init_pos": {
+        "x": -32,
+        "y": 0
+      },
+      "init_rot": 0,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": -1
+    },
+    {
+      "id": 17,
+      "name": "thigh-L",
+      "parent_id": 16,
+      "tex": "thigh-L",
+      "zindex": 2,
+      "pos": {
+        "x": -2,
+        "y": -40
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": -0.04995839572194294,
+      "init_pos": {
+        "x": -2,
+        "y": -40
+      },
+      "init_rot": -0.04995839572194294,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": 8
+    },
+    {
+      "id": 18,
+      "name": "knee-L",
+      "parent_id": 16,
+      "pos": {
+        "x": -4,
+        "y": -80
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0,
+      "init_pos": {
+        "x": -4,
+        "y": -80
+      },
+      "init_rot": 0,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": -1
+    },
+    {
+      "id": 19,
+      "name": "shin-foot-L",
+      "parent_id": 18,
+      "tex": "shin-foot-L",
+      "zindex": 3,
+      "pos": {
+        "x": -2,
+        "y": -36
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": -0.05549850524571709,
+      "init_pos": {
+        "x": -2,
+        "y": -36
+      },
+      "init_rot": -0.05549850524571709,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": 9
+    },
+    {
+      "id": 20,
+      "name": "ankle-L",
+      "parent_id": 18,
+      "pos": {
+        "x": -4,
+        "y": -72
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0,
+      "init_pos": {
+        "x": -4,
+        "y": -72
+      },
+      "init_rot": 0,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": -1
+    },
+    {
+      "id": 21,
+      "name": "hip-R",
+      "parent_id": 0,
+      "pos": {
+        "x": 32,
+        "y": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0,
+      "init_pos": {
+        "x": 32,
+        "y": 0
+      },
+      "init_rot": 0,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": -1
+    },
+    {
+      "id": 22,
+      "name": "thigh-R",
+      "parent_id": 21,
+      "tex": "thigh-R",
+      "zindex": 2,
+      "pos": {
+        "x": 2,
+        "y": -40
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0.04995839572194272,
+      "init_pos": {
+        "x": 2,
+        "y": -40
+      },
+      "init_rot": 0.04995839572194272,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": 10
+    },
+    {
+      "id": 23,
+      "name": "knee-R",
+      "parent_id": 21,
+      "pos": {
+        "x": 4,
+        "y": -80
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0,
+      "init_pos": {
+        "x": 4,
+        "y": -80
+      },
+      "init_rot": 0,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": -1
+    },
+    {
+      "id": 24,
+      "name": "shin-foot-R",
+      "parent_id": 23,
+      "tex": "shin-foot-R",
+      "zindex": 3,
+      "pos": {
+        "x": 2,
+        "y": -36
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0.05549850524571687,
+      "init_pos": {
+        "x": 2,
+        "y": -36
+      },
+      "init_rot": 0.05549850524571687,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": 11
+    },
+    {
+      "id": 25,
+      "name": "ankle-R",
+      "parent_id": 23,
+      "pos": {
+        "x": 4,
+        "y": -72
+      },
+      "scale": {
+        "x": 1,
+        "y": 1
+      },
+      "rot": 0,
+      "init_pos": {
+        "x": 4,
+        "y": -72
+      },
+      "init_rot": 0,
+      "init_scale": {
+        "x": 1,
+        "y": 1
+      },
+      "ik_family_id": -1,
+      "physics_id": -1,
+      "visuals_id": -1
+    }
+  ],
+  "animations": [
+    {
+      "name": "Stand",
+      "id": 0,
+      "fps": 30,
+      "keyframes": [
+        {
+          "frame": 0,
+          "bone_id": 0,
+          "element": "PositionX",
+          "value": 400,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 130,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 0,
+          "element": "PositionY",
+          "value": -500,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 131,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 0,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 132,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 0,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 133,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 0,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 134,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 1,
+          "element": "PositionX",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 135,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 1,
+          "element": "PositionY",
+          "value": 76,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 136,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 1,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 137,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 1,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 138,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 1,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 139,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 2,
+          "element": "PositionX",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 140,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 2,
+          "element": "PositionY",
+          "value": 196,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 141,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 2,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 142,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 2,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 143,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 2,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 144,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 3,
+          "element": "PositionX",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 145,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 3,
+          "element": "PositionY",
+          "value": 104,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 146,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 3,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 147,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 3,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 148,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 3,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 149,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 4,
+          "element": "PositionX",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 150,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 4,
+          "element": "PositionY",
+          "value": -10,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 151,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 4,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 152,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 4,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 153,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 4,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 154,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 5,
+          "element": "PositionX",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 155,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 5,
+          "element": "PositionY",
+          "value": 52,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 156,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 5,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 157,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 5,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 158,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 5,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 159,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 6,
+          "element": "PositionX",
+          "value": -60,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 160,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 6,
+          "element": "PositionY",
+          "value": 164,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 161,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 6,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 162,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 6,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 163,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 6,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 164,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 7,
+          "element": "PositionX",
+          "value": -5.1644000000000005,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 165,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 7,
+          "element": "PositionY",
+          "value": -24.296699999999987,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 166,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 7,
+          "element": "Rotation",
+          "value": -0.20943860405908077,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 167,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 7,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 168,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 7,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 169,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 8,
+          "element": "PositionX",
+          "value": -10.328800000000001,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 170,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 8,
+          "element": "PositionY",
+          "value": -48.593399999999974,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 171,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 8,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 172,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 8,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 173,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 8,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 174,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 9,
+          "element": "PositionX",
+          "value": -4.385899999999992,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 175,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 9,
+          "element": "PositionY",
+          "value": -20.634000000000015,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 176,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 9,
+          "element": "Rotation",
+          "value": -0.20943987685382548,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 177,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 9,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 178,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 9,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 179,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 10,
+          "element": "PositionX",
+          "value": -8.771799999999985,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 180,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 10,
+          "element": "PositionY",
+          "value": -41.26800000000003,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 181,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 10,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 182,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 10,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 183,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 10,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 184,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 11,
+          "element": "PositionX",
+          "value": 60,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 185,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 11,
+          "element": "PositionY",
+          "value": 164,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 186,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 11,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 187,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 11,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 188,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 11,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 189,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 12,
+          "element": "PositionX",
+          "value": 5.1644000000000005,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 190,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 12,
+          "element": "PositionY",
+          "value": -24.296699999999987,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 191,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 12,
+          "element": "Rotation",
+          "value": 0.20943860405908055,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 192,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 12,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 193,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 12,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 194,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 13,
+          "element": "PositionX",
+          "value": 10.328800000000001,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 195,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 13,
+          "element": "PositionY",
+          "value": -48.593399999999974,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 196,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 13,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 197,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 13,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 198,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 13,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 199,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 14,
+          "element": "PositionX",
+          "value": 4.385899999999992,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 200,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 14,
+          "element": "PositionY",
+          "value": -20.634000000000015,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 201,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 14,
+          "element": "Rotation",
+          "value": 0.20943987685382526,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 202,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 14,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 203,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 14,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 204,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 15,
+          "element": "PositionX",
+          "value": 8.771799999999985,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 205,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 15,
+          "element": "PositionY",
+          "value": -41.26800000000003,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 206,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 15,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 207,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 15,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 208,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 15,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 209,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 16,
+          "element": "PositionX",
+          "value": -32,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 210,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 16,
+          "element": "PositionY",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 211,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 16,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 212,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 16,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 213,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 16,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 214,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 17,
+          "element": "PositionX",
+          "value": -2,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 215,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 17,
+          "element": "PositionY",
+          "value": -40,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 216,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 17,
+          "element": "Rotation",
+          "value": -0.04995839572194294,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 217,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 17,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 218,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 17,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 219,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 18,
+          "element": "PositionX",
+          "value": -4,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 220,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 18,
+          "element": "PositionY",
+          "value": -80,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 221,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 18,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 222,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 18,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 223,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 18,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 224,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 19,
+          "element": "PositionX",
+          "value": -2,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 225,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 19,
+          "element": "PositionY",
+          "value": -36,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 226,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 19,
+          "element": "Rotation",
+          "value": -0.05549850524571709,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 227,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 19,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 228,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 19,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 229,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 20,
+          "element": "PositionX",
+          "value": -4,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 230,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 20,
+          "element": "PositionY",
+          "value": -72,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 231,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 20,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 232,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 20,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 233,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 20,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 234,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 21,
+          "element": "PositionX",
+          "value": 32,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 235,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 21,
+          "element": "PositionY",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 236,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 21,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 237,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 21,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 238,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 21,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 239,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 22,
+          "element": "PositionX",
+          "value": 2,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 240,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 22,
+          "element": "PositionY",
+          "value": -40,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 241,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 22,
+          "element": "Rotation",
+          "value": 0.04995839572194272,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 242,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 22,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 243,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 22,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 244,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 23,
+          "element": "PositionX",
+          "value": 4,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 245,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 23,
+          "element": "PositionY",
+          "value": -80,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 246,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 23,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 247,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 23,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 248,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 23,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 249,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 24,
+          "element": "PositionX",
+          "value": 2,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 250,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 24,
+          "element": "PositionY",
+          "value": -36,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 251,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 24,
+          "element": "Rotation",
+          "value": 0.05549850524571687,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 252,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 24,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 253,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 24,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 254,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 25,
+          "element": "PositionX",
+          "value": 4,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 255,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 25,
+          "element": "PositionY",
+          "value": -72,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 256,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 25,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 257,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 25,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 258,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 0,
+          "bone_id": 25,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": 259,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 0,
+          "element": "PositionX",
+          "value": 400,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 0,
+          "element": "PositionY",
+          "value": -500,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 0,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 0,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 0,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 1,
+          "element": "PositionX",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 1,
+          "element": "PositionY",
+          "value": 76,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 1,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 1,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 1,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 2,
+          "element": "PositionX",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 2,
+          "element": "PositionY",
+          "value": 196,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 2,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 2,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 2,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 3,
+          "element": "PositionX",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 3,
+          "element": "PositionY",
+          "value": 104,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 3,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 3,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 3,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 4,
+          "element": "PositionX",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 4,
+          "element": "PositionY",
+          "value": -10,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 4,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 4,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 4,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 5,
+          "element": "PositionX",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 5,
+          "element": "PositionY",
+          "value": 52,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 5,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 5,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 5,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 6,
+          "element": "PositionX",
+          "value": -60,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 6,
+          "element": "PositionY",
+          "value": 164,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 6,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 6,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 6,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 7,
+          "element": "PositionX",
+          "value": -5.1644000000000005,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 7,
+          "element": "PositionY",
+          "value": -24.296699999999987,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 7,
+          "element": "Rotation",
+          "value": -0.20943860405908077,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 7,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 7,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 8,
+          "element": "PositionX",
+          "value": -10.328800000000001,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 8,
+          "element": "PositionY",
+          "value": -48.593399999999974,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 8,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 8,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 8,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 9,
+          "element": "PositionX",
+          "value": -4.385899999999992,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 9,
+          "element": "PositionY",
+          "value": -20.634000000000015,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 9,
+          "element": "Rotation",
+          "value": -0.20943987685382548,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 9,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 9,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 10,
+          "element": "PositionX",
+          "value": -8.771799999999985,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 10,
+          "element": "PositionY",
+          "value": -41.26800000000003,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 10,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 10,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 10,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 11,
+          "element": "PositionX",
+          "value": 60,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 11,
+          "element": "PositionY",
+          "value": 164,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 11,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 11,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 11,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 12,
+          "element": "PositionX",
+          "value": 5.1644000000000005,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 12,
+          "element": "PositionY",
+          "value": -24.296699999999987,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 12,
+          "element": "Rotation",
+          "value": 0.20943860405908055,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 12,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 12,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 13,
+          "element": "PositionX",
+          "value": 10.328800000000001,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 13,
+          "element": "PositionY",
+          "value": -48.593399999999974,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 13,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 13,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 13,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 14,
+          "element": "PositionX",
+          "value": 4.385899999999992,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 14,
+          "element": "PositionY",
+          "value": -20.634000000000015,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 14,
+          "element": "Rotation",
+          "value": 0.20943987685382526,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 14,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 14,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 15,
+          "element": "PositionX",
+          "value": 8.771799999999985,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 15,
+          "element": "PositionY",
+          "value": -41.26800000000003,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 15,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 15,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 15,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 16,
+          "element": "PositionX",
+          "value": -32,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 16,
+          "element": "PositionY",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 16,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 16,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 16,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 17,
+          "element": "PositionX",
+          "value": -2,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 17,
+          "element": "PositionY",
+          "value": -40,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 17,
+          "element": "Rotation",
+          "value": -0.04995839572194294,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 17,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 17,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 18,
+          "element": "PositionX",
+          "value": -4,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 18,
+          "element": "PositionY",
+          "value": -80,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 18,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 18,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 18,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 19,
+          "element": "PositionX",
+          "value": -2,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 19,
+          "element": "PositionY",
+          "value": -36,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 19,
+          "element": "Rotation",
+          "value": -0.05549850524571709,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 19,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 19,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 20,
+          "element": "PositionX",
+          "value": -4,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 20,
+          "element": "PositionY",
+          "value": -72,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 20,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 20,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 20,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 21,
+          "element": "PositionX",
+          "value": 32,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 21,
+          "element": "PositionY",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 21,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 21,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 21,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 22,
+          "element": "PositionX",
+          "value": 2,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 22,
+          "element": "PositionY",
+          "value": -40,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 22,
+          "element": "Rotation",
+          "value": 0.04995839572194272,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 22,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 22,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 23,
+          "element": "PositionX",
+          "value": 4,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 23,
+          "element": "PositionY",
+          "value": -80,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 23,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 23,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 23,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 24,
+          "element": "PositionX",
+          "value": 2,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 24,
+          "element": "PositionY",
+          "value": -36,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 24,
+          "element": "Rotation",
+          "value": 0.05549850524571687,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 24,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 24,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 25,
+          "element": "PositionX",
+          "value": 4,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 25,
+          "element": "PositionY",
+          "value": -72,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 25,
+          "element": "Rotation",
+          "value": 0,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 25,
+          "element": "ScaleX",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        },
+        {
+          "frame": 30,
+          "bone_id": 25,
+          "element": "ScaleY",
+          "value": 1,
+          "start_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "end_handle": {
+            "x": 0,
+            "y": 0
+          },
+          "next_kf": -1,
+          "handle_preset": "Linear"
+        }
+      ]
+    }
+  ],
+  "atlases": [
+    {
+      "filename": "atlas0.png",
+      "size": {
+        "x": 1024,
+        "y": 1024
+      }
+    }
+  ],
+  "styles": [
+    {
+      "name": "Default",
+      "textures": [
+        {
+          "name": "hair-back",
+          "offset": {
+            "x": 4,
+            "y": 4
+          },
+          "size": {
+            "x": 232,
+            "y": 248
+          },
+          "atlas_idx": 0
+        },
+        {
+          "name": "head",
+          "offset": {
+            "x": 240,
+            "y": 4
+          },
+          "size": {
+            "x": 208,
+            "y": 214
+          },
+          "atlas_idx": 0
+        },
+        {
+          "name": "hair-front",
+          "offset": {
+            "x": 452,
+            "y": 4
+          },
+          "size": {
+            "x": 202,
+            "y": 108
+          },
+          "atlas_idx": 0
+        },
+        {
+          "name": "torso",
+          "offset": {
+            "x": 658,
+            "y": 4
+          },
+          "size": {
+            "x": 128,
+            "y": 259
+          },
+          "atlas_idx": 0
+        },
+        {
+          "name": "upper-arm-L",
+          "offset": {
+            "x": 790,
+            "y": 4
+          },
+          "size": {
+            "x": 40,
+            "y": 87
+          },
+          "atlas_idx": 0
+        },
+        {
+          "name": "upper-arm-R",
+          "offset": {
+            "x": 790,
+            "y": 4
+          },
+          "size": {
+            "x": 40,
+            "y": 87
+          },
+          "atlas_idx": 0
+        },
+        {
+          "name": "forearm-hand-L",
+          "offset": {
+            "x": 834,
+            "y": 4
+          },
+          "size": {
+            "x": 49,
+            "y": 104
+          },
+          "atlas_idx": 0
+        },
+        {
+          "name": "forearm-hand-R",
+          "offset": {
+            "x": 887,
+            "y": 4
+          },
+          "size": {
+            "x": 49,
+            "y": 104
+          },
+          "atlas_idx": 0
+        },
+        {
+          "name": "thigh-L",
+          "offset": {
+            "x": 940,
+            "y": 4
+          },
+          "size": {
+            "x": 44,
+            "y": 120
+          },
+          "atlas_idx": 0
+        },
+        {
+          "name": "thigh-R",
+          "offset": {
+            "x": 940,
+            "y": 4
+          },
+          "size": {
+            "x": 44,
+            "y": 120
+          },
+          "atlas_idx": 0
+        },
+        {
+          "name": "shin-foot-L",
+          "offset": {
+            "x": 4,
+            "y": 267
+          },
+          "size": {
+            "x": 37,
+            "y": 125
+          },
+          "atlas_idx": 0
+        },
+        {
+          "name": "shin-foot-R",
+          "offset": {
+            "x": 45,
+            "y": 267
+          },
+          "size": {
+            "x": 37,
+            "y": 125
+          },
+          "atlas_idx": 0
+        }
+      ]
+    }
+  ],
+  "visuals": [
+    {
+      "tex": "torso",
+      "zindex": 4,
+      "init_tex": "torso",
+      "init_zindex": 4
+    },
+    {
+      "tex": "head",
+      "zindex": 7,
+      "init_tex": "head",
+      "init_zindex": 7
+    },
+    {
+      "tex": "hair-back",
+      "zindex": 1,
+      "init_tex": "hair-back",
+      "init_zindex": 1
+    },
+    {
+      "tex": "hair-front",
+      "zindex": 8,
+      "init_tex": "hair-front",
+      "init_zindex": 8
+    },
+    {
+      "tex": "upper-arm-L",
+      "zindex": 5,
+      "init_tex": "upper-arm-L",
+      "init_zindex": 5
+    },
+    {
+      "tex": "forearm-hand-L",
+      "zindex": 6,
+      "init_tex": "forearm-hand-L",
+      "init_zindex": 6
+    },
+    {
+      "tex": "upper-arm-R",
+      "zindex": 5,
+      "init_tex": "upper-arm-R",
+      "init_zindex": 5
+    },
+    {
+      "tex": "forearm-hand-R",
+      "zindex": 6,
+      "init_tex": "forearm-hand-R",
+      "init_zindex": 6
+    },
+    {
+      "tex": "thigh-L",
+      "zindex": 2,
+      "init_tex": "thigh-L",
+      "init_zindex": 2
+    },
+    {
+      "tex": "shin-foot-L",
+      "zindex": 3,
+      "init_tex": "shin-foot-L",
+      "init_zindex": 3
+    },
+    {
+      "tex": "thigh-R",
+      "zindex": 2,
+      "init_tex": "thigh-R",
+      "init_zindex": 2
+    },
+    {
+      "tex": "shin-foot-R",
+      "zindex": 3,
+      "init_tex": "shin-foot-R",
+      "init_zindex": 3
+    }
+  ],
+  "inverse_kinematics": [],
+  "physics": []
+}

@@ -1,0 +1,610 @@
+let skfPlaceholderPixel;
+let skfCanvases = [];
+let skfCanvasTemplate = {
+  playing: false,
+  selectedAnim: 0,
+  animTime: 0,
+  smoothFrames: 0,
+  constructOptions: {
+    position: { x: 0, y: 0 },
+    scale: { x: 1, y: 1 }
+  },
+  elCanvas: {},
+  lastCanvasSize: { x: 0, y: 0 },
+  elPlay: {},
+  elProgress: {},
+  armature: {},
+  cachedBones: [],
+  activeStyles: [],
+  stylesOpen: [],
+  rendered: false, // used to render at least one frame if an anim isn't playing
+  lastAnimFrame: -1, // if anim frame is same as this, skip re-rendering
+
+  // WebGL stuff
+  gl: {},
+  program: {},
+  buffers: {},
+  uniforms: {},
+};
+
+async function SkfDownloadSample(filename) {
+  response = await fetch(filename);
+  const arrayBuffer = await response.arrayBuffer();
+  return new Uint8Array(arrayBuffer);
+}
+
+async function SkfInit(skfData, canvas, startFrames) {
+  skfCanvases.push(structuredClone(skfCanvasTemplate));
+  const last = skfCanvases.length - 1;
+  skfCanvases[last].gl = canvas.getContext("webgl");
+  skfCanvases[last].program = {};
+  skfCanvases[last].armature = await skfReadFile(skfData, skfCanvases[last].gl);
+  skfCanvases[last].elCanvas = canvas;
+  glprogram = SkfInitGl(skfCanvases[last].gl, skfCanvases[last].program, [0, 0, 0, 0], canvas);
+  skfCanvases[last].gl = glprogram[0];
+  skfCanvases[last].program = glprogram[1];
+  skfCanvases[last].buffers = glprogram[2];
+  skfCanvases[last].uniforms = glprogram[3];
+  for (bone of skfCanvases[last].armature.bones) {
+    bone.zindex = bone.zindex || 0;
+  }
+
+  // run construct based on requested start frames.
+  // This is to setup a better static armature if it has physics elements, as the
+  if (startFrames) {
+    let skfc = skfCanvases[last]
+    for (let i = 0; i < startFrames; i++) {
+      skfc.armature.cachedBones = SkfGenericConstruct(skfc.armature);
+    }
+  }
+
+  canvas.addEventListener('webglcontextlost', function(event) {
+    event.preventDefault();
+  }, false);
+}
+
+function SkfInitGl(gl, program, clearColor, canvas) {
+  const vertexSource = `attribute vec2 a_position; attribute vec2 a_uv; uniform vec2 u_resolution; varying vec2 v_uv; void main(){ vec2 zeroToOne=a_position/u_resolution; vec2 zeroToTwo=zeroToOne*2.0; vec2 clipSpace=zeroToTwo-1.0; gl_Position=vec4(clipSpace*vec2(1.0,-1.0),0.0,1.0); v_uv=a_uv; }`;
+  const fragmentSource = `precision mediump float; varying vec2 v_uv; uniform sampler2D u_texture; void main(){ gl_FragColor=texture2D(u_texture,v_uv); }`;
+
+  /* transparency */
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+  skfPlaceholderPixel = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, skfPlaceholderPixel);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 125, 0, 125]));
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+  function createShader(gl, type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      gl.deleteShader(shader);
+      return null;
+    }
+    return shader;
+  }
+
+  const vs = createShader(gl, gl.VERTEX_SHADER, vertexSource);
+  const fs = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
+  program = gl.createProgram();
+  gl.attachShader(program, vs);
+  gl.attachShader(program, fs);
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    gl.deleteProgram(program);
+  }
+  gl.useProgram(program);
+
+  // create buffers for later.
+  // 0 - pos buffer
+  // 1 - uv buffer
+  // 2 - tex buffer
+  let buffers = [];
+  buffers.push(gl.createBuffer());
+  buffers.push(gl.createBuffer());
+  buffers.push(gl.createBuffer());
+
+  let attrib_pos = gl.getAttribLocation(program, "a_position");
+  let attrib_uv = gl.getAttribLocation(program, "a_uv");
+
+  // initialize pos buffer
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffers[0]);
+  gl.enableVertexAttribArray(attrib_pos);
+  gl.vertexAttribPointer(attrib_pos, 2, gl.FLOAT, false, 0, 0);
+  gl.bufferData(gl.ARRAY_BUFFER, 5000, gl.DYNAMIC_DRAW);
+
+  // initialize uv buffer
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffers[1]);
+  gl.enableVertexAttribArray(attrib_uv);
+  gl.vertexAttribPointer(attrib_uv, 2, gl.FLOAT, false, 0, 0);
+  gl.bufferData(gl.ARRAY_BUFFER, 5000, gl.DYNAMIC_DRAW);
+
+  // initialize indices buffer
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers[2]);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, 5000, gl.DYNAMIC_DRAW);
+
+  gl.clearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
+
+  // initialize uniforms to use later
+  const uniforms = {
+    resolution: gl.getUniformLocation(program, "u_resolution"),
+    texture: gl.getUniformLocation(program, "u_texture")
+  };
+  gl.uniform1i(uniforms.texture, 0);
+
+  return [gl, program, buffers, uniforms];
+}
+
+// clear current frame of GL viewport, to make way for the next
+function SkfClearScreen(canvas, lastCanvasSize, gl, program, uniforms) {
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  // update GL resolution with canvas if it changed
+  if (lastCanvasSize.x != canvas.width || lastCanvasSize.y != canvas.height) {
+    lastCanvasSize.x = canvas.width;
+    lastCanvasSize.y = canvas.height;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.uniform2f(uniforms.resolution, canvas.width, canvas.height);
+  }
+}
+
+function skfDrawMesh(verts, indices, atlasTex, gl, program, buffers, uniforms) {
+  /* convert pos and uv into arrays */
+  pos = new Float32Array(verts.length * 2);
+  uv = new Float32Array(verts.length * 2);
+  for (let i = 0; i < verts.length; i++) {
+    pos[i * 2] = verts[i].pos.x;
+    pos[i * 2 + 1] = verts[i].pos.y;
+    uv[i * 2] = verts[i].uv.x;
+    uv[i * 2 + 1] = verts[i].uv.y;
+  }
+
+  // buffer pos
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffers[0]);
+  gl.bufferSubData(gl.ARRAY_BUFFER, 0, pos);
+  // buffer UV 
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffers[1]);
+  gl.bufferSubData(gl.ARRAY_BUFFER, 0, uv);
+  // buffer indices
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers[2]);
+  gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, new Uint16Array(indices));
+
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, atlasTex);
+  gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+}
+
+async function skfReadFile(fileBytes, gl) {
+  zip = await JSZip.loadAsync(fileBytes);
+  let armature;
+
+  for (const filename of Object.keys(zip.files)) {
+    if (filename == "armature.json") {
+      const fileData = await zip.files[filename].async('string');
+      armature = JSON.parse(fileData);
+    }
+
+    let atlasIdx = 0;
+    if (filename.includes("atlas")) {
+      const fileData = await zip.files[filename].async('uint8array');
+      const blob = new Blob([fileData], { type: "image/png" });
+      const bitmap = await createImageBitmap(blob);
+
+      armature.atlases[atlasIdx].texture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, armature.atlases[atlasIdx].texture);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      atlasIdx++;
+    }
+  }
+
+  return armature;
+}
+
+function SkfDraw(bones, visuals, styles, atlases, gl, program, buffers, uniforms) {
+  let verts = [];
+  let indices = [];
+  let lastAtlasIdx = 0;
+  let hiddens = new Array(bones.length).fill(false);
+  bones.sort((a, b) => (a.zindex > b.zindex) ? 1 : -1);
+  for (let b = 0; b < bones.length; b++) {
+    let bone = bones[b];
+    let hidden = bone.hidden || false;
+    if (bone.parent_id != -1 && hiddens[bone.parent_id]) {
+      hidden = true;
+    }
+    hiddens[b] = hidden;
+    if (hidden) {
+      continue;
+    }
+
+    let visual = visuals[bone.visuals_id];
+    if (!visual) {
+      continue;
+    }
+
+    let tex = SkfGenericGetBoneTexture(visual.tex, styles);
+    if (!tex) {
+      continue
+    }
+
+    // if this bone uses a different texture atlas, render everything before it and prepare
+    // to render anything that uses this atlas
+    if (tex.atlas_idx != lastAtlasIdx) {
+      if (verts.length > 0 && indices.length > 0) {
+        skfDrawMesh(verts, indices, atlases[tex.atlas_idx].texture, gl, program, buffers, uniforms);
+        verts = [];
+        indices = [];
+      }
+      lastAtlasIdx = tex.atlas_idx;
+    }
+
+    const size = atlases[tex.atlas_idx].size;
+
+    const tleft = tex.offset.x / size.x;
+    const tright = (tex.offset.x + tex.size.x) / size.x;
+    const ttop = tex.offset.y / size.y;
+    const tbot = (tex.offset.y + tex.size.y) / size.y;
+    const tsize = tex.size;
+
+    let thisIndices = new Uint16Array([0, 1, 2, 0, 2, 3]);
+    let vertLen = 4;
+    if (visual.vertices) {
+      for (vert of visual.vertices) {
+        verts.push({});
+        verts[verts.length - 1].uv = {
+          x: vert.uv.x,
+          y: vert.uv.y
+        }
+        verts[verts.length - 1].pos = {
+          x: vert.pos.x,
+          y: vert.pos.y
+        }
+        const uvsize = { x: tright - tleft, y: tbot - ttop };
+        verts[verts.length - 1].uv = { x: tleft + (uvsize.x * vert.uv.x), y: ttop + (uvsize.y * vert.uv.y) };
+      }
+      thisIndices = new Uint16Array(visual.indices);
+      vertLen = visual.vertices.length;
+    } else {
+      const rectVerts = [{
+        uv: { x: tleft, y: ttop },
+        pos: { x: (-tsize.x / 2 * bone.scale.x), y: (-tsize.y / 2 * bone.scale.y) },
+      },
+      {
+        uv: { x: tright, y: ttop },
+        pos: { x: (+tsize.x / 2 * bone.scale.x), y: (-tsize.y / 2 * bone.scale.y) },
+      },
+      {
+        uv: { x: tright, y: tbot },
+        pos: { x: (+tsize.x / 2 * bone.scale.x), y: (+tsize.y / 2 * bone.scale.y) }
+      },
+      {
+        uv: { x: tleft, y: tbot },
+        pos: { x: (-tsize.x / 2 * bone.scale.x), y: (+tsize.y / 2 * bone.scale.y) },
+      }];
+
+      const invPos = { x: bone.pos.x, y: -bone.pos.y };
+      for (let i = 0; i < 4; i++) {
+        rectVerts[i].pos = rotate(rectVerts[i].pos, -bone.rot);
+        rectVerts[i].pos = addv2(rectVerts[i].pos, invPos);
+      }
+
+      verts.push(rectVerts[0]);
+      verts.push(rectVerts[1]);
+      verts.push(rectVerts[2]);
+      verts.push(rectVerts[3]);
+    }
+
+    // batch this bone's indices, with proper offsets
+    for (idx of thisIndices) {
+      indices.push(idx + verts.length - vertLen);
+    }
+  }
+
+  if (verts.length > 0 && indices.length > 0) {
+    skfDrawMesh(verts, indices, atlases[lastAtlasIdx].texture, gl, program, buffers, uniforms);
+  }
+}
+
+function skfDrawPoints(poses) {
+  poses.forEach(pos => {
+    const size = 12;
+    const verts = [{
+      pos: { x: pos.x - size, y: pos.y - size }, uv: { x: 0, y: 0 }
+    },
+    {
+      pos: { x: pos.x + size, y: pos.y - size }, uv: { x: 0, y: 0 }
+    },
+    {
+      pos: { x: pos.x + size, y: pos.y + size }, uv: { x: 0, y: 0 }
+    },
+    {
+      pos: { x: pos.x - size, y: pos.y + size }, uv: { x: 0, y: 0 }
+    }];
+    drawMesh(verts, new Uint16Array([0, 1, 2, 0, 2, 3]), false);
+  })
+}
+
+function SkfShowPlayer(id, skfCanvas, showSkfBranding) {
+  const style = document.createElement("style");
+  document.head.appendChild(style)
+  style.textContent = `
+    .skf-display {
+      display: flex;
+      flex-direction: column;
+    }
+    .skf-canvas-container {
+      position: relative;
+    }
+    .skf-toolbar {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      background: #352253;
+      padding-left: 1rem;
+      padding-right: 1rem;
+      height: 3rem;
+      margin-top: -6px;
+    }
+    .skf-toolbar-container {
+      display: flex;
+    }
+    .skf-title {
+      color: #fff;
+      display: flex;
+      align-items: center;
+      margin-right: 0.5rem;
+    }
+    
+    .skf-logo {
+      width: 3rem;
+      margin-right: 0.5rem;
+    }
+    
+    .skf-title-text {
+      font-size: 1.2rem;
+      font-family: arial;
+      margin: 0;
+      text-decoration: none;
+    }
+
+    .skf-play-container {
+      width: 3.5rem;
+    }
+    
+    .skf-play {
+      background: #412e69;
+      border: 2px solid rgb(89, 70, 136);
+      padding: 0.25rem;
+      color: white;
+      cursor: pointer;
+      height: 2rem;
+    }
+    
+    .skf-select {
+      background: #412e69;
+      border: 2px solid rgb(89, 70, 136);
+      padding: 0.25rem;
+      color: white;
+      cursor: pointer;
+      margin-right: 0.5rem;
+      height: 2rem;
+    }
+    
+    .skf-range {
+      -webkit-appearance: none;
+      appearance: none;
+      bottom: 0.75rem;
+      left: 0;
+      width: -moz-available;
+      width: -webkit-fill-available;
+      margin-left: 1rem;
+      margin-right: 1rem;
+      height: 0.35rem;
+      background: #412e69;
+    }
+    
+    .skf-range[type="range"]::-webkit-slider-thumb,
+    .skf-range::-moz-range-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgb(89, 70, 136);
+      cursor: pointer;
+    }
+    
+    .skf-range[type="range"]::-webkit-slider-runnable-track,
+    .skf-range::-moz-range-progress {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 0.35rem;
+      background-color: rgb(89, 70, 136);
+    }
+
+    .skf-menu {
+      position: absolute;
+      background: #412e69;
+      border: 2px solid rgb(89, 70, 136);
+      padding: 0.25rem;
+      color: white;
+      cursor: pointer;
+      visibility: hidden;
+      font-family: arial;
+
+      p {
+        margin: 0;
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;   
+        -ms-user-select: none;    
+        -khtml-user-select: none; 
+        padding: 0.25rem;
+        margin: 0.2rem 0rem;
+
+        &.selected {
+          background: rgb(101 80 157);
+        }
+      }
+    }
+  `;
+
+  function newEl(str, parent, className) {
+    let el = document.createElement(str);
+    el.className = className, parent.appendChild(el);
+    return el;
+  }
+
+  let main = document.getElementById(id);
+  main.appendChild(skfCanvas.elCanvas);
+
+  let toolbar = newEl("div", main, "skf-toolbar");
+  let toolbarContainer = newEl("div", toolbar, "");
+
+  /* animation progress bar */
+  let slider = newEl("input", toolbar, "skf-range");
+  slider.type = "range";
+  slider.min = 0;
+  slider.max = 1;
+  slider.step = 0.001;
+  skfCanvas.elProgress = slider;
+  slider.addEventListener("input", () => {
+    skfCanvas.playing = false;
+    skfCanvas.elPlay.innerHTML = "Play";
+    anim = skfCanvas.armature.animations[skfCanvas.selectedAnim];
+    frames = anim.keyframes[anim.keyframes.length - 1].frame;
+    frametime = 1 / anim.fps;
+    skfCanvas.animTime = frames * slider.value * frametime * 1000;
+    skfCanvas.rendered = false;
+  });
+
+  let toolbarFlex = newEl("div", toolbarContainer, "skf-toolbar-container");
+
+  /* play button */
+  let playContainer = newEl("div", toolbarFlex, "skf-play-container");
+  playContainer.className = "skf-play-container";
+  let playButton = newEl("button", playContainer, "skf-play");
+  skfCanvas.elPlay = playButton;
+  playButton.innerText = "Play";
+  playButton.addEventListener("click", () => {
+    skfCanvas.playing = !skfCanvas.playing;
+    playButton.innerText = (playButton.innerText == "Play") ? "Pause" : "Play";
+  });
+
+  // animation select
+  let animSelect = newEl("select", toolbarFlex, "skf-select");
+  skfCanvas.armature.animations.forEach((anim, a) => {
+    animSelect.add(new Option(anim.name, a));
+  });
+  animSelect.addEventListener("click", () => {
+    skfCanvas.selectedAnim = animSelect.value;
+    skfCanvas.animTime = 0;
+    skfCanvas.elProgress.value = 0.0;
+    skfCanvas.rendered = false;
+  });
+
+  // style select
+  let styleMenuContainer = newEl("div", toolbarFlex, "");
+  let styleMenu = newEl("div", styleMenuContainer, "skf-menu");
+  let styleButton = newEl("button", styleMenuContainer, "skf-play");
+  styleButton.innerText = "Styles";
+  styleButton.addEventListener("click", () => {
+    styleMenu.style.visibility = (styleMenu.style.visibility == "visible") ? "hidden" : "visible";
+  });
+  // style buttons
+  skfCanvas.armature.styles.forEach((style, s) => {
+    let styleEl = newEl("p", styleMenu, "");
+    styleEl.innerText = style.name;
+    let isActive = skfCanvas.activeStyles.find((style2) => style2.id == style.id);
+    if (isActive) {
+      styleEl.classList.add("selected");
+    }
+    styleEl.addEventListener("click", () => {
+      let isActive = skfCanvas.activeStyles.find((style2) => style2.id == style.id);
+      if (!isActive) {
+        skfCanvas.activeStyles.splice(skfCanvas.armature.styles[s].id, 0, skfCanvas.armature.styles[s]);
+        styleEl.classList.add("selected");
+      } else {
+        skfCanvas.activeStyles = skfCanvas.activeStyles.filter((style2) => style2.id != style.id);
+        styleEl.classList.remove("selected");
+      }
+      skfCanvas.activeStyles.sort(function(a, b) { return (a.id < b.id) ? -1 : 1 });
+      skfCanvas.rendered = false;
+    })
+  });
+  // push style menu below button
+  //styleMenu.style.transform = "translateY(-" + (styleMenu.offsetHeight - 2) + "px)";
+  styleMenu.style.transform = "translateY(30px)";
+
+  // title & logo
+  let title = newEl("a", toolbar, "");
+  title.href = "https://skelform.org";
+  title.target = "_blank";
+  title.style.display = (showSkfBranding) ? 'block' : 'none';
+  let titleContainer = newEl("div", title, "skf-title");
+  let titleImg = newEl("img", titleContainer, "skf-logo");
+  titleImg.src = "data:image/png;base64,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";
+  let titleText = newEl("p", titleContainer, "skf-title-text");
+  titleText.innerText = "SkelForm";
+}
+
+/* process all skf canvases per frame */
+let skfLastTime = 0;
+function SkfNewFrame(time) {
+  for (skfc of skfCanvases) {
+    if (!skfc.playing && skfc.rendered) {
+      continue;
+    }
+    skfc.animTime += (skfc.playing) ? time - skfLastTime : 0;
+    anim = skfc.armature.animations[skfc.selectedAnim];
+    const frame = SkfGenericTimeFrame(skfc.animTime, anim, false, true);
+
+    // skip rendering if this is the same frame
+    if (frame == skfc.lastAnimFrame && skfc.rendered) {
+      continue;
+    }
+    skfc.lastAnimFrame = frame;
+
+    const smooth = (skfc.playing) ? skfc.smoothFrames : 0;
+    SkfGenericAnimate(skfc.armature.bones, [anim], [frame], [smooth]);
+    skfc.armature.cachedBones = SkfGenericConstruct(skfc.armature);
+    let options = skfc.constructOptions;
+    bones = skfc.armature.cachedBones;
+    for (let b = 0; b < bones.length; b++) {
+      bones[b].scale = mulv2(bones[b].scale, options.scale)
+      bones[b].pos = mulv2(bones[b].pos, options.scale)
+      bones[b].pos = addv2(bones[b].pos, options.position)
+
+      let visual = skfc.armature.visuals[bones[b].visuals_id]
+      if (visual && visual.vertices) {
+        for (vert of visual.vertices) {
+          vert.pos.y = -vert.pos.y;
+          vert.pos = mulv2(vert.pos, options.scale);
+          vert.pos = addv2(vert.pos, { x: options.position.x, y: -options.position.y });
+        }
+      }
+    }
+    SkfClearScreen(skfc.elCanvas, skfc.lastCanvasSize, skfc.gl, skfc.program, skfc.uniforms);
+    SkfDraw(bones, skfc.armature.visuals, skfc.activeStyles, skfc.armature.atlases, skfc.gl, skfc.program, skfc.buffers, skfc.uniforms);
+    if (skfc.elProgress) {
+      anim = skfc.armature.animations[skfc.selectedAnim];
+      const frame = SkfGenericTimeFrame(skfc.animTime, anim, false, true);
+      skfc.elProgress.value = frame / anim.keyframes[anim.keyframes.length - 1].frame;
+    }
+    skfc.rendered = true;
+  }
+
+  skfLastTime = time;
+  requestAnimationFrame(SkfNewFrame);
+}
