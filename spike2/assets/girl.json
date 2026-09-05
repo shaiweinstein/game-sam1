@@ -1,0 +1,511 @@
+{
+  "frameRate": 24,
+  "name": "girl",
+  "version": "5.5",
+  "compatibleVersion": "5.5",
+  "armature": [
+    {
+      "type": "Armature",
+      "frameRate": 24,
+      "name": "girl",
+      "aabb": {
+        "x": -40,
+        "y": -210,
+        "width": 80,
+        "height": 210
+      },
+      "bone": [
+        {
+          "name": "root"
+        },
+        {
+          "name": "hip",
+          "parent": "root",
+          "length": 30,
+          "transform": {
+            "y": -87
+          }
+        },
+        {
+          "name": "spine",
+          "parent": "hip",
+          "length": 40,
+          "transform": {
+            "y": -40
+          }
+        },
+        {
+          "name": "head",
+          "parent": "spine",
+          "length": 30,
+          "transform": {
+            "y": -30
+          }
+        },
+        {
+          "name": "armL",
+          "parent": "spine",
+          "length": 64,
+          "transform": {
+            "x": -16
+          }
+        },
+        {
+          "name": "armR",
+          "parent": "spine",
+          "length": 64,
+          "transform": {
+            "x": 16
+          }
+        },
+        {
+          "name": "legL",
+          "parent": "hip",
+          "length": 86,
+          "transform": {
+            "x": -10
+          }
+        },
+        {
+          "name": "legR",
+          "parent": "hip",
+          "length": 86,
+          "transform": {
+            "x": 10
+          }
+        }
+      ],
+      "slot": [
+        {
+          "name": "pelvis",
+          "parent": "hip"
+        },
+        {
+          "name": "torso",
+          "parent": "spine"
+        },
+        {
+          "name": "legL",
+          "parent": "legL"
+        },
+        {
+          "name": "legR",
+          "parent": "legR"
+        },
+        {
+          "name": "armL",
+          "parent": "armL"
+        },
+        {
+          "name": "armR",
+          "parent": "armR"
+        },
+        {
+          "name": "head",
+          "parent": "head"
+        }
+      ],
+      "skin": [
+        {
+          "name": "",
+          "slot": [
+            {
+              "name": "pelvis",
+              "display": [
+                {
+                  "name": "pelvis",
+                  "transform": {
+                    "y": 13
+                  }
+                }
+              ]
+            },
+            {
+              "name": "torso",
+              "display": [
+                {
+                  "name": "torso",
+                  "transform": {
+                    "y": 21
+                  }
+                }
+              ]
+            },
+            {
+              "name": "legL",
+              "display": [
+                {
+                  "name": "leg",
+                  "transform": {
+                    "y": 43
+                  }
+                }
+              ]
+            },
+            {
+              "name": "legR",
+              "display": [
+                {
+                  "name": "leg",
+                  "transform": {
+                    "y": 43
+                  }
+                }
+              ]
+            },
+            {
+              "name": "armL",
+              "display": [
+                {
+                  "name": "arm",
+                  "transform": {
+                    "y": 32
+                  }
+                }
+              ]
+            },
+            {
+              "name": "armR",
+              "display": [
+                {
+                  "name": "arm",
+                  "transform": {
+                    "y": 32
+                  }
+                }
+              ]
+            },
+            {
+              "name": "head",
+              "display": [
+                {
+                  "name": "head",
+                  "transform": {
+                    "y": -16
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "animation": [
+        {
+          "duration": 24,
+          "playTimes": 0,
+          "name": "walk",
+          "bone": [
+            {
+              "name": "legL",
+              "rotateFrame": [
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "rotate": 28
+                },
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "rotate": 0
+                },
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "rotate": -28
+                },
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "rotate": 0
+                },
+                {
+                  "duration": 0,
+                  "tweenEasing": 0,
+                  "rotate": 28
+                }
+              ]
+            },
+            {
+              "name": "legR",
+              "rotateFrame": [
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "rotate": -28
+                },
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "rotate": 0
+                },
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "rotate": 28
+                },
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "rotate": 0
+                },
+                {
+                  "duration": 0,
+                  "tweenEasing": 0,
+                  "rotate": -28
+                }
+              ]
+            },
+            {
+              "name": "armL",
+              "rotateFrame": [
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "rotate": -22
+                },
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "rotate": 0
+                },
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "rotate": 22
+                },
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "rotate": 0
+                },
+                {
+                  "duration": 0,
+                  "tweenEasing": 0,
+                  "rotate": -22
+                }
+              ]
+            },
+            {
+              "name": "armR",
+              "rotateFrame": [
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "rotate": 22
+                },
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "rotate": 0
+                },
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "rotate": -22
+                },
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "rotate": 0
+                },
+                {
+                  "duration": 0,
+                  "tweenEasing": 0,
+                  "rotate": 22
+                }
+              ]
+            },
+            {
+              "name": "hip",
+              "translateFrame": [
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "x": 0,
+                  "y": -4
+                },
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "x": 0,
+                  "y": 1
+                },
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "x": 0,
+                  "y": -4
+                },
+                {
+                  "duration": 6,
+                  "tweenEasing": 0,
+                  "x": 0,
+                  "y": 1
+                },
+                {
+                  "duration": 0,
+                  "tweenEasing": 0,
+                  "x": 0,
+                  "y": -4
+                }
+              ]
+            },
+            {
+              "name": "spine",
+              "rotateFrame": [
+                {
+                  "duration": 12,
+                  "tweenEasing": 0,
+                  "rotate": -2
+                },
+                {
+                  "duration": 12,
+                  "tweenEasing": 0,
+                  "rotate": 2
+                },
+                {
+                  "duration": 0,
+                  "tweenEasing": 0,
+                  "rotate": -2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "duration": 24,
+          "playTimes": 0,
+          "name": "swim",
+          "bone": [
+            {
+              "name": "root",
+              "rotateFrame": [
+                {
+                  "duration": 12,
+                  "tweenEasing": 0,
+                  "rotate": 70
+                },
+                {
+                  "duration": 12,
+                  "tweenEasing": 0,
+                  "rotate": 86
+                },
+                {
+                  "duration": 0,
+                  "tweenEasing": 0,
+                  "rotate": 70
+                }
+              ]
+            },
+            {
+              "name": "armL",
+              "rotateFrame": [
+                {
+                  "duration": 8,
+                  "tweenEasing": 0,
+                  "rotate": 0,
+                  "clockwise": 1
+                },
+                {
+                  "duration": 8,
+                  "tweenEasing": 0,
+                  "rotate": 120,
+                  "clockwise": 1
+                },
+                {
+                  "duration": 8,
+                  "tweenEasing": 0,
+                  "rotate": 240,
+                  "clockwise": 1
+                },
+                {
+                  "duration": 0,
+                  "tweenEasing": 0,
+                  "rotate": 360,
+                  "clockwise": 1
+                }
+              ]
+            },
+            {
+              "name": "armR",
+              "rotateFrame": [
+                {
+                  "duration": 8,
+                  "tweenEasing": 0,
+                  "rotate": 0,
+                  "clockwise": 1
+                },
+                {
+                  "duration": 8,
+                  "tweenEasing": 0,
+                  "rotate": 120,
+                  "clockwise": 1
+                },
+                {
+                  "duration": 8,
+                  "tweenEasing": 0,
+                  "rotate": 240,
+                  "clockwise": 1
+                },
+                {
+                  "duration": 0,
+                  "tweenEasing": 0,
+                  "rotate": 360,
+                  "clockwise": 1
+                }
+              ]
+            },
+            {
+              "name": "hip",
+              "translateFrame": [
+                {
+                  "duration": 12,
+                  "tweenEasing": 0,
+                  "x": 0,
+                  "y": -4
+                },
+                {
+                  "duration": 12,
+                  "tweenEasing": 0,
+                  "x": 0,
+                  "y": 4
+                },
+                {
+                  "duration": 0,
+                  "tweenEasing": 0,
+                  "x": 0,
+                  "y": -4
+                }
+              ]
+            },
+            {
+              "name": "spine",
+              "rotateFrame": [
+                {
+                  "duration": 12,
+                  "tweenEasing": 0,
+                  "rotate": 6
+                },
+                {
+                  "duration": 12,
+                  "tweenEasing": 0,
+                  "rotate": -6
+                },
+                {
+                  "duration": 0,
+                  "tweenEasing": 0,
+                  "rotate": 6
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "defaultActions": [
+        {
+          "gotoAndPlay": "walk"
+        }
+      ]
+    }
+  ]
+}
