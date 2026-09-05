@@ -1,0 +1,1886 @@
+/* ============================================================
+   Lily's Dress-Up Adventure — main stylesheet
+   Kid-friendly: bright colors, big rounded shapes, soft shadows
+   ============================================================ */
+
+/* ---------- Palette ---------- */
+:root {
+  --sky-blue: #7ec8f7;
+  --sky-blue-dark: #4fa3e3;
+  --sunny-yellow: #ffd93d;
+  --grass-green: #6bd66b;
+  --grass-green-dark: #3fa93f;
+  --pink: #ff8fb8;
+  --pink-dark: #f26d9d;
+  --cream: #fff9ec;
+  --text-color: #3a2e6e;
+  --white: #ffffff;
+
+  --shadow-soft: 0 4px 10px rgba(58, 46, 110, 0.18);
+  --border-chunky: 4px solid var(--text-color);
+}
+
+/* ---------- Base ---------- */
+* {
+  box-sizing: border-box;
+}
+
+/* ============================================================
+   App shell layout (fit viewport)
+   The whole game (header + nav + main) always fits the browser
+   window with NO page-level scrolling: the document never scrolls
+   (body overflow hidden) and only <main class="game-main"> scrolls
+   internally when the active screen is taller than the remaining
+   space. The header (title + energy HUD) and the nav are
+   flex: none so the energy bar is ALWAYS visible without scrolling.
+   ============================================================ */
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  /* Fallbacks for browsers without dvh support, then the
+     dynamic-viewport-aware value for mobile toolbars. */
+  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden; /* the page NEVER scrolls — main scrolls instead */
+  background: linear-gradient(180deg, var(--sky-blue) 0%, var(--sky-blue-dark) 100%);
+  font-family: "Comic Sans MS", "Chalkboard SE", "Comic Neue", "Trebuchet MS", "Segoe UI", sans-serif;
+  color: var(--text-color);
+}
+
+/* Centered game area for desktop + tablet: a flex column filling
+   exactly one viewport height; header/nav above, main below. */
+.game-area {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* fallback */
+  height: 100dvh;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* ---------- Header ---------- */
+.game-header {
+  flex: none; /* never shrinks — energy HUD always visible */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 8px;
+}
+
+.game-title {
+  margin: 0;
+  font-size: clamp(1.4rem, 4vw, 2.2rem);
+  color: var(--white);
+  text-shadow: 2px 2px 0 var(--text-color);
+  animation: title-bob 3s ease-in-out infinite;
+}
+
+/* Gentle bob for the header title */
+@keyframes title-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+/* ---------- Header right cluster (energy + sound) ---------- */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ---------- Energy HUD ---------- */
+.energy-hud {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--cream);
+  border: var(--border-chunky);
+  border-radius: 999px;
+  padding: 8px 16px;
+  box-shadow: var(--shadow-soft);
+}
+
+.energy-icon {
+  font-size: 1.4rem;
+}
+
+.energy-label {
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.energy-track {
+  width: 160px;
+  height: 22px;
+  background: var(--white);
+  border: 3px solid var(--text-color);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.energy-fill {
+  height: 100%;
+  width: 50%;
+  background: linear-gradient(180deg, var(--grass-green) 0%, var(--grass-green-dark) 100%);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.energy-value {
+  font-weight: bold;
+  font-size: 1.1rem;
+  min-width: 2ch;
+  text-align: right;
+}
+
+/* ---------- Screen nav ---------- */
+.screen-nav {
+  flex: none; /* never shrinks — screen switcher always visible */
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  padding: 8px 0 16px;
+}
+
+.nav-button {
+  font-family: inherit;
+  font-size: clamp(1rem, 2.6vw, 1.35rem);
+  font-weight: bold;
+  color: var(--text-color);
+  background: var(--sunny-yellow);
+  border: var(--border-chunky);
+  border-radius: 999px;
+  padding: 12px 22px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.nav-button:hover {
+  transform: scale(1.06) rotate(-1.5deg);
+  background: var(--pink);
+}
+
+.nav-button.active {
+  background: var(--grass-green);
+  color: var(--white);
+  transform: scale(1.08);
+}
+
+/* ---------- Screens ---------- */
+.game-main {
+  flex: 1 1 auto;
+  /* min-height: 0 lets main shrink below its content height in the
+     flex column (without it, Firefox gives it content height and the
+     page overflows). This is what makes the INTERNAL scroll work. */
+  min-height: 0;
+  overflow-y: auto;
+  /* Comfortable padding: a little extra at the bottom so the last
+     grid rows never hug the rounded border while scrolling. */
+  background: var(--cream);
+  border: var(--border-chunky);
+  border-radius: 24px;
+  box-shadow: var(--shadow-soft);
+  padding: 20px 20px 24px;
+  /* Soft, kid-friendly internal scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--pink) transparent;
+}
+
+.game-main::-webkit-scrollbar {
+  width: 10px;
+}
+
+.game-main::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.game-main::-webkit-scrollbar-thumb {
+  background: var(--pink);
+  border-radius: 999px;
+  border: 2px solid var(--cream);
+}
+
+.screen {
+  display: none;
+}
+
+.screen.active {
+  display: block;
+  animation: screen-pop 0.35s ease;
+}
+
+/* Pop animation when a screen becomes active */
+@keyframes screen-pop {
+  0%   { transform: scale(0.92); opacity: 0; }
+  70%  { transform: scale(1.03); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.placeholder {
+  text-align: center;
+  padding: 32px 16px;
+}
+
+.placeholder-emoji {
+  font-size: 4rem;
+  line-height: 1;
+}
+
+.placeholder h2 {
+  margin: 12px 0 8px;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+}
+
+.placeholder p {
+  margin: 0;
+  font-size: clamp(1rem, 2.6vw, 1.3rem);
+}
+
+/* ---------- Talk bubble ---------- */
+.talk-bubble {
+  position: relative;
+  margin: 0 auto 16px;
+  max-width: 640px;
+  background: var(--white);
+  border: var(--border-chunky);
+  border-radius: 999px;
+  padding: 12px 24px;
+  text-align: center;
+  font-size: clamp(1rem, 2.6vw, 1.25rem);
+  font-weight: bold;
+  box-shadow: var(--shadow-soft);
+}
+
+/* Speech-bubble tail */
+.talk-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-10px);
+  border: 12px solid transparent;
+  border-top: 16px solid var(--text-color);
+}
+
+.talk-bubble::before {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-5px);
+  z-index: 1;
+  border: 7px solid transparent;
+  border-top: 11px solid var(--white);
+}
+
+/* Quick pop used when the bubble text changes */
+.talk-bubble.pop {
+  animation: talk-pop 0.3s ease;
+}
+
+@keyframes talk-pop {
+  0%   { transform: scale(0.9); }
+  60%  { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* ============================================================
+   Character (Lily) — SVG renderer
+   ============================================================ */
+
+/* Stage centers Lily at the bottom of the container so she
+   "stands" on the screen edge. */
+.character-stage {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding: 8px 0 4px;
+}
+
+/* SVGs scale with their container; the size class sets max width. */
+.character-stage .character {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Big Lily on wardrobe/kitchen screens.
+   Fit-viewport: she grows/shrinks with the window height (max ~300px,
+   ~30vh) so the screen never overflows. aspect-ratio matches the SVG
+   viewBox (300x340) so she keeps her shape with width: auto. */
+.character-stage .character-big {
+  width: auto;
+  height: clamp(140px, 30vh, 300px);
+  max-width: 340px;
+  aspect-ratio: 300 / 340;
+}
+
+/* Small Lily as a map marker */
+.character-small {
+  max-width: 90px;
+}
+
+/* ---------- Character animations ---------- */
+
+/* Little hop */
+.character-anim-bounce {
+  animation: character-bounce 0.7s ease;
+}
+
+@keyframes character-bounce {
+  0%, 100% { transform: translateY(0); }
+  30%      { transform: translateY(-16px); }
+  55%      { transform: translateY(0); }
+  75%      { transform: translateY(-7px); }
+}
+
+/* Wiggle + hop (happy dance) */
+.character-anim-cheer {
+  animation: character-cheer 0.9s ease;
+  transform-origin: 50% 100%;
+}
+
+@keyframes character-cheer {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  20%      { transform: translateY(-12px) rotate(-6deg); }
+  40%      { transform: translateY(-2px) rotate(5deg); }
+  60%      { transform: translateY(-14px) rotate(-4deg); }
+  80%      { transform: translateY(-4px) rotate(3deg); }
+}
+
+/* Quick head-bob (munching) */
+.character-anim-eat {
+  animation: character-eat 0.7s ease;
+  transform-origin: 50% 85%;
+}
+
+@keyframes character-eat {
+  0%, 100% { transform: rotate(0deg); }
+  25%      { transform: rotate(4deg); }
+  55%      { transform: rotate(-3deg); }
+  80%      { transform: rotate(2deg); }
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .character-anim-bounce,
+  .character-anim-cheer,
+  .character-anim-eat {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   Wardrobe screen — category tabs, item grid, sparkles
+   ============================================================ */
+
+/* Big friendly screen heading (title sits above Lily's stage) */
+.screen-title {
+  text-align: center;
+  margin: 0 0 8px;
+  font-size: clamp(1.5rem, 4.5vw, 2.2rem);
+}
+
+/* Short helper line under the tabs */
+.helper-text {
+  text-align: center;
+  margin: 0 0 14px;
+  font-size: clamp(1rem, 2.6vw, 1.25rem);
+  font-weight: bold;
+}
+
+/* Sparkles are positioned over the stage, so make it a context */
+#screen-wardrobe .character-stage {
+  position: relative;
+}
+
+/* ---------- Category tabs ---------- */
+.wardrobe-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 4px 0 12px;
+}
+
+.wardrobe-tab {
+  font-family: inherit;
+  font-size: clamp(1.05rem, 2.8vw, 1.3rem);
+  font-weight: bold;
+  color: var(--text-color);
+  background: var(--white);
+  border: var(--border-chunky);
+  border-radius: 999px;
+  padding: 12px 20px;
+  min-height: 52px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.wardrobe-tab:hover {
+  transform: scale(1.06) rotate(-2deg);
+  background: var(--sunny-yellow);
+}
+
+.wardrobe-tab.active {
+  background: var(--pink);
+  color: var(--white);
+  transform: scale(1.08);
+}
+
+/* ---------- Item grid ---------- */
+.wardrobe-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 12px;
+}
+
+.wardrobe-items.tab-pop {
+  animation: tab-pop 0.3s ease;
+}
+
+@keyframes tab-pop {
+  0%   { transform: scale(0.95); opacity: 0.4; }
+  60%  { transform: scale(1.02); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ---------- Item buttons ---------- */
+.wardrobe-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 64px;
+  padding: 10px 8px;
+  font-family: inherit;
+  font-size: clamp(1rem, 2.4vw, 1.18rem);
+  font-weight: bold;
+  color: var(--text-color);
+  background: var(--white);
+  border: var(--border-chunky);
+  border-radius: 18px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+}
+
+.wardrobe-item:hover {
+  animation: item-wobble 0.35s ease;
+}
+
+@keyframes item-wobble {
+  0%, 100% { transform: rotate(0deg); }
+  25%      { transform: rotate(-2.5deg) scale(1.04); }
+  60%      { transform: rotate(2deg) scale(1.04); }
+}
+
+.wardrobe-item-emoji {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.wardrobe-item-name {
+  text-align: center;
+}
+
+/* Currently worn item: green border + "Wearing!" badge */
+.wardrobe-item.worn {
+  border-color: var(--grass-green-dark);
+  background: #eafbe7;
+}
+
+.wardrobe-item.worn::after {
+  content: "Wearing!";
+  position: absolute;
+  top: -12px;
+  right: -8px;
+  background: var(--grass-green);
+  color: var(--white);
+  border: 3px solid var(--grass-green-dark);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.85rem;
+}
+
+/* The optional "None" clear button for Extras */
+.wardrobe-item-none {
+  background: #fff3f8;
+}
+
+/* ---------- Sparkle burst ---------- */
+.wardrobe-sparkle {
+  position: absolute;
+  z-index: 5;
+  font-size: 1.8rem;
+  pointer-events: none;
+  animation: sparkle-float 1.15s ease-out forwards;
+}
+
+@keyframes sparkle-float {
+  0%   { transform: translateY(0) scale(0.5) rotate(0deg); opacity: 0; }
+  15%  { opacity: 1; }
+  100% { transform: translateY(-90px) scale(1.15) rotate(15deg); opacity: 0; }
+}
+
+/* Respect reduced-motion preferences for wardrobe animations too */
+@media (prefers-reduced-motion: reduce) {
+  .wardrobe-item:hover,
+  .wardrobe-items.tab-pop,
+  .wardrobe-sparkle {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   Kitchen screen — food/drink menu, energy chips, floats
+   ============================================================ */
+
+/* Lily floats above the food, so sparkles/indicators can be
+   positioned over her too. */
+#screen-kitchen .character-stage {
+  position: relative;
+}
+
+/* ---------- Food grid ---------- */
+.food-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+/* ---------- Food/drink buttons ---------- */
+.food-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 72px;
+  padding: 12px 10px;
+  font-family: inherit;
+  font-size: clamp(1.1rem, 2.6vw, 1.3rem);
+  font-weight: bold;
+  color: var(--text-color);
+  background: var(--white);
+  border: var(--border-chunky);
+  border-radius: 18px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+}
+
+.food-item:hover {
+  animation: item-wobble 0.35s ease;
+}
+
+.food-item:active {
+  transform: scale(0.94);
+  box-shadow: 0 2px 4px rgba(58, 46, 110, 0.18);
+}
+
+.food-item-emoji {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.food-item-name {
+  text-align: center;
+}
+
+/* ---------- "+N" energy chip ---------- */
+.energy-chip {
+  background: var(--grass-green);
+  color: var(--white);
+  border: 3px solid var(--grass-green-dark);
+  border-radius: 999px;
+  padding: 2px 12px;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+/* ---------- Floating "+N 💛" indicator ---------- */
+.energy-float {
+  position: absolute;
+  z-index: 6;
+  transform: translateX(-50%);
+  font-size: 1.6rem;
+  font-weight: bold;
+  color: var(--text-color);
+  text-shadow: 1px 1px 0 var(--white), 2px 2px 0 var(--white);
+  pointer-events: none;
+  animation: energy-float-up 1.2s ease-out forwards;
+}
+
+@keyframes energy-float-up {
+  0%   { transform: translate(-50%, 0) scale(0.6); opacity: 0; }
+  15%  { opacity: 1; }
+  100% { transform: translate(-50%, -110px) scale(1.15); opacity: 0; }
+}
+
+/* ---------- Food emoji flying to Lily's mouth ---------- */
+.food-fly {
+  position: absolute;
+  z-index: 7;
+  font-size: 1.8rem;
+  line-height: 1;
+  pointer-events: none;
+  animation: food-fly-to-lily 0.8s ease-in forwards;
+}
+
+@keyframes food-fly-to-lily {
+  /* Starts at the tapped button (positioned by JS); ends near
+     Lily's mouth at the top-center of the grid. */
+  0%   { transform: translate(-50%, 0) scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -160px) scale(0.5) rotate(30deg); opacity: 0.2; }
+}
+
+/* Respect reduced-motion preferences for kitchen animations too */
+@media (prefers-reduced-motion: reduce) {
+  .food-item:hover,
+  .energy-float,
+  .food-fly {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   Map screen — little town: board, roads, decor, place buttons,
+   the walking friend
+   ============================================================ */
+
+/* Shows where the chosen friend is right now ("<name> is at: 🏠 Home") */
+.current-place {
+  display: block;
+  width: fit-content;
+  margin: 0 auto 14px;
+  padding: 8px 18px;
+  background: var(--white);
+  border: var(--border-chunky);
+  border-radius: 999px;
+  font-size: clamp(1rem, 2.6vw, 1.25rem);
+  font-weight: bold;
+  box-shadow: var(--shadow-soft);
+}
+
+/* ---------- The big grass-and-sky board ---------- */
+.map-board {
+  position: relative;
+  min-height: 540px;
+  border: var(--border-chunky);
+  border-radius: 24px;
+  background: linear-gradient(
+    180deg,
+    var(--sky-blue) 0%,
+    #b9ecc4 55%,
+    var(--grass-green) 100%
+  );
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+/* Decorative sky: a couple of clouds in the top-right corner */
+.map-board::before {
+  content: "☁\A0\A0☁";
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  font-size: 1.6rem;
+  line-height: 1;
+  opacity: 0.85;
+  pointer-events: none;
+  white-space: pre;
+}
+
+/* ---------- Roads: SVG layer painted under the town ---------- */
+/* viewBox is 0..100 x 0..100 stretched to the board, so line
+   endpoints are the places' cx/cy percentages. non-scaling-stroke
+   keeps stroke widths in pixels despite the stretched viewBox. */
+.map-road {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0; /* under decor (1), walker (2) and place buttons (3) */
+  pointer-events: none;
+}
+
+.road {
+  fill: none;
+  stroke: #d9c39a;
+  stroke-width: 13;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.road-dash {
+  fill: none;
+  stroke: #ffffff;
+  stroke-opacity: 0.8;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 7 9;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ---------- Decorations + little people (non-interactive) ---------- */
+.map-decor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1; /* above roads, below place buttons */
+  pointer-events: none;
+}
+
+.map-decor-item {
+  position: absolute;
+  line-height: 1;
+  /* left/top mark the item's CENTER */
+  transform: translate(-50%, -50%);
+}
+
+.decor-emoji {
+  display: inline-block;
+  font-size: 1.7rem;
+}
+
+.folk .decor-emoji {
+  font-size: 1.5rem;
+}
+
+/* Gentle idles (animate the INNER glyph so the outer item can keep
+   its centering/flip transform untouched). */
+.decor-sway {
+  animation: decor-sway 4.6s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+
+@keyframes decor-sway {
+  0%, 100% { transform: rotate(-3deg); }
+  50%      { transform: rotate(3deg); }
+}
+
+.decor-bob {
+  animation: decor-bob 3.4s ease-in-out infinite;
+}
+
+@keyframes decor-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+/* ---------- Place buttons (absolutely positioned by JS) ---------- */
+.place {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 15.5%;
+  min-width: 104px;
+  max-width: 136px;
+  /* JS sets left/top to the place CENTER; anchor the box around it */
+  transform: translate(-50%, -50%);
+  /* Bottom padding reserves the spot where Lily stands */
+  padding: 10px 6px 58px;
+  font-family: inherit;
+  font-size: clamp(0.9rem, 2vw, 1.05rem);
+  font-weight: bold;
+  color: var(--text-color);
+  background: var(--white);
+  border: var(--border-chunky);
+  border-radius: 18px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  /* Above the walker (2): walking "into" a town tucks her briefly
+     behind the place card. */
+  z-index: 3;
+}
+
+/* Same wobble as other chunky buttons, but each keyframe keeps the
+   centering translate so the button never jumps on hover. */
+.place:hover {
+  animation: place-wobble 0.35s ease;
+}
+
+@keyframes place-wobble {
+  0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+  25%      { transform: translate(-50%, -50%) rotate(-2.5deg) scale(1.04); }
+  60%      { transform: translate(-50%, -50%) rotate(2deg) scale(1.04); }
+}
+
+.place:active {
+  transform: translate(-50%, -50%) scale(0.94);
+  box-shadow: 0 2px 4px rgba(58, 46, 110, 0.18);
+}
+
+.place-label {
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Yellow pill showing the trip's energy cost */
+.cost-badge {
+  background: var(--sunny-yellow);
+  border: 3px solid var(--text-color);
+  border-radius: 999px;
+  padding: 1px 10px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+/* Lily stands here — only the current place gets a marker */
+.place-character {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 46px;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.place-character .character {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ---------- 🚶 the walking friend crossing town ---------- */
+/* Three nested layers, ONE transform each, so they never fight:
+   .map-walker   = position along the road (set by JS translate)
+   .map-walker-flip = direction mirror (scaleX)
+   .map-walker-bob  = step waddle (CSS keyframes; holds the character SVG)
+   She walks above roads/decor but below the place cards (z 3),
+   and is pointer-events:none so she can never block a tap. */
+.map-walker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.map-walker-flip {
+  display: block;
+}
+
+.map-walker-flip.face-left {
+  transform: scaleX(-1);
+}
+
+.map-walker-bob {
+  display: block;
+  /* A touch bigger than the 46px standing marker so she's easy
+     to spot mid-walk. */
+  width: 54px;
+}
+
+.map-walker-bob .character {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Gentle vertical bob + tiny rotate "step" loop while moving */
+.map-walker-bob.walking {
+  animation: walker-step 0.42s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+
+@keyframes walker-step {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50%      { transform: translateY(-3px) rotate(2deg); }
+}
+
+/* Her standing map marker is hidden while the walker carries her */
+.place-character.walking-out {
+  visibility: hidden;
+}
+
+/* ---------- Narrow screens: simple vertical list ---------- */
+@media (max-width: 640px) {
+  /* The 4 chunky nav pills (emoji + label) exceed a narrow phone/tablet
+     width and push a ~9px horizontal scrollbar. Shrink gap + padding so
+     they always fit and the beach/map never scroll sideways. */
+  .screen-nav { gap: 8px; }
+  .nav-button { padding: 10px 12px; }
+}
+
+@media (max-width: 640px) {
+  .map-board {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    padding: 12px;
+  }
+
+  .map-board::before {
+    display: none;
+  }
+
+  /* The town art only makes sense on the big board: hide roads,
+     decor, people and the walker so the fallback is a clean
+     tappable list (map.js teleports in list mode too). */
+  .map-road,
+  .map-decor,
+  .map-walker {
+    display: none;
+  }
+
+  .place {
+    position: relative;
+    top: auto !important;
+    left: auto !important;
+    /* back to normal flow: no centering translate needed */
+    transform: none !important;
+    width: 100%;
+    max-width: none;
+    padding: 12px 8px 64px;
+  }
+
+  .place:hover {
+    animation: none;
+  }
+}
+
+/* Respect reduced-motion preferences for the map animations too */
+@media (prefers-reduced-motion: reduce) {
+  .place:hover {
+    animation: none;
+  }
+  /* map.js skips the walk itself (instant trip); just still her. */
+  .map-walker-bob.walking {
+    animation: none;
+  }
+  .decor-sway,
+  .decor-bob {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   Friends screen — choose which girl to play as
+   (cards mirror the wardrobe .worn badge pattern)
+   ============================================================ */
+
+.friends-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+}
+
+.friend-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 210px;
+  padding: 12px 10px;
+  font-family: inherit;
+  font-size: clamp(1.05rem, 2.6vw, 1.3rem);
+  font-weight: bold;
+  color: var(--text-color);
+  background: var(--white);
+  border: var(--border-chunky);
+  border-radius: 18px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.friend-card:hover {
+  animation: item-wobble 0.35s ease;
+}
+
+.friend-card:active {
+  transform: scale(0.96);
+}
+
+.friend-card-name {
+  text-align: center;
+}
+
+/* Previews: smaller, fixed-ish width (override .character-small cap) */
+.friend-card .friend-stage {
+  padding: 0;
+}
+
+.friend-card .friend-stage svg {
+  width: 130px;
+  max-width: none;
+  height: auto;
+}
+
+/* Currently playing friend: green border + "Playing!" badge */
+.friend-card.chosen {
+  border-color: var(--grass-green-dark);
+  background: #eafbe7;
+}
+
+.friend-card.chosen::after {
+  content: "Playing!";
+  position: absolute;
+  top: -12px;
+  right: -8px;
+  background: var(--grass-green);
+  color: var(--white);
+  border: 3px solid var(--grass-green-dark);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.85rem;
+}
+
+/* Respect reduced-motion preferences for the friends cards too */
+@media (prefers-reduced-motion: reduce) {
+  .friend-card:hover {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   Dynamic name — b[data-char-name] placeholders (js/friends.js
+   repaints these with the chosen friend's name). Inline and
+   subtle: same weight as the sentence, just tinted pink so the
+   name pops a little on the cream background.
+   ============================================================ */
+
+b[data-char-name] {
+  font-weight: inherit;
+  color: var(--pink-dark);
+}
+
+/* ============================================================
+   Polish pass — sound toggle (header button)
+   ============================================================ */
+
+.sound-toggle {
+  font-family: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  background: var(--cream);
+  border: 3px solid var(--text-color);
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.15s ease;
+}
+
+.sound-toggle:hover {
+  transform: scale(1.08);
+}
+
+.sound-toggle.muted {
+  opacity: 0.65;
+}
+
+/* ---------- Energy bar color states (classes toggled on the fill) ---------- */
+
+/* 31-60: sunny yellow */
+.energy-fill.energy-mid {
+  background: linear-gradient(180deg, #ffe082 0%, #ffb300 100%);
+}
+
+/* 0-30: warm orange (low, never scary) */
+.energy-fill.energy-low {
+  background: linear-gradient(180deg, #ffab73 0%, #ff7043 100%);
+}
+
+/* ---------- Heart burst on energy change ---------- */
+
+@keyframes heart-burst {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.45) rotate(-6deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.energy-icon.heart-burst {
+  animation: heart-burst 0.45s ease;
+}
+
+/* ============================================================
+   Polish pass — gentle idle bob for Lily (wardrobe + kitchen)
+   ============================================================ */
+
+/* Animated on the inner SVG group so the bounce/cheer/eat
+   animation classes on the <svg> itself never conflict. */
+.character-stage .character .character-root {
+  animation: lily-idle-bob 3s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+
+@keyframes lily-idle-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+/* ============================================================
+   Polish pass — welcome / start screen overlay
+   ============================================================ */
+
+#welcome-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000; /* above everything — title-screen style */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+  /* Semi-transparent sky so the game peeks through behind the card */
+  background: linear-gradient(
+    180deg,
+    rgba(126, 200, 247, 0.88) 0%,
+    rgba(79, 163, 227, 0.92) 100%
+  );
+}
+
+.welcome-card {
+  background: var(--cream);
+  border: var(--border-chunky);
+  border-radius: 28px;
+  box-shadow: var(--shadow-soft);
+  padding: 32px 28px;
+  max-width: 560px;
+  width: 100%;
+  text-align: center;
+  animation: welcome-card-in 0.5s ease both;
+}
+
+@keyframes welcome-card-in {
+  0%   { transform: translateY(24px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.welcome-title {
+  margin: 0 0 12px;
+  font-size: clamp(1.6rem, 5vw, 2.4rem);
+  line-height: 1.25;
+}
+
+/* Rainbow gradient text (🌈 kept in its own span so it stays colorful) */
+.welcome-title-rainbow {
+  background: linear-gradient(
+    90deg,
+    #ff5a5a 0%,
+    #ffa54a 20%,
+    #ffd93d 40%,
+    #6bd66b 60%,
+    #4fa3e3 80%,
+    #a56bd6 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.welcome-text {
+  margin: 0 0 24px;
+  font-size: clamp(1.05rem, 2.8vw, 1.3rem);
+  font-weight: bold;
+}
+
+/* Giant rounded "Let's Play!" button with bounce-in */
+.welcome-button {
+  display: block;
+  width: 100%;
+  font-family: inherit;
+  font-size: clamp(1.5rem, 5vw, 2.1rem);
+  font-weight: bold;
+  color: var(--text-color);
+  background: var(--sunny-yellow);
+  border: var(--border-chunky);
+  border-radius: 999px;
+  padding: 18px 24px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  animation: welcome-bounce-in 0.6s ease 0.25s both;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.welcome-button:hover {
+  transform: scale(1.05) rotate(-1.5deg);
+  background: var(--pink);
+}
+
+.welcome-button:active {
+  transform: scale(0.96);
+}
+
+@keyframes welcome-bounce-in {
+  0%   { transform: scale(0); opacity: 0; }
+  55%  { transform: scale(1.15); opacity: 1; }
+  75%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+.welcome-button-secondary {
+  background: var(--white);
+  font-size: clamp(1.2rem, 4vw, 1.6rem);
+  margin-top: 14px;
+  animation-delay: 0.45s;
+}
+
+.welcome-button-secondary:hover {
+  background: #eafbe7;
+}
+
+/* Respect reduced-motion preferences for the polish animations too */
+@media (prefers-reduced-motion: reduce) {
+  .character-stage .character .character-root,
+  .energy-icon.heart-burst,
+  .welcome-card,
+  .welcome-button {
+    animation: none;
+  }
+}
+
+/* ---------- Utility: hidden elements ----------
+   (#welcome-continue is hidden until a save exists; kept at the END of
+   the file so it wins the cascade over rules that also set display,
+   e.g. .welcome-button's display: block.) */
+.hidden {
+  display: none;
+}
+
+/* ============================================================
+   Beach scene overlay (shell + art — js/beach.js)
+    Real layered beach art is built inside #beach-stage by
+    js/beach.js (sky / sea / sand / props); this section holds
+    the overlay shell, and the "Beach scene art" section at the
+    end of the file styles the layers.
+    The overlay is fixed over the whole viewport and NEVER scrolls
+    the page (body stays overflow:hidden; stage flexes, actions bar
+    is pinned at the bottom).
+    ============================================================ */
+
+.beach-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 300; /* above the game, below the welcome overlay (1000) */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* drifting clouds/gulls never create scrollbars */
+  /* Zone geometry — SINGLE SOURCE OF TRUTH for the whole scene, as
+     % of #beach-stage height: sky = 0 – var(--sea-top), sea =
+     var(--sea-top) – var(--sand-top), sand = var(--sand-top) – 100%.
+     Later tasks (DOM art and the canvas world in js/beach-game.js)
+     must anchor to these same variables, not to hardcoded pixels. */
+  --sea-top: 42%;
+  --sand-top: 72%;
+  /* Plain sky wash behind the bubble row above the stage. */
+  background: linear-gradient(180deg, #cdefff 0%, var(--sky-blue) 100%);
+}
+
+/* These rules live AFTER .hidden in the cascade, so compound
+   selectors keep the hidden utility winning. */
+.beach-scene.hidden {
+  display: none;
+}
+
+.beach-close {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 11; /* above every stage art layer */
+  font-family: inherit;
+  font-size: clamp(1rem, 3.4vw, 1.25rem);
+  font-weight: bold;
+  color: var(--text-color);
+  background: var(--white);
+  border: var(--border-chunky);
+  border-radius: 999px;
+  padding: 10px 20px;
+  min-height: 44px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.beach-close:hover {
+  transform: scale(1.05);
+  background: var(--sunny-yellow);
+}
+
+.beach-close:active {
+  transform: scale(0.95);
+}
+
+/* Speech bubble floating top-center (like .talk-bubble, overlay edition) */
+.beach-talk {
+  align-self: center;
+  flex: none;
+  position: relative;
+  z-index: 10; /* UI stays above the stage art */
+  margin: 16px 88px 0; /* leave room for the Back button on narrow screens */
+  max-width: 560px;
+  background: var(--white);
+  border: var(--border-chunky);
+  border-radius: 999px;
+  padding: 10px 22px;
+  text-align: center;
+  font-size: clamp(0.95rem, 2.6vw, 1.25rem);
+  font-weight: bold;
+  box-shadow: var(--shadow-soft);
+}
+
+/* Pop re-trigger when js/beach.js ctx.talk() changes the text
+   (same trick + same keyframes as .talk-bubble.pop above). */
+.beach-talk.pop {
+  animation: talk-pop 0.3s ease;
+}
+
+/* Narrow screens: side-by-side gets tight, so drop the bubble BELOW
+   the absolutely-positioned Back button instead. */
+@media (max-width: 620px) {
+  .beach-talk {
+    margin: 70px 20px 0;
+  }
+}
+
+/* Everything in between: js/beach.js builds the art layers in here. */
+.beach-stage {
+  flex: 1;
+  position: relative;
+  min-height: 0; /* lets the stage shrink instead of pushing the bar off-screen */
+}
+
+/* The chosen friend, rendered here by js/beach.js on first open.
+   Feet land near the sand band's vertical middle: the sand spans
+   var(--sand-top)=72% – 100% of the stage, so its middle is ~86%
+   down = ~14% up from the stage bottom. Slightly right of center.
+   z-index 6 keeps her fully above every scenery layer (.beach-props
+   is 4). No character animation is added here — later beach tasks
+   own character states. */
+.beach-character-stage {
+  position: absolute;
+  bottom: 13.5%;
+  left: 57%;
+  transform: translateX(-50%);
+  z-index: 6;
+}
+
+/* Bottom activity bar — js/beach.js renderActions() rebuilds it from
+   the activities registered for the current mode. Wraps on narrow
+   screens; capped so many buttons scroll instead of eating the art. */
+.beach-actions {
+  flex: none;
+  position: relative;
+  z-index: 10; /* UI stays above the stage art */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
+  max-height: 34vh; /* cap: wrap first, then scroll (never hide the scene) */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: rgba(255, 249, 236, 0.75); /* translucent cream */
+  border-top: 4px solid rgba(58, 46, 110, 0.25);
+}
+
+.beach-action-button {
+  font-family: inherit;
+  font-size: clamp(0.95rem, 2.8vw, 1.15rem);
+  font-weight: bold;
+  color: var(--text-color);
+  background: var(--pink);
+  border: var(--border-chunky);
+  border-radius: 999px;
+  min-height: 44px; /* kid fingers / touch targets */
+  padding: 10px 20px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.beach-action-button:hover {
+  transform: scale(1.06) rotate(-1deg);
+  background: var(--pink-dark);
+}
+
+.beach-action-button:active {
+  transform: scale(0.95);
+}
+
+/* ---------- 🌊 Play at the Beach! button (map screen, js/map.js toggles .hidden) ---------- */
+
+.beach-play-button {
+  display: block;
+  margin: 18px auto 4px;
+  font-family: inherit;
+  font-size: clamp(1.15rem, 3.6vw, 1.5rem);
+  font-weight: bold;
+  color: var(--text-color);
+  background: #4fc3d9;
+  border: var(--border-chunky);
+  border-radius: 999px;
+  padding: 14px 28px;
+  min-height: 44px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.beach-play-button.hidden {
+  display: none;
+}
+
+.beach-play-button:hover {
+  transform: scale(1.05) rotate(-1deg);
+  background: #7fd8e8;
+}
+
+.beach-play-button:active {
+  transform: scale(0.95);
+}
+
+/* ============================================================
+   Beach scene ART layers — built inside #beach-stage by js/beach.js
+   ------------------------------------------------------------
+   Zone geometry lives in the custom properties on .beach-scene
+   (--sea-top: 42%, --sand-top: 72%), both % of #beach-stage height:
+     sky  = 0        → var(--sea-top)   (~42%)
+     sea  = var(--sea-top) → var(--sand-top)  (~30%)
+     sand = var(--sand-top) → 100%      (~28%)
+    Later tasks (the Phaser canvas world, the sandcastle) anchor
+    their vertical positions to these same two properties.
+   All bands overlap their neighbours by a couple of px so sub-pixel
+   antialiasing can never open a hairline gap; higher layers paint
+   over the bleed, so the boundaries read as clean lines.
+   Layer stacking: sky(1) < sea(2) < sand(3) < props(4) < character(6)
+   — the friend always stays fully visible above the scenery.
+   Ambient motion is transform/opacity only (no layout thrash) and is
+   fully disabled under prefers-reduced-motion (see end of file).
+   ============================================================ */
+
+/* Any <svg> we drop into a wrapper fills its box width, keeps aspect. */
+.beach-sky svg,
+.beach-sea svg,
+.beach-props svg,
+.beach-sky img { display: block; width: 100%; height: auto; }
+
+/* ---------- SKY (top band) ---------- */
+.beach-sky {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: calc(var(--sea-top) + 2%); /* small bleed under the sea */
+  z-index: 1;
+  overflow: hidden; /* clips drifting clouds & gliding gulls */
+  /* pale blue high up → lighter (hazier) down at the horizon */
+  background: linear-gradient(180deg, #7ec8f7 0%, #a8ddfb 45%, #d8f1ff 100%);
+}
+
+/* Sun: warm disc, top-right; its ray group spins very slowly. */
+.beach-sun {
+  position: absolute;
+  top: 8%; right: 9%;
+  width: clamp(54px, 12%, 130px);
+}
+.beach-sun svg { overflow: visible; } /* let the ray tips breathe past the box */
+.beach-sun-rays {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sun-spin 60s linear infinite;
+}
+@keyframes sun-spin { to { transform: rotate(360deg); } }
+
+/* Clouds: three puffs drifting right at different heights/speeds. */
+.beach-cloud {
+  position: absolute;
+  left: 0;
+  filter: drop-shadow(0 3px 3px rgba(90, 140, 180, 0.18));
+  will-change: transform;
+}
+.beach-cloud-1 { top: 16%; width: clamp(70px, 17%, 190px);
+  animation: cloud-drift 46s linear infinite; }
+.beach-cloud-2 { top: 44%; width: clamp(52px, 12%, 140px); opacity: 0.9;
+  animation: cloud-drift 68s linear infinite; animation-delay: -20s; }
+.beach-cloud-3 { top: 70%; width: clamp(40px, 9%, 110px); opacity: 0.8;
+  animation: cloud-drift 92s linear infinite; animation-delay: -55s; }
+/* start fully off-screen left, end fully off-screen right (viewport-wide) */
+@keyframes cloud-drift {
+  from { transform: translateX(-32vw); }
+  to   { transform: translateX(122vw); }
+}
+
+/* Seagulls: two little "m" strokes gliding high, with a gentle bob. */
+.beach-gull {
+  position: absolute; left: 0;
+  will-change: transform;
+}
+.beach-gull-bob { animation: gull-bob 2.6s ease-in-out infinite; }
+.beach-gull-1 { top: 12%; width: clamp(20px, 4%, 46px);
+  animation: gull-glide 34s linear infinite; }
+.beach-gull-2 { top: 26%; width: clamp(16px, 3%, 36px);
+  animation: gull-glide 44s linear infinite; animation-delay: -16s; }
+@keyframes gull-glide {
+  from { transform: translateX(-18vw); }
+  to   { transform: translateX(120vw); }
+}
+@keyframes gull-bob {
+  0%, 100% { transform: translateY(-40%); }
+  50%      { transform: translateY(40%); }
+}
+
+/* ---------- SEA (middle band) ---------- */
+.beach-sea {
+  position: absolute;
+  left: 0; right: 0;
+  top: calc(var(--sea-top) - 2%);          /* bleed up over sky */
+  height: calc(var(--sand-top) - var(--sea-top) + 4%); /* + bleed into sand */
+  z-index: 2;
+  overflow: hidden;                        /* clips the sliding wave sheets */
+  /* darker teal at the horizon → brighter aqua toward the shallows */
+  background: linear-gradient(180deg, #2b93b6 0%, #3cb0cf 45%, #63d1e1 100%);
+}
+
+/* Horizontal wave bands: 200% wide sheets slid -50% → seamless. */
+.beach-wave {
+  position: absolute;
+  left: 0;
+  width: 200%;
+  will-change: transform;
+}
+.beach-wave svg { width: 100%; height: 100%; } /* preserveAspectRatio="none" */
+.beach-wave-1 { top: 10%; opacity: 0.30; height: 8%;
+  animation: wave-slide 22s linear infinite; }
+.beach-wave-2 { top: 40%; opacity: 0.40; height: 9%;
+  animation: wave-slide 15s linear infinite; animation-delay: -6s; }
+.beach-wave-3 { top: 66%; opacity: 0.55; height: 10%;
+  animation: wave-slide 9s linear infinite reverse; }
+@keyframes wave-slide {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* Foam edge riding the waterline (top of the sand band), gentle breathe. */
+.beach-foam {
+  position: absolute;
+  left: 0; right: 0;
+  top: -3%;                 /* sits over the sea/sand boundary */
+  height: 8%;
+  opacity: 0.92;
+  will-change: transform, opacity;
+  animation: foam-breathe 5.5s ease-in-out infinite;
+}
+.beach-foam svg { width: 100%; height: 100%; }
+@keyframes foam-breathe {
+  0%, 100% { transform: translateY(-6%) scaleY(1);    opacity: 0.9; }
+  50%      { transform: translateY(4%)  scaleY(1.12); opacity: 1; }
+}
+
+/* ---------- SAND (bottom band) ---------- */
+.beach-sand {
+  position: absolute;
+  left: 0; right: 0;
+  top: calc(var(--sand-top) - 2%); /* small bleed up under the foam/sea */
+  bottom: 0;
+  z-index: 3;
+  /* warm sand gradient + two sparse dot grains for a pebbly texture */
+  background-image:
+    radial-gradient(circle, rgba(206, 150, 66, 0.28) 1.4px, transparent 1.5px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.40) 1.2px, transparent 1.3px),
+    linear-gradient(180deg, #ffefc6 0%, #f6d78c 100%);
+  background-size: 26px 26px, 34px 34px, 100% 100%;
+  background-position: 4px 6px, 16px 20px, 0 0;
+}
+
+/* ---------- PROPS (umbrella, ball, shells, starfish) — above sand,
+   below the friend. Whole layer is click-through. ---------- */
+.beach-props {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+.beach-prop { position: absolute; }
+.beach-prop svg { filter: drop-shadow(0 3px 3px rgba(58, 46, 110, 0.16)); }
+
+.beach-umbrella {
+  left: 6%;
+  bottom: 5%;
+  width: clamp(96px, 22%, 300px);
+}
+.beach-umbrella svg { filter: drop-shadow(0 6px 6px rgba(58, 46, 110, 0.20)); }
+
+.beach-ball {
+  right: 11%;
+  bottom: 8%;
+  width: clamp(30px, 6%, 74px);
+  transform-origin: 50% 100%;
+  animation: ball-bob 2.8s ease-in-out infinite;
+}
+@keyframes ball-bob {
+  0%, 100% { transform: translateY(0) rotate(-6deg); }
+  50%      { transform: translateY(-16%) rotate(6deg); }
+}
+
+.beach-shell-a { left: 33%; bottom: 9%;  width: clamp(26px, 5%, 62px);
+  transform: rotate(-10deg); }
+.beach-shell-b { right: 30%; bottom: 6%;  width: clamp(24px, 4.6%, 56px);
+  transform: rotate(9deg); }
+.beach-shell-c { left: 47%; bottom: 5%;  width: clamp(20px, 3.6%, 44px);
+  transform: rotate(-4deg); opacity: 0.96; }
+
+.beach-starfish { right: 15%; bottom: 15%; width: clamp(28px, 5.5%, 66px);
+  transform: rotate(12deg); }
+
+.beach-flower { left: 22%; bottom: 6%;
+  font-size: clamp(18px, 3.4vw, 34px); line-height: 1;
+  transform: rotate(-8deg); }
+
+/* Narrow screens: the friend is proportionally much wider, so tuck
+   the right-side trinkets into the sand margins around her. */
+@media (max-width: 520px) {
+  .beach-starfish { right: 12%; bottom: 4%; }
+  .beach-ball { right: 5%; bottom: 20%; }
+}
+
+/* ---------- Reduced motion: kill every ambient beach animation ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .beach-sun-rays,
+  .beach-cloud-1, .beach-cloud-2, .beach-cloud-3,
+  .beach-gull-1, .beach-gull-2, .beach-gull-bob,
+  .beach-wave-1, .beach-wave-2, .beach-wave-3,
+  .beach-foam,
+  .beach-ball,
+  .beach-sparkle {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   Beach activity modes — js/beach.js "activity framework"
+   ------------------------------------------------------------
+   BeachScene.setMode(name) puts exactly one `mode-<name>` class on
+   the OVERLAY (.beach-scene); #beach-actions then renders only the
+   buttons registered for that mode. 'sand' is the ONLY mode with a
+   DOM placement: .beach-character-stage's base rule in the overlay
+   section (feet mid-sand, z 6 above every art layer) IS the
+   standing look, so mode-sand needs no override.
+
+   'boat' is a bar-gating marker only: js/beach-boat.js sets it
+   while the CANVAS duck boat is ridden, purely so the 'boathop'
+   button shows — the DOM character is hidden (.game-active) and
+   the canvas boat paints itself. The retired water/swim/surf modes
+   and ALL per-mode character placement/animation machinery (the
+   --boat-x/--surf-x/--wave-x sync rules, bob/drift/splash
+   keyframes, the between-mode `left/bottom/transform` glide and
+   their reduced-motion kills) came out with mission 15 — nothing
+   moves #beach-character any more.
+
+   TO ADD AN ACTIVITY/MODE: register in JS —
+     BeachScene.registerActivity({ id, emoji, label,
+       modes: [...], onClick: ctx => ctx.setMode('<name>') });
+   setMode/renderActions discover both automatically. Add a
+   `.beach-scene.mode-<name> .beach-character-stage` rule only if
+   the mode should move the DOM character (anchor it to --sea-top /
+   --sand-top, animate only transform/translate/rotate/scale/
+   opacity, and list it under prefers-reduced-motion).
+   ============================================================ */
+
+/* ============================================================
+   Beach sandcastle — staged builder (activity 'castle', js/beach.js)
+   ------------------------------------------------------------
+   js/beach.js adds ONE container (.beach-prop.beach-castle) to the
+   props layer on the first build tap and swaps its innerHTML per
+   stage; these rules only place it and animate the stage-5 sparkles.
+   Same conventions as the other props: absolute % anchors inside
+   #beach-stage, click-through (the props layer is pointer-events:
+   none), svg fills the box via the .beach-props svg rule.
+   Anchored center-left of the sand (--sand-top band): translateX
+   centers the box on left:30%, clear of the umbrella pole (~17%),
+   the shells band and #beach-character at 57%.
+   ============================================================ */
+.beach-castle {
+  left: 30%;
+  bottom: 4%;
+  width: clamp(112px, 22%, 280px);
+  transform: translateX(-50%);
+}
+
+/* Sparkles: OUTER <g> places via its transform attr, INNER .beach-sparkle
+   twinkles — keyframes use the independent `scale`/`opacity` properties
+   only (see the activity-modes section note), so they compose with the
+   placement instead of overwriting it. Staggered delays = living twinkle.
+   Under reduced motion this animation is off (listed in the art-layer
+   media block), so the stars simply shine statically. */
+.beach-sparkle {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: castle-sparkle-twinkle 1.9s ease-in-out infinite;
+}
+.beach-sparkle-2 { animation-delay: -0.35s; }
+.beach-sparkle-3 { animation-delay: -0.7s; }
+.beach-sparkle-4 { animation-delay: -1.05s; }
+.beach-sparkle-5 { animation-delay: -1.4s; }
+.beach-sparkle-6 { animation-delay: -1.75s; }
+@keyframes castle-sparkle-twinkle {
+  0%, 100% { opacity: 0.25; scale: 0.6; }
+  50%      { opacity: 1;    scale: 1.15; }
+}
+
+/* Narrow screens: the fixed min-widths of umbrella/castle/character
+   crowd the short sand band — slim the castle and slide it right so
+   its moat ring clears the umbrella pole AND its sparkles stay clear
+   of Lily's body on the 57% anchor. */
+@media (max-width: 520px) {
+  .beach-castle {
+    left: 32%;
+    bottom: 3%;
+    width: clamp(92px, 22%, 132px);
+  }
+}
+
+/* ============================================================
+   Beach surf chrome used by the CANVAS surf game (js/beach-surf.js)
+   ------------------------------------------------------------
+   Surf play lives entirely in the Phaser canvas since mission 9:
+   it draws its own crest, board and foam and re-registers nothing
+   DOM-side except the 'surfcatch' bar button. The legacy DOM surf
+   machinery (--wave-x sweep .beach-surf-wave, --surf-x
+   .beach-surfboard + .is-surfing/.surf-wave-ready ride states,
+   .beach-surf-splash puffs, .is-disabled catch button) was removed
+   with mission 15. What survives here is ONLY what beach-surf.js
+   touches: the counter chip class and the .is-ready glow.
+   ============================================================ */
+
+/* ---------- wave counter chip (top-right of the overlay) ----------
+   ABSOLUTE styling kept for the CANVAS chip (js/beach-surf.js
+   creates a span.beach-surf-chip with its own inline display:flex
+   when the counter leaves 0 — the legacy display:none base +
+   .mode-surf gate are gone). Absolute in the fixed .beach-scene:
+   right side of the top row, clear of the top-LEFT Back button and
+   the top-CENTER talk bubble (capped 560px wide; on ≤620px screens
+   the bubble drops to top 70px and the chip's ~54px-tall box still
+   ends above it). */
+.beach-surf-chip {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 11;                     /* same tier as the Back button */
+  align-items: center;
+  font-family: inherit;
+  font-size: clamp(0.95rem, 2.6vw, 1.2rem);
+  font-weight: bold;
+  color: var(--text-color);
+  background: var(--white);
+  border: var(--border-chunky);
+  border-radius: 999px;
+  padding: 8px 16px;
+  min-height: 40px;
+  box-shadow: var(--shadow-soft);
+}
+
+/* ---------- MISSION 9 (canvas surf): .is-ready on the 🏄 button ----------
+   js/beach-surf.js toggles this on the [data-activity-id="surfcatch"]
+   action button every time canCatch() flips (no button in the bar →
+   the module just no-ops). The button stays ENABLED either way — the
+   glow + pulse are a timing tell, never a punishment. */
+@keyframes surf-catch-pulse {
+  0%, 100% { scale: 1; }
+  50%      { scale: 1.08; }
+}
+.beach-action-button.is-ready {
+  box-shadow: 0 0 0 4px rgba(79, 195, 217, 0.55), var(--shadow-soft);
+  animation: surf-catch-pulse 0.9s ease-in-out infinite;
+}
+
+/* ---------- Reduced motion: surf glow ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .beach-action-button.is-ready {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   Beach game (Phaser) host — js/beach-game.js
+    ------------------------------------------------------------
+    The transparent Phaser canvas sits inside #beach-stage between
+    the background ART bands (sky 1 / sea 2 / sand 3) and the props
+    layer (4), so the sandcastle & co keep painting ABOVE the canvas
+    while all chrome (talk 10 / actions 10 / Back + surf chip 11)
+    stays above and clickable. z-index: 3 equals the sand band but
+    the host div is appended LAST inside the stage, so it wins the
+    tie — harmless today (canvas is transparent), and later canvas
+    world art must never be masked by the DOM sand band.
+    The .game-active class lives on the OVERLAY (.beach-scene), set
+    by js/beach.js open()/close(), so the rules below reach both the
+    stage's layers and the #beach-actions buttons.
+    ============================================================ */
+
+.beach-game-host {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: auto;
+}
+
+/* Phaser sizes its canvas to the host box (Scale.RESIZE).
+   touch-action:none so a kid's hold-to-swim drag isn't hijacked
+   by the browser's page-scroll / pinch-zoom gestures on tablets. */
+.beach-game-host canvas {
+  display: block;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* The canvas rig replaces the DOM-rendered friend (#beach-character,
+   built by ensureCharacter() in js/beach.js) while the game is up. */
+.game-active #beach-character {
+  display: none;
+}
+
+/* Mission 2 canvas world art (js/beach-game.js WorldArt): the sky,
+   sea and sand bands are redrawn inside the Phaser canvas, so the
+   DOM bands (and the foam riding .beach-sand — canvas foam lands
+   with Mission 3) come down entirely. */
+.game-active .beach-sky,
+.game-active .beach-sea,
+.game-active .beach-sand {
+  display: none;
+}
+
+/* Same for the scattered prop decorations (umbrella, shells,
+   starfish, ball, hibiscus) — the canvas draws them at matching
+   anchors. The sandcastle is the ONE .beach-props child that must
+   survive: it keeps painting ABOVE the canvas (host z-index 3,
+   props z-index 4). */
+.game-active .beach-props > :not(.beach-castle) {
+  display: none;
+}
+
+/* No [data-activity-id] hides remain: the legacy swim/boat/surf/
+   boatshore buttons are gone from the bar entirely, and 'boathop'
+   MUST stay visible while the canvas boat rides (it is the game's
+   own hop-out). js/beach-surf.js keeps 'surfcatch' visible by
+   registering it for the modes the game actually runs. */

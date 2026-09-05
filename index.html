@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lily's Dress-Up Adventure</title>
+  <!-- Inline favicon avoids a favicon.ico 404 -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text x='0' y='14' font-size='14'>🌈</text></svg>">
+  <!-- Styles: add future CSS files here -->
+  <link rel="stylesheet" href="./css/style.css">
+  <!-- Scripts: add future JS files here (keep them deferred) -->
+  <script src="./js/state.js" defer></script>
+  <script src="./js/character.js" defer></script>
+  <script src="./js/wardrobe.js" defer></script>
+  <script src="./js/kitchen.js" defer></script>
+  <script src="./js/map.js" defer></script>
+  <!-- Phaser engine (vendored, offline-safe) + canvas beach game,
+       both must load BEFORE js/beach.js, which drives BeachGame.
+       beach-rig.js / beach-boat.js are looked up lazily at scene
+       create()-time, so their order relative to beach-game.js is
+       irrelevant (boat reads BeachRig/BeachScene at call time only). -->
+   <script src="./lib/phaser.min.js" defer></script>
+   <script src="./js/beach-game.js" defer></script>
+   <script src="./js/beach-rig.js" defer></script>
+   <!-- SkelForm rig (opt-in via ?skfrig=1 or window.__useSkfRig): loads
+        AFTER beach-rig.js (which sets window.BeachRig) and overwrites it
+        only when flagged. The skelform runtime + JSZip are only needed by
+        that rig, so they load here, before beach-rig-skf.js. -->
+   <script src="./lib/skelform/jszip.js" defer></script>
+   <script src="./lib/skelform/skelform-js.js" defer></script>
+    <script src="./js/beach-rig-skf.js" defer></script>
+    <!-- Rig v2 (opt-in via ?rig2=1 or window.__useRig2): flat
+         BeachParts sprites + a tiny FK pass. beach-parts.js loads
+         first; both load AFTER beach-rig.js so the flag can
+         overwrite window.BeachRig. -->
+    <script src="./js/beach-parts.js" defer></script>
+    <script src="./js/beach-rig-v2.js" defer></script>
+    <script src="./js/beach-boat.js" defer></script>
+  <script src="./js/beach-surf.js" defer></script>
+  <script src="./js/beach.js" defer></script>
+  <script src="./js/friends.js" defer></script>
+  <script src="./js/sounds.js" defer></script>
+  <script src="./js/main.js" defer></script>
+  <script src="./js/welcome.js" defer></script>
+</head>
+<body>
+  <div class="game-area">
+
+    <!-- Top bar: title + energy HUD -->
+    <header class="game-header">
+      <h1 class="game-title">🌈 Lily's Dress-Up Adventure</h1>
+      <div class="header-right">
+        <div class="energy-hud" role="status" aria-label="Energy level">
+          <span class="energy-icon">💛</span>
+          <span class="energy-label">Energy</span>
+          <div class="energy-track" id="energy-bar">
+            <div class="energy-fill" id="energy-bar-fill"></div>
+          </div>
+          <span class="energy-value" id="energy-value">50</span>
+        </div>
+        <button class="sound-toggle" id="sound-toggle" type="button" aria-label="Sound is on — tap to turn sounds off">🔊</button>
+      </div>
+    </header>
+
+    <!-- Screen switcher -->
+    <nav class="screen-nav" aria-label="Game screens">
+      <button class="nav-button" data-screen="wardrobe">👗 Dress Up</button>
+      <button class="nav-button" data-screen="kitchen">🍎 Kitchen</button>
+      <button class="nav-button" data-screen="map">🗺️ Map</button>
+      <button class="nav-button" data-screen="friends">👯 Friends</button>
+    </nav>
+
+    <main class="game-main">
+
+      <!-- Cheerful message bubble, always visible -->
+      <div class="talk-bubble" id="talk-bubble">Hello! Let's play! 💕</div>
+
+      <!-- Wardrobe screen -->
+      <section class="screen" id="screen-wardrobe">
+        <h2 class="screen-title">👗 Dress Up <b data-char-name>Lily</b>!</h2>
+        <!-- Lily is auto-rendered here by character.js -->
+        <div class="character-stage" id="character-stage-wardrobe"></div>
+        <div class="wardrobe-tabs" role="tablist" aria-label="Outfit categories">
+          <button class="wardrobe-tab active" data-slot="hair">💇 Hair</button>
+          <button class="wardrobe-tab" data-slot="top">👕 Tops</button>
+          <button class="wardrobe-tab" data-slot="bottom">👗 Bottoms</button>
+          <button class="wardrobe-tab" data-slot="shoes">👟 Shoes</button>
+          <button class="wardrobe-tab" data-slot="extra">🎀 Extras</button>
+          <button class="wardrobe-tab" data-slot="swimsuit">🩱 Swimsuits</button>
+        </div>
+        <div class="helper-text">Tap a button to try it on <b data-char-name>Lily</b>!</div>
+        <div class="wardrobe-items" id="wardrobe-items"></div>
+      </section>
+
+      <!-- Kitchen screen -->
+      <section class="screen" id="screen-kitchen">
+        <h2 class="screen-title">🍎 Yummy Kitchen!</h2>
+        <!-- Lily is auto-rendered here by character.js -->
+        <div class="character-stage" id="character-stage-kitchen"></div>
+        <div class="helper-text">Tap a treat to give <b data-char-name>Lily</b> energy!</div>
+        <div class="food-grid" id="food-menu" aria-label="Food and drinks"></div>
+      </section>
+
+      <!-- Map screen -->
+      <section class="screen" id="screen-map">
+        <h2 class="screen-title">🗺️ Where should <b data-char-name>Lily</b> go?</h2>
+        <div class="current-place" id="current-place">Lily is at: 🏠 Home</div>
+        <!-- Place buttons are rendered into the board by js/map.js -->
+        <div class="map-board" id="map-board" aria-label="Map of places to visit"></div>
+        <div class="helper-text">Traveling takes energy! Eat yummy food if <b data-char-name>Lily</b> gets tired.</div>
+        <!-- Beach play button: shown by js/map.js only when she is at the beach -->
+        <button class="beach-play-button hidden" id="beach-play-button" type="button">🌊 Play at the Beach!</button>
+      </section>
+
+      <!-- Friends screen (choose which girl to play as) -->
+      <section class="screen" id="screen-friends">
+        <h2 class="screen-title">👋 Choose Your Friend!</h2>
+        <p class="helper-text">Tap a friend to play with her!</p>
+        <!-- Character previews are rendered into the cards by js/friends.js -->
+        <div id="friends-grid" class="friends-grid"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Welcome / title overlay (removed from the DOM entirely by js/welcome.js) -->
+  <div id="welcome-overlay" role="dialog" aria-modal="true" aria-label="Welcome to Lily's Dress-Up Adventure">
+    <div class="welcome-card">
+      <h2 class="welcome-title"><span class="welcome-title-emoji">🌈</span> <span class="welcome-title-rainbow">Welcome to Lily's Dress-Up Adventure!</span></h2>
+      <p class="welcome-text">Dress up your friend, feed her yummy treats, and go places together!</p>
+      <button class="welcome-button" id="welcome-start" type="button">🎈 Let's Play!</button>
+      <button class="welcome-button welcome-button-secondary hidden" id="welcome-continue" type="button">💛 Continue my game</button>
+    </div>
+  </div>
+
+  <!-- Beach scene overlay (shell only — art + activities added by later tasks) -->
+  <div id="beach-scene" class="beach-scene hidden" role="dialog" aria-modal="true" aria-label="Play at the beach">
+    <button class="beach-close" id="beach-close" type="button" aria-label="Back to the map">⬅️ Back</button>
+    <div class="beach-talk" id="beach-talk">Time to play at the beach! 🌊</div>
+    <div class="beach-stage" id="beach-stage"><!-- layers added by later tasks --></div>
+    <div class="beach-actions" id="beach-actions"><!-- activity buttons added by later tasks --></div>
+  </div>
+</body>
+</html>

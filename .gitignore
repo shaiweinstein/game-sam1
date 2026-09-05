@@ -1,0 +1,13 @@
+# macOS junk
+.DS_Store
+._*
+
+# Kilo: local UI/recovery state (not source)
+.kilo/agent-manager.json
+
+# Playwright MCP screenshot/output artifacts
+.playwright-mcp/
+
+# Logs / temp
+*.log
+tmp/

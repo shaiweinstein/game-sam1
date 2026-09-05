@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>BeachParts rasterizer test</title>
+<style>
+  body{
+    margin:0; padding:24px 28px 60px; background:#151210; color:#e8e2da;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  h1{ font-size:20px; margin:0 0 4px; }
+  .sub{ color:#9a8f83; font-size:13px; margin:0 0 20px; max-width:760px; line-height:1.5; }
+  .err{ color:#ff5252; font:600 13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; margin:0 0 16px; white-space:pre-wrap; }
+  .section-title{
+    font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px;
+    color:#9a8f83; margin:30px 0 12px;
+  }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,160px); gap:14px; }
+  .card{
+    background:#201c18; border:1px solid #35302a; border-radius:10px;
+    padding:8px; text-align:center;
+  }
+  .card canvas{
+    width:160px; height:auto; display:block; border-radius:6px;
+    background:#26221d;
+  }
+  .cap{
+    font:11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
+    color:#b7a99a; margin-top:6px;
+  }
+  .assemble canvas{
+    display:block; width:400px; height:400px; background:#26221d;
+    border:1px solid #35302a; border-radius:10px;
+  }
+</style>
+</head>
+<body>
+  <h1>BeachParts rasterizer test</h1>
+  <p class="sub">Each part canvas is rendered with its PIVOT JOINT at the exact center (magenta crosshair). The assembled preview draws every part back at its pivot in z order — limb parts are counter-rotated by the negative straightening angle so the character returns to its drawn A-pose. If the pivots and straightening are consistent, the assembled figure matches the A-pose from spike/parts.html.</p>
+  <div id="err" class="err"></div>
+
+  <div class="section-title">Assembled (A-pose, 400x400)</div>
+  <div class="assemble"><canvas id="asm" width="400" height="400"></canvas></div>
+
+  <div class="section-title">Parts (pivot at center)</div>
+  <div class="grid" id="grid"></div>
+
+<script src="../js/beach-parts.js"></script>
+<script>
+"use strict";
+(function () {
+  const BP = window.BeachParts;
+  const SCALE = 2;   // canvas px per viewBox unit (must match both uses)
+  const errEl = document.getElementById('err');
+  const gridEl = document.getElementById('grid');
+
+  const straightenDeg = part => {
+    if (!part.axis) return 0;
+    const [[px, py], [dx, dy]] = part.axis;
+    return 90 - Math.atan2(dy - py, dx - px) * 180 / Math.PI;
+  };
+
+  BP.render(BP.DEFAULT_PALETTE, SCALE).then(entries => {
+    /* ---- parts grid: crosshair ON each canvas at its exact center ---- */
+    for (const part of BP.PARTS) {
+      const e = entries[part.id];
+      const c = e.canvas;
+      const g = c.getContext('2d');
+      const m = c.width / 2;
+      g.strokeStyle = 'magenta';
+      g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(m - 14, m); g.lineTo(m + 14, m);
+      g.moveTo(m, m - 14); g.lineTo(m, m + 14);
+      g.stroke();
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.appendChild(c);
+      const cap = document.createElement('div');
+      cap.className = 'cap';
+      cap.textContent = part.id + '  ' + e.w + '\u00d7' + e.h;
+      card.appendChild(cap);
+      gridEl.appendChild(card);
+    }
+    /* ---- assembled preview: draw each part at its pivot, in z order ---- */
+    const ctx = document.getElementById('asm').getContext('2d');
+    const zSorted = BP.PARTS.slice().sort((a, b) => a.z - b.z);
+    for (const part of zSorted) {
+      const e = entries[part.id];
+      const [px, py] = part.pivot;
+      ctx.save();
+      ctx.translate(px, py);
+      /* limbs were rasterized straight; undo the straightening rotation
+         so they go back to the drawn A-pose */
+      if (part.axis) ctx.rotate(-straightenDeg(part) * Math.PI / 180);
+      /* part canvases are at SCALE px per viewBox unit; the 400x400
+         preview is 1:1, so draw at 1/SCALE pixel size, centered */
+      const dw = e.w / SCALE, dh = e.h / SCALE;
+      ctx.drawImage(e.canvas, -dw / 2, -dh / 2, dw, dh);
+      ctx.restore();
+    }
+  }).catch(e => {
+    errEl.textContent = (e && e.stack) || String(e);
+  });
+})();
+</script>
+</body>
+</html>
