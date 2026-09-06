@@ -226,9 +226,35 @@ ever thrown away.
   no real weight, crude art) cannot reach the family's bar of "a person
   moving." **The 2D path is shelved; 3D is the primary track.**
 - **M1 ⏸ shelved** — 2D art slice will not proceed. History safe in git.
-- **S1 ⏳ (running)** — 3D Lily spike (Blender model + toon orbit viewer +
-  Mixamo mocap walk via `adobe-login.md`). Its family review ("is that
-  Lily?") is now the **sole gate** to committing the full 3D beach build.
+- **S1 ✅ (commit `9dee564`) → family: "close — fix specifics"** — 3D chibi
+  Lily (Blender, toon) + orbit viewer + Mixamo in-place walk in `spike3/`.
+  Verdict: swimsuit reads as a skirt, no feet, helmet hair, hidden neck,
+  body reads "chess piece," not kid.
+- **S2 ✅ (commit `cb25a63`) → family: "improving — walk + hands still off"** —
+  one-piece swimsuit (Sunny #ffd93d/#ff9a3d + daisy), bare kid feet,
+  kid-proportioned body, visible neck. Verdict: keep improving — walk not
+  working well, hair still helmet-like, hands/shoulders weird mid-walk,
+  shoulders too big.
+- **S3 ✅ (commit `a78e280`) → family re-review of v3 PENDING (sole gate)** —
+  Walk export fixed (GLB had exported only the HairCap mesh; root cause:
+  glTF exporter derives inverseBindMatrices from bone rest; fix:
+  armature-local rest conform + per-bone basis rebake, verified to
+  0.000038). Hair rebuilt: snug cap (no shelf), scalloped bangs, curtain
+  side locks to waist, long back mantle. Kid-sized shoulder caps,
+  2-segment arms with elbow bend + mitten hands, bigger feet with toes,
+  flat chest, smooth chin, continuous leg lofts. Face texture and swimsuit
+  untouched (both already family-passed). Two internal vision iteration
+  rounds. QA: 60 fps settled idle AND walking, zero console errors, fully
+  offline, v1/v2/v3 toggle + Walk on all, 2D reference panel. Review
+  assets: `spike3/shots3/` stills, `orbit3.gif`, `walk-orbit3.gif`.
+- **Next fork (family verdict on v3):** "that's Lily" → full 3D beach build
+  (3D scene: sand/water/duck boat/surfboard, follow camera, pointer-raycast
+  movement, 3D swimsuits + 4 friends, gameplay loops ported from
+  `js/beach-game.js` / `beach-boat.js` / `beach-surf.js`). "Fix specifics" →
+  S4 polish mission on `spike3/blender/build_lily3.py` + walk pipeline.
+- **Prep in flight (verdict-independent):** downloading the additional
+  Mixamo clips the full build needs (swim, surf paddle/ride, sit, idle,
+  run, cheer) → `spike3/assets/mixamo/`.
 
 ## 2D-vs-3D decision (raised by the parent, Sept 2026)
 
