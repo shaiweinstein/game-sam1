@@ -50,18 +50,27 @@ const MIN_R = 0.7, MAX_R = 4.0;
 const MIN_PHI = 0.25, MAX_PHI = 1.52;
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+/* S3: sun moved more head-front (was high-right-back-ish) and the two dark
+   gradient steps lifted 72->112 / 140->160. The under-chin band on the head
+   sphere used to fall into the darkest step -> a dark "crescent seam" under
+   the chin; front-lit + lifted bands keep that skin-colored. */
 const sun = new THREE.DirectionalLight(0xffffff, 1.7);
-sun.position.set(1.6, 3.2, 2.6);
+/* S3: nearly head-on light (was high-angle): the underside of the chin is
+   only a couple of degrees below the face plane, so ANY steep sun puts it
+   in a darker toon band = the "dark crescent seam". Head-on light keeps
+   face+chin in the top bands and still shades the flanks (left/right) —
+   closer to the flat 2D look anyway. */
+sun.position.set(0.9, 1.1, 3.9);
 scene.add(sun);
 
-/* 4-step toon gradient: values 0 / 1/3 / 2/3 / 1, NearestFilter = hard bands */
+/* 4-step toon gradient: NearestFilter = hard bands */
 let _gradientMap = null;
 function gradientMap() {
   if (_gradientMap) return _gradientMap;
   const data = new Uint8Array([
-    72, 72, 72, 255,
-    140, 140, 140, 255,
-    205, 205, 205, 255,
+    148, 148, 148, 255,
+    180, 180, 180, 255,
+    218, 218, 218, 255,
     255, 255, 255, 255
   ]);
   const t = new THREE.DataTexture(data, 4, 1, THREE.RGBAFormat);
@@ -121,26 +130,31 @@ function makeBlobShadowTexture() {
 
 /* ---------- model: rebuild all materials as toon ---------- */
 
-/* Two model versions for A/B review:
+/* Three model versions for A/B review:
      v1 = lily.glb / lily_walk.glb          (S1 spike — skirt, helmet hair)
      v2 = lily2.glb / lily2_walk.glb        (S2 spike — swimsuit kid body)
-   v2 is the default. Each version owns its own static mesh, skinned walk
+     v3 = lily3.glb / lily3_walk.glb        (S3 spike — hair rebuild,
+                                             two-segment arms, smooth legs)
+   v3 is the default. Each version owns its own static mesh, skinned walk
    mesh and AnimationMixer; the Walk button always acts on the ACTIVE one.
    Walk assets are lazy: probed (HEAD) before fetching so the offline log
    stays clean if a variant is missing. */
 
 const VERSIONS = {
   v1: { static: "assets/lily.glb", walk: "assets/lily_walk.glb" },
-  v2: { static: "assets/lily2.glb", walk: "assets/lily2_walk.glb" }
+  v2: { static: "assets/lily2.glb", walk: "assets/lily2_walk.glb" },
+  v3: { static: "assets/lily3.glb", walk: "assets/lily3_walk.glb" }
 };
 
 const versions = {
   v1: { scene: null, walkScene: null, mixer: null, action: null,
         playing: false, walkProbed: false },
   v2: { scene: null, walkScene: null, mixer: null, action: null,
+        playing: false, walkProbed: false },
+  v3: { scene: null, walkScene: null, mixer: null, action: null,
         playing: false, walkProbed: false }
 };
-let active = "v2";
+let active = "v3";
 const nameToMesh = {};
 
 function toonify(root, meshMap) {
@@ -171,10 +185,8 @@ function showActive() {
     if (v.scene) v.scene.visible = id === active && !(v.playing && v.walkScene);
     if (v.walkScene) v.walkScene.visible = id === active && v.playing;
   }
-  const on = active === "v2" ? v2Btn : v1Btn;
-  const off = active === "v2" ? v1Btn : v2Btn;
-  on.classList.add("active");
-  off.classList.remove("active");
+  for (const id of Object.keys(versions))
+    versionBtns[id].classList.toggle("active", id === active);
 }
 
 function loadStatic(id, cb) {
@@ -285,10 +297,13 @@ viewBtns.addEventListener("click", (e) => {
 /* ---------- Phase 2: walk (per active version) ---------- */
 
 const walkBtn = document.getElementById("walkBtn");
-const v1Btn = document.getElementById("v1Btn");
-const v2Btn = document.getElementById("v2Btn");
-v1Btn.addEventListener("click", () => setActive("v1"));
-v2Btn.addEventListener("click", () => setActive("v2"));
+const versionBtns = {
+  v1: document.getElementById("v1Btn"),
+  v2: document.getElementById("v2Btn"),
+  v3: document.getElementById("v3Btn")
+};
+for (const id of Object.keys(versionBtns))
+  versionBtns[id].addEventListener("click", () => setActive(id));
 
 /* Mixamo "Walking" (In Place, 30 fps) retargeted onto each mesh by
    spike3/blender/build_lily_walk.py / build_lily2_walk.py. */
@@ -401,9 +416,9 @@ renderer.setAnimationLoop(() => {
 let resolveReady = null;
 const ready = new Promise((res) => { resolveReady = res; });
 
-/* v2 is the default view for the S2 review; v1 lazy-loads on toggle. */
-loadStatic("v2", () => {
-  probeWalk("v2");
+/* v3 is the default view for the S3 review; v1/v2 lazy-load on toggle. */
+loadStatic("v3", () => {
+  probeWalk("v3");
   resolveReady(true);
 });
 
@@ -434,8 +449,13 @@ window.__spike3 = {
     playing: versions[active].playing,
     version: active
   }),
-  /* v2 additions for the A/B review (old hooks above are unchanged) */
+  /* v2/v3 additions for the A/B review (old hooks above are unchanged) */
   setModelVersion: (id) => setActive(id),
+  /* deterministically seek the ACTIVE version's walk clip (GIF/stills) */
+  setWalkTime: (t) => {
+    const v = versions[active];
+    if (v.playing && v.mixer) v.mixer.setTime(t);
+  },
   getModelVersion: () => active,
   /* resolves once the named version's walk asset is loaded */
   whenWalkLoaded: (id) => new Promise((res) => {
