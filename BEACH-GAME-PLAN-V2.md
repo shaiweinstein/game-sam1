@@ -196,6 +196,66 @@ ever thrown away.
 | Project has **no git history** — deleting old rigs loses all history | `git init` + commit the current tree **before** M0 starts; commit at every mission boundary. |
 | Editor is a cloud service (browser) — needs internet to author | Authoring is a one-time/occasional task; runtime is fully offline. Exported JSON+PNG are vendored in the repo. |
 
+## Status
+
+- **M0 ✅ (2026-09-05, commit `0d184c6`)** — pipeline proven end-to-end:
+  - Runtime vendored: DragonBonesJS @ commit `64b6c69` (2025-05-24), core
+    5.7.0, Phaser 3 plugin 5.6.2 → `lib/dbjs/` (MIT, see `lib/dbjs/README.md`).
+  - LoongBones web editor (`www.loongbones.com/editor`, v1.2.3): authoring
+    works **without** an account, but **export/save are login-gated** (free
+    account). Export version dropdown: `6.0` / `5.5` → **must export 5.5**
+    (vendored runtime accepts 4.0–5.6, NOT 6.0). `loongbones.app` is
+    DNS-blocked in this environment; use the `.com` URL.
+  - Fallback route proven: hand-authored 5.5 JSON + atlas plays in Phaser —
+    `spike2/` (8-bone test girl, `walk` + `swim` loops, facing flip, 60 fps,
+    fully offline, zero console errors).
+  - **The project's Phaser 3.90 is a PATCHED build** — 8 documented quirks
+    (`spike2/NOTES.md` §4), incl. `WEBGL|CANVAS === HEADLESS` (silent
+    no-render trap) and a missing WebGL pipeline base class. All new pages
+    copy the spike's pattern: `type: Phaser.CANVAS` + the inline compat
+    shim in `spike2/index.html` + lazy `getScene`.
+  - **Slot tinting is unavailable in this build** (`spike2/NOTES.md` §6)
+    → per-friend colors come from **per-friend body atlases** (4 small PNGs,
+    one shared rig JSON) + one **shared clothing/suits atlas** (fixed
+    colors), not from runtime tint. Friend switch = swap atlas / rebuild
+    the small armature (cheap, rare).
+- **D0 ✅ (commit `e47d711`) → REJECTED by the parent (2026-09-06):**
+  properly-keyframed 2D gait/crawl on the jointed stick rig (before/after
+  GIFs + slow-mo page at `spike2/demo.html`) — verdict: *"doesn't look like
+  a human moves, at all."* Structural 2D limits (in-plane limbs, no depth,
+  no real weight, crude art) cannot reach the family's bar of "a person
+  moving." **The 2D path is shelved; 3D is the primary track.**
+- **M1 ⏸ shelved** — 2D art slice will not proceed. History safe in git.
+- **S1 ⏳ (running)** — 3D Lily spike (Blender model + toon orbit viewer +
+  Mixamo mocap walk via `adobe-login.md`). Its family review ("is that
+  Lily?") is now the **sole gate** to committing the full 3D beach build.
+
+## 2D-vs-3D decision (raised by the parent, Sept 2026)
+
+Parent + daughter may require **all-direction, all-angle** movement
+("walk/swim every direction, natural from every angle, still Lily, same for
+surfing and duck riding"). Only a 3D scene delivers that honestly.
+
+**Decision method:** a **"3D Lily spike" (S1)** — Blender-modeled 3D chibi
+Lily (her proportions/palette/hair/face), toon-shaded, orbitable 360°, with
+a real Mixamo walk — compared side-by-side (with the D0 2D demo GIFs) by
+the family. Whichever she says "that's Lily!" wins.
+
+### 3D path (if it wins) — research summary (Sept 2026)
+
+| Piece | Choice | Cost |
+|---|---|---|
+| Animation source | **Mixamo** (free, royalty-free; swim + surf clips exist; free Adobe account to download — creds via gitignored `adobe-login.md`) | Free |
+| Modeling/rigging/conversion | **Blender 5.0.1 — already installed** on this box; fully scriptable (Python); model Lily, bind to Mixamo skeleton (auto-weights; skip Mixamo auto-rigger — it dislikes chibi proportions), FBX→glTF | Free |
+| Web engine | **three.js** (single vendored file; GLTFLoader + AnimationMixer play Mixamo clips; MeshToonMaterial = cel look; ocean shader examples). Babylon.js is the alternative (built-in WaterMaterial + ToonMaterial). | Free |
+| Character | 3D **version** of Lily — same chibi proportions, palette, hair, dot-face (as a 2D texture patch on the head for max fidelity), cel-shaded. NOT a pixel copy of the 2D art. Dress-up page stays 2D. | — |
+| Scene | 3D beach: sand, water shader, 3D duck boat, surfboard, props; third-person follow camera; pointer raycast to ground = move target | — |
+| Outfits | 3D street outfit + 6 swimsuits (color/geometry swaps), 4 friends (material swaps) | — |
+
+Honest 3D risks: "3D version reads as Lily?" (the spike tests exactly this);
+chibi-on-mocap tweaks (bone-length/scale, arm reach); 3D outfit art for
+6 suits × 4 friends; bigger build than the 2D path.
+
 ## Decisions (confirmed with the parent, Sept 2026)
 
 1. **Approach: A** — Rigged 2D Lily via the free LoongBones (DragonBones)

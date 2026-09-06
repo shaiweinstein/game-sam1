@@ -11,3 +11,6 @@
 # Logs / temp
 *.log
 tmp/
+
+# Local credential files — NEVER commit
+*-login.md

@@ -1,0 +1,16 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  html,body{margin:0;padding:0;background:#fdfaff;}
+  #c{width:600px;height:680px;}
+  svg{display:block;}
+</style></head><body><div id="c"></div>
+<script src="../../js/character.js"></script>
+<script>
+  // No GameState loaded -> character.js falls back to the DEFAULT outfit
+  // (hair1/top1/bottom1/shoes1) and the 'lily' palette, which is exactly
+  // the reference we want.
+  const svg = CharacterRenderer.render(document.getElementById('c'), {size:'big'});
+  svg.setAttribute('width','600');
+  svg.setAttribute('height','680');
+  window.__ready = true;
+</script></body></html>
