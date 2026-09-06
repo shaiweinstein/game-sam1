@@ -1,0 +1,57 @@
+{
+  "SubTexture": [
+    {
+      "name": "head",
+      "x": 4,
+      "y": 4,
+      "width": 48,
+      "height": 48
+    },
+    {
+      "name": "torso",
+      "x": 56,
+      "y": 4,
+      "width": 44,
+      "height": 72
+    },
+    {
+      "name": "pelvis",
+      "x": 104,
+      "y": 4,
+      "width": 36,
+      "height": 28
+    },
+    {
+      "name": "thigh",
+      "x": 144,
+      "y": 4,
+      "width": 16,
+      "height": 46
+    },
+    {
+      "name": "shin",
+      "x": 164,
+      "y": 4,
+      "width": 26,
+      "height": 46
+    },
+    {
+      "name": "upperArm",
+      "x": 194,
+      "y": 4,
+      "width": 14,
+      "height": 32
+    },
+    {
+      "name": "foreArm",
+      "x": 212,
+      "y": 4,
+      "width": 12,
+      "height": 30
+    }
+  ],
+  "width": 256,
+  "height": 128,
+  "name": "girl2",
+  "imagePath": "girl2.png"
+}

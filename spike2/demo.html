@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>D0 motion demo — old vs new gait/swim</title>
+  <style>
+    body {
+      margin: 0;
+      background: #20242b;
+      color: #e8ecf1;
+      font: 14px/1.4 "Segoe UI", system-ui, sans-serif;
+      display: flex;
+      justify-content: center;
+      padding-top: 16px;
+    }
+    #app { text-align: center; }
+    #toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+      justify-content: center;
+    }
+    #toolbar .title { font-weight: 600; }
+    #toolbar .group { display: flex; gap: 4px; }
+    button {
+      background: #2f3542;
+      color: #e8ecf1;
+      border: 1px solid #4b5568;
+      border-radius: 6px;
+      padding: 5px 12px;
+      cursor: pointer;
+    }
+    button:hover { background: #3b4252; }
+    button.active { background: #4a6fa5; border-color: #6c8fc0; }
+    #state-label { color: #9aa4b2; font-size: 12px; }
+    #fps-label { color: #7fb069; font-size: 12px; min-width: 42px; }
+    #game canvas { border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="toolbar">
+      <span class="title">D0 motion demo &mdash; same pipeline, real keyframes</span>
+      <div class="group">
+        <button id="btn-pause" type="button">Pause</button>
+        <button id="btn-slow" type="button">Slow-mo 0.25&times;</button>
+      </div>
+      <span id="state-label">loading&hellip;</span>
+      <span id="fps-label"></span>
+    </div>
+    <div id="game"></div>
+  </div>
+  <script src="../lib/phaser.min.js"></script>
+  <script>
+    /* Compat shim for the vendored DragonBones 5.7 Phaser-3 plugin against
+     * THIS project's patched Phaser 3.90 build (see spike2/NOTES.md):
+     *
+     * 1. The plugin's TextureTintPipeline inherits
+     *    Phaser.Renderer.WebGL.Pipelines.TextureTintPipeline, which this
+     *    Phaser build does not expose on the global. Without a base class
+     *    the plugin file throws during evaluation and never registers its
+     *    scene plugin / loader. Stub a base class (the plugin overrides
+     *    everything it needs except the constructor state, and the pipeline
+     *    is only used by tinted CUSTOM slot displays — plain slot sprites
+     *    render through the normal pipeline, so an inert stub is fine).
+     *
+     * 2. This build's WebGLRenderer exposes the pipeline manager as
+     *    renderer.pipelines with .has()/.add(), but not the hasPipeline()/
+     *    addPipeline() methods the DragonBones plugin calls. Add them. */
+    (function () {
+      'use strict';
+      var P = window.Phaser;
+      if (!P || !P.Renderer || !P.Renderer.WebGL) { return; }
+      var W = P.Renderer.WebGL;
+      if (W.Pipelines && !W.Pipelines.TextureTintPipeline) {
+        function StubTintPipeline() {}
+        StubTintPipeline.prototype = {
+          boot: function () { this.hasBooted = true; },
+          resize: function () {},
+          flush: function () {}
+        };
+        W.Pipelines.TextureTintPipeline = StubTintPipeline;
+      }
+      var WR = W.WebGLRenderer;
+      if (WR && WR.prototype) {
+        if (typeof WR.prototype.hasPipeline !== 'function') {
+          WR.prototype.hasPipeline = function (name) {
+            return this.pipelines ? this.pipelines.has(name) : false;
+          };
+        }
+        if (typeof WR.prototype.addPipeline !== 'function') {
+          WR.prototype.addPipeline = function (name, pipeline) {
+            if (this.pipelines) { this.pipelines.add(name, pipeline); }
+            return pipeline;
+          };
+        }
+      }
+    })();
+  </script>
+  <script src="../lib/dbjs/dragonBones.min.js"></script>
+  <script src="demo.js"></script>
+</body>
+</html>
