@@ -82,6 +82,37 @@ function gradientMap() {
   return t;
 }
 
+/* S4 (P3): the 2D suit is BRIGHT FLAT cartoon yellow (#ffd93d). Two
+   viewer-side factors made it read olive: (a) the general 4-step ramp's
+   dark bands (148/180) desaturate the yellow on any face angled away
+   from the sun, and (b) with three.js physical light units the whole
+   sun+ambient chain tops out at ~0.75x the base color — even the fully
+   lit front face rendered #ffd93d as mustard (measured 224,191,52).
+   The swimsuit materials (GLB names "suitMain", "suitTrim",
+   "daisyPetal") therefore get a flat, bright 3-step ramp (min band 214)
+   AND a self-emissive lift of their own base color (~0.34) so the lit
+   faces land at full saturation like the 2D fill, sides stay only a
+   touch darker. Skin/hair/face keep the original ramp and no emissive
+   (v3 passed on those; the diff must stay swimsuit-only). The GLB base
+   color itself remains the exact hex values. */
+let _gradientMapSuit = null;
+function gradientMapSuit() {
+  if (_gradientMapSuit) return _gradientMapSuit;
+  const data = new Uint8Array([
+    214, 214, 214, 255,
+    238, 238, 238, 255,
+    255, 255, 255, 255
+  ]);
+  const t = new THREE.DataTexture(data, 3, 1, THREE.RGBAFormat);
+  t.magFilter = THREE.NearestFilter;
+  t.minFilter = THREE.NearestFilter;
+  t.generateMipmaps = false;
+  t.needsUpdate = true;
+  _gradientMapSuit = t;
+  return t;
+}
+const SUIT_MAT_RE = /suit|daisy/i;
+
 /* soft sand disc + blob shadow */
 const ground = new THREE.Mesh(
   new THREE.CircleGeometry(2.4, 72),
@@ -130,12 +161,15 @@ function makeBlobShadowTexture() {
 
 /* ---------- model: rebuild all materials as toon ---------- */
 
-/* Three model versions for A/B review:
+/* Model versions for A/B review:
      v1 = lily.glb / lily_walk.glb          (S1 spike — skirt, helmet hair)
      v2 = lily2.glb / lily2_walk.glb        (S2 spike — swimsuit kid body)
      v3 = lily3.glb / lily3_walk.glb        (S3 spike — hair rebuild,
                                              two-segment arms, smooth legs)
-   v3 is the default. Each version owns its own static mesh, skinned walk
+     v4 = lily4.glb / lily4_walk.glb        (S4 spike — swimsuit full-cover:
+                                             continuous one-piece hem, shallow
+                                             scoop, solid daisy, bright yellow)
+   v4 is the default. Each version owns its own static mesh, skinned walk
    mesh and AnimationMixer; the Walk button always acts on the ACTIVE one.
    Walk assets are lazy: probed (HEAD) before fetching so the offline log
    stays clean if a variant is missing. */
@@ -143,7 +177,8 @@ function makeBlobShadowTexture() {
 const VERSIONS = {
   v1: { static: "assets/lily.glb", walk: "assets/lily_walk.glb" },
   v2: { static: "assets/lily2.glb", walk: "assets/lily2_walk.glb" },
-  v3: { static: "assets/lily3.glb", walk: "assets/lily3_walk.glb" }
+  v3: { static: "assets/lily3.glb", walk: "assets/lily3_walk.glb" },
+  v4: { static: "assets/lily4.glb", walk: "assets/lily4_walk.glb" }
 };
 
 const versions = {
@@ -152,19 +187,29 @@ const versions = {
   v2: { scene: null, walkScene: null, mixer: null, action: null,
         playing: false, walkProbed: false },
   v3: { scene: null, walkScene: null, mixer: null, action: null,
+        playing: false, walkProbed: false },
+  v4: { scene: null, walkScene: null, mixer: null, action: null,
         playing: false, walkProbed: false }
 };
-let active = "v3";
+let active = "v4";
 const nameToMesh = {};
 
 function toonify(root, meshMap) {
   root.traverse((node) => {
     if (!node.isMesh) return;
     const src = node.material;
+    const isSuit = SUIT_MAT_RE.test(src.name || "");
     const m = new THREE.MeshToonMaterial({
       color: src.color ? src.color.clone() : new THREE.Color(0xffffff),
-      gradientMap: gradientMap()
+      gradientMap: isSuit ? gradientMapSuit() : gradientMap()
     });
+    if (isSuit) {
+      // S4 P3 flat-bright lift (see gradientMapSuit comment): emissive in
+      // the material's own hue adds ~0.34x back so lit faces reach the
+      // full 2D fill value instead of the 0.75x light-chain ceiling.
+      m.emissive = (src.color ? src.color.clone() : new THREE.Color(0xffffff))
+        .multiplyScalar(0.34);
+    }
     if (src.map) {
       // The head carries the 2D face as an opaque texture. Cap
       // anisotropy at 4: plenty for the near-frontal face view, and it
@@ -300,7 +345,8 @@ const walkBtn = document.getElementById("walkBtn");
 const versionBtns = {
   v1: document.getElementById("v1Btn"),
   v2: document.getElementById("v2Btn"),
-  v3: document.getElementById("v3Btn")
+  v3: document.getElementById("v3Btn"),
+  v4: document.getElementById("v4Btn")
 };
 for (const id of Object.keys(versionBtns))
   versionBtns[id].addEventListener("click", () => setActive(id));
@@ -416,9 +462,9 @@ renderer.setAnimationLoop(() => {
 let resolveReady = null;
 const ready = new Promise((res) => { resolveReady = res; });
 
-/* v3 is the default view for the S3 review; v1/v2 lazy-load on toggle. */
-loadStatic("v3", () => {
-  probeWalk("v3");
+/* v4 is the default view for the S4 review; v1/v2/v3 lazy-load on toggle. */
+loadStatic("v4", () => {
+  probeWalk("v4");
   resolveReady(true);
 });
 
