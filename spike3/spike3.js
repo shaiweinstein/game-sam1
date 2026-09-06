@@ -121,7 +121,26 @@ function makeBlobShadowTexture() {
 
 /* ---------- model: rebuild all materials as toon ---------- */
 
-const models = { static: null, walk: null };
+/* Two model versions for A/B review:
+     v1 = lily.glb / lily_walk.glb          (S1 spike — skirt, helmet hair)
+     v2 = lily2.glb / lily2_walk.glb        (S2 spike — swimsuit kid body)
+   v2 is the default. Each version owns its own static mesh, skinned walk
+   mesh and AnimationMixer; the Walk button always acts on the ACTIVE one.
+   Walk assets are lazy: probed (HEAD) before fetching so the offline log
+   stays clean if a variant is missing. */
+
+const VERSIONS = {
+  v1: { static: "assets/lily.glb", walk: "assets/lily_walk.glb" },
+  v2: { static: "assets/lily2.glb", walk: "assets/lily2_walk.glb" }
+};
+
+const versions = {
+  v1: { scene: null, walkScene: null, mixer: null, action: null,
+        playing: false, walkProbed: false },
+  v2: { scene: null, walkScene: null, mixer: null, action: null,
+        playing: false, walkProbed: false }
+};
+let active = "v2";
 const nameToMesh = {};
 
 function toonify(root, meshMap) {
@@ -145,14 +164,40 @@ function toonify(root, meshMap) {
 }
 
 const loader = new GLTFLoader();
-loader.load("assets/lily.glb", (gltf) => {
-  toonify(gltf.scene, nameToMesh);
-  models.static = gltf.scene;
-  scene.add(gltf.scene);
-  finishInit();
-}, undefined, (err) => {
-  console.error("failed to load lily.glb:", err);
-});
+
+function showActive() {
+  for (const id of Object.keys(versions)) {
+    const v = versions[id];
+    if (v.scene) v.scene.visible = id === active && !(v.playing && v.walkScene);
+    if (v.walkScene) v.walkScene.visible = id === active && v.playing;
+  }
+  const on = active === "v2" ? v2Btn : v1Btn;
+  const off = active === "v2" ? v1Btn : v2Btn;
+  on.classList.add("active");
+  off.classList.remove("active");
+}
+
+function loadStatic(id, cb) {
+  loader.load(VERSIONS[id].static, (gltf) => {
+    toonify(gltf.scene, id === active ? nameToMesh : null);
+    gltf.scene.visible = false;
+    versions[id].scene = gltf.scene;
+    scene.add(gltf.scene);
+    showActive();
+    if (cb) cb();
+  }, undefined, (err) => {
+    console.error("failed to load " + VERSIONS[id].static + ":", err);
+  });
+}
+
+function setActive(id) {
+  if (!versions[id] || id === active) return;
+  active = id;
+  showActive();
+  refreshWalkBtn();
+  if (!versions[id].scene) loadStatic(id, () => probeWalk(id));
+  markInteract();
+}
 
 /* ---------- custom orbit control (~40 lines) ---------- */
 
@@ -237,57 +282,65 @@ viewBtns.addEventListener("click", (e) => {
   }
 });
 
-/* ---------- Phase 2: walk ---------- */
-
-/* Phase 2: spike3/assets/lily_walk.glb ships with the retargeted Mixamo
-   "Walking" clip (FBX Binary, 30 fps, In Place), so the walk model is
-   probed and the Walk button is enabled. */
-const WALK_BUILT = true;
+/* ---------- Phase 2: walk (per active version) ---------- */
 
 const walkBtn = document.getElementById("walkBtn");
-let walkAction = null;
-let mixer = null;
-let walking = false;
+const v1Btn = document.getElementById("v1Btn");
+const v2Btn = document.getElementById("v2Btn");
+v1Btn.addEventListener("click", () => setActive("v1"));
+v2Btn.addEventListener("click", () => setActive("v2"));
 
-function setWalkVisible(v) {
-  if (models.walk) models.walk.visible = v;
-  if (models.static) models.static.visible = !v;
-}
+/* Mixamo "Walking" (In Place, 30 fps) retargeted onto each mesh by
+   spike3/blender/build_lily_walk.py / build_lily2_walk.py. */
+const WALK_BUILT = true;
 
-function initWalk() {
-  if (!WALK_BUILT) return; // Phase 1: no walk model, no probe (no 404)
-  fetch("assets/lily_walk.glb", { method: "HEAD" }).then((r) => {
+function probeWalk(id) {
+  if (!WALK_BUILT || versions[id].walkProbed) return;
+  versions[id].walkProbed = true;
+  const url = VERSIONS[id].walk;
+  fetch(url, { method: "HEAD" }).then((r) => {
     if (!r.ok) return;
-    loader.load("assets/lily_walk.glb", (gltf) => {
+    loader.load(url, (gltf) => {
       toonify(gltf.scene);
       gltf.scene.visible = false;
-      models.walk = gltf.scene;
+      const v = versions[id];
+      v.walkScene = gltf.scene;
       scene.add(gltf.scene);
-      mixer = new THREE.AnimationMixer(gltf.scene);
+      v.mixer = new THREE.AnimationMixer(gltf.scene);
       if (gltf.animations && gltf.animations.length) {
-        walkAction = mixer.clipAction(gltf.animations[0]);
-        walkAction.setLoop(THREE.LoopRepeat, Infinity);
+        v.action = v.mixer.clipAction(gltf.animations[0]);
+        v.action.setLoop(THREE.LoopRepeat, Infinity);
       }
-      walkBtn.hidden = false;
+      if (v.playing) v.action && v.action.play();
+      if (id === active) { refreshWalkBtn(); showActive(); }
     }, undefined, () => { /* walk model optional — stay silent */ });
   }).catch(() => { /* file absent — static spike only */ });
 }
 
+function refreshWalkBtn() {
+  const v = versions[active];
+  walkBtn.hidden = !v.action;
+  walkBtn.textContent = v.playing ? "■ Stop" : "▶ Walk";
+}
+
 walkBtn.addEventListener("click", () => {
-  if (!walkAction) return;
-  if (walking) {
-    walkAction.fadeOut(0.15);
-    mixer.stopAllAction();
-    walking = false;
-    setWalkVisible(false);
-    walkBtn.textContent = "▶ Walk";
+  const v = versions[active];
+  if (v.playing) {
+    if (v.action) {
+      v.action.fadeOut(0.15);
+      v.mixer.stopAllAction();
+    }
+    v.playing = false;
   } else {
-    if (models.static) models.static.visible = false;
-    if (models.walk) models.walk.visible = true;
-    walkAction.reset().fadeIn(0.15).play();
-    walking = true;
-    walkBtn.textContent = "■ Stop";
+    v.playing = true;
+    if (!v.action) {
+      probeWalk(active);          // first press loads the walk asset
+    } else {
+      v.action.reset().fadeIn(0.15).play();
+    }
   }
+  showActive();
+  refreshWalkBtn();
   markInteract();
 });
 
@@ -319,7 +372,10 @@ const fpsEl = document.getElementById("fps");
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.1);
   updateOrbit(dt);
-  if (mixer && walking) mixer.update(dt);
+  for (const id of Object.keys(versions)) {
+    const v = versions[id];
+    if (v.playing && v.mixer) v.mixer.update(dt);
+  }
   renderer.render(scene, camera);
   frames++;
   totalFrames++;
@@ -344,10 +400,12 @@ renderer.setAnimationLoop(() => {
 
 let resolveReady = null;
 const ready = new Promise((res) => { resolveReady = res; });
-function finishInit() {
-  initWalk();
+
+/* v2 is the default view for the S2 review; v1 lazy-loads on toggle. */
+loadStatic("v2", () => {
+  probeWalk("v2");
   resolveReady(true);
-}
+});
 
 /* ---------- test hook (Playwright) ---------- */
 
@@ -372,7 +430,18 @@ window.__spike3 = {
   },
   setAutoRotate: (on) => { orbit.autoRotate = !!on; },
   getWalk: () => ({
-    available: !walkBtn.hidden,
-    playing: walking
+    available: !!versions[active].action,
+    playing: versions[active].playing,
+    version: active
+  }),
+  /* v2 additions for the A/B review (old hooks above are unchanged) */
+  setModelVersion: (id) => setActive(id),
+  getModelVersion: () => active,
+  /* resolves once the named version's walk asset is loaded */
+  whenWalkLoaded: (id) => new Promise((res) => {
+    (function poll() {
+      const v = versions[id];
+      if (v.action) res(true); else setTimeout(poll, 50);
+    })();
   })
 };
