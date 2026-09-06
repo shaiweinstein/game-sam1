@@ -93,6 +93,21 @@ Verified against the vendored 5.7 runtime parser (`dragonBones.js`):
   `"frameRate"` (here 24) converts it.
 - **`"tweenEasing": 0`** = linear. Omitting `tweenEasing` on a key means
   *step* (hold value until next key) — always write `0` for smooth motion.
+
+**D0 addendum (2026-09-06, verified against the 5.7 runtime source):**
+
+- `tweenEasing` semantics: `< 0` = ease-in, `(0..1]` = ease-out,
+  `> 1` = ease-in-out (0 = linear, as above).
+- Timeline values are **additive offsets on the bind pose** — author the
+  bind pose as a relaxed A-pose and the data stays small.
+- Full-circle sweeps can be written as monotonically increasing rotate
+  values (0→120→240→360) **without** the `clockwise` flag — the parser
+  keeps them unwound (M0 used the flag; both work).
+- A proper 2D gait needs joints: single-segment limbs can only pendulate.
+  D0's 14-bone rig (shoulder/upper-arm/fore-arm, thigh/shin) + dense
+  3-frame key grid with shaped values + per-segment easing is what makes
+  the walk read as a walk (planted phase, knee flex to ~40° mid-swing,
+  2×-frequency body bob, eased decel into heel-strike).
 - **Last key quirk:** the final key of a loop typically repeats the first
   key's value with `"duration": 0` (it carries the loop-end value; the
   previous key's duration is what stretches to the animation end).

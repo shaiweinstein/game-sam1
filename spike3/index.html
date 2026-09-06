@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D Lily — spike</title>
+<style>
+  :root {
+    --ink: #3a2e6e;
+    --paper: #fdf6ff;
+    --card: #ffffff;
+    --accent: #ff8fb8;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: "Comic Sans MS", "Chalkboard SE", "Segoe UI", system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 16px;
+    background: var(--card);
+    border-bottom: 3px solid #f0e2f7;
+  }
+  header h1 {
+    font-size: 20px;
+    margin: 0 12px 0 0;
+    white-space: nowrap;
+  }
+  header h1 small { font-size: 12px; font-weight: normal; opacity: 0.65; }
+  .btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  button {
+    font: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    background: #fff0f7;
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    padding: 5px 12px;
+    cursor: pointer;
+  }
+  button:hover { background: #ffe4ef; }
+  button.active { background: var(--accent); color: #fff; }
+  main { flex: 1; display: flex; min-height: 0; }
+  #panel {
+    width: 300px;
+    min-width: 220px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: var(--card);
+    border-right: 3px solid #f0e2f7;
+    overflow: auto;
+  }
+  #panel img {
+    width: 100%;
+    border-radius: 14px;
+    border: 3px solid #f0e2f7;
+    background: #fdfaff;
+  }
+  #panel .caption { font-size: 13px; text-align: center; line-height: 1.35; }
+  #viewport { flex: 1; position: relative; min-width: 0; }
+  #viewport canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  #fps {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    font-size: 12px;
+    background: rgba(255,255,255,0.75);
+    border-radius: 8px;
+    padding: 2px 8px;
+    pointer-events: none;
+  }
+  #hint {
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    font-size: 12px;
+    background: rgba(255,255,255,0.75);
+    border-radius: 8px;
+    padding: 2px 8px;
+    pointer-events: none;
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "../lib/three/three.module.js",
+    "three/addons/": "../lib/three/addons/"
+  }
+}
+</script>
+</head>
+<body>
+  <header>
+    <h1>3D Lily <small>— spike (no animation yet)</small></h1>
+    <div class="btns" id="viewBtns">
+      <button data-view="front">Front</button>
+      <button data-view="side">Side</button>
+      <button data-view="back">Back</button>
+      <button data-view="45">45°</button>
+      <button data-zoom="in" title="zoom in">+</button>
+      <button data-zoom="out" title="zoom out">−</button>
+      <button id="walkBtn" hidden>▶ Walk</button>
+    </div>
+  </header>
+  <main>
+    <div id="panel">
+      <img src="ref/lily-2d.png" alt="2D reference of Lily from the game">
+      <div class="caption">
+        <b>2D reference</b> — Lily exactly as the game renders her
+        (default outfit). Compare her against the 3D model on the right.
+      </div>
+    </div>
+    <div id="viewport">
+      <div id="fps"></div>
+      <div id="hint">drag to orbit · wheel to zoom</div>
+    </div>
+  </main>
+  <script type="module" src="spike3.js"></script>
+</body>
+</html>
