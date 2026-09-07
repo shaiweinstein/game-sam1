@@ -65,3 +65,52 @@ the table (sampling starts at t = 1/30 s, e.g. Walk = 1.067).
 2. Blender 5.0 slotted actions removed `action.fcurves` — all F-Curve access
    goes through `action.layers[*].strips[*].channelbags[*].fcurves`
    (`collect_fcs()` in the script).
+
+## Camera (B2-cam) — the two-framing swim camera
+
+`world.js` owns the camera (see the `B2-cam` comment block there). It is a
+zone-driven, **two-framing** camera with **one constant orientation** — the
+B1 establishing shot's direction, which never rotates. The camera only ever
+translates and dollies along that fixed axis, so the horizon sits at the same
+viewport height (~45%) in both framings (no reframe, no wobble, mid-glide
+included).
+
+- **LAND** (zone `sand|foam`): the B1 establishing shot, kept pixel-identical —
+  pos `(0, 3.6, 10.4)`, lookAt `(0, 1.66, 2.64)`. Zoom behaves exactly as B1:
+  `pos = target + (base − target) × zoom`. On settled sand the position is set
+  by the exact formula (no residual ease), so the B1 framing is bit-identical.
+- **SEA** (zone `sea`): the follow rig —
+  `pos = swimmerAnchor + SEA_OFFSET × zoom`, `lookAt = pos + VIEW × SEA_LOOK`.
+  `swimmerAnchor = (anchor.x, rootY, anchor.z)` is her **eased** root height,
+  so the rig rides the waterline with her (wave + bob), never the seabed.
+  `SEA_OFFSET = −VIEW × SEA_DIST` is collinear with the view axis **by
+  construction**, so she sits on the frame-centre line. `SEA_DIST = 7.0 m` is
+  the readability distance (her above-water swim mass ≈ 80 px at 1280×800)
+  that also keeps the exit glide short enough to re-lock B1 before she is dry.
+  `SEA_LOOK = SEA_DIST + 0.6` puts the look point 0.6 m past her.
+
+**Motion:** the actual camera eases toward its target exponentially
+(`CAM_RATE 5 s⁻¹`) with a gentle velocity cap (`CAM_VMAX 2.5 m/s`). The
+~4.1 m land↔sea glide takes ~2 s while every 50 ms step stays ≤ 0.125 m (no
+pop); the in-sea follow settles in ~0.3–0.5 s and lags a full-speed swimmer by
+only `1.32/5 ≈ 0.26 m`. The chase `dt` is clamped to `1/30 s` so a dropped
+frame can never concentrate a big jump (per-frame travel ≤ 0.083 m). A
+sub-millimetre snap locks the camera exactly onto the B1 shot on the sand.
+
+**Zoom** (wheel/pinch, 0.8–1.6, persists across transitions): LAND scales
+`(base − target)` exactly as B1; SEA scales the rig offset (the 14° geometry
+is kept, only the rig distance changes). The zoom ease **snaps** to its target
+on settle so "back to 1.0" is exact (no sub-millimetre residue).
+
+**Reduced motion:** the water keeps its resting frame (existing policy); camera
+transitions run uncapped at `CAM_RATE_RM 25 s⁻¹` (≤ 0.2 s, near-instant) and
+the follow is lag-free — no per-frame camera jitter. Positional control of the
+character is untouched.
+
+**B3 (duck boat)** reuses the SEA framing for the ride stance: feed the boat's
+anchor/rootY/zone through the same `updateCamera()` entry — rig, ease, cap,
+zoom and RM policy all apply unchanged.
+
+**Test hooks** (`window.__beach3d.state()`): `cam` (3-decimal position),
+`camFull` (full precision), `camMode` (`land|sea`), and the no-pop audit
+`camStep`/`camSpeed` (get-and-clear max per-frame travel / real-time speed).
