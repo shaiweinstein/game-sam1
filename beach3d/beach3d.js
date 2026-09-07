@@ -136,8 +136,14 @@ function startLoop() {
         remaining -= dt;
         if (character) character.update(dt, waveT);
       }
-      world.stepZoom(raw);   /* B1 left this unwired — zoom easing ran
-                               only when wheel events fired (never) */
+      world.stepZoom(raw);
+      if (character) {
+        /* B2-cam: the zone-driven two-framing camera (world.js
+           camera block) — LAND = the exact B1 shot, SEA = the gentle
+           follow rig on her eased root */
+        const a = character.getAnchor();
+        world.updateCamera(raw, rm, a.x, character.getRootY(), a.z, a.zone);
+      }
       world.animate(waveT, raw, rm);
       world.render();
     }
@@ -248,6 +254,25 @@ window.__beach3d = {
       splashes: world ? world.splashCount() : 0,
       waveT: +waveT.toFixed(3),
       fps, zoom: +world.zoom().toFixed(2),
+      /* B2-cam QA: the actual camera position + which framing owns
+         it ("land" = exact B1 shot, "sea" = follow rig/glide) */
+      cam: world ? [
+        +world.camera.position.x.toFixed(3),
+        +world.camera.position.y.toFixed(3),
+        +world.camera.position.z.toFixed(3)
+      ] : null,
+      camMode: world ? world.camMode() : null,
+      /* full-precision camera position (debug: 3-decimal cam can
+         alias a mid-glide frame into a settled-looking value) */
+      camFull: world ? [
+        world.camera.position.x,
+        world.camera.position.y,
+        world.camera.position.z
+      ] : null,
+      /* no-pop audit (get-and-clear): max per-frame camera travel
+         (m) and max real-time speed (m/s) since the last state() */
+      camStep: world ? world.camStep() : 0,
+      camSpeed: world ? world.camSpeed() : 0,
       renderer: world.renderer ? {
         calls: world.renderer.info.render.calls,
         tris: world.renderer.info.render.triangles,
