@@ -1,5 +1,6 @@
 /* ============================================================
-   beach3d/character3d.js — Lily 4 + B1 locomotion
+   beach3d/character3d.js — Lily 4 + locomotion (B1 walk/wade,
+   B2 swim/float)
 
    Loads beach3d/assets/lily4_full.glb (8 Mixamo clips, 65 bones),
    toonifies exactly like spike3 and drives the AnimationMixer from
@@ -10,25 +11,38 @@
    targets surviving release) lives in beach3d.js and drives the
    setTarget/clearTarget API here.
 
-   B1 stances: stand→Idle, walk→Walk, wade→Walk (slower timeScale,
-   water over her lower legs). The map already carries one-line
-   entries for B2+ (swim→Swim, float→Idle+bob, ride→Sit,
-   surf→SurfRide); those clips are loaded and cached on open.
+   Stances (2D driveRig table, sea half landed in B2):
+     stand→Idle · walk→Walk · wade→Walk (slow ts, water at shins)
+     swim→Swim  (prone crawl, root y rides the water surface:
+                 node origin SWIM_SINK below it → mid-torso
+                 waterline per the B0 clip data)
+     float→Swim at a slow crawl + gentle bob (face-down treading)
+     ride→Sit · surf→SurfRide (pre-wired for B3/B4, clips cached)
 
    Root-lift (B0 note): the Walk clip's deepest sole contact is
    −0.144 m and Idle's −0.016 m — the model node is lifted per
    stance so the deepest touch lands exactly on the sand surface
-   (she never clips through it); the lift eases with the crossfade.
+   (she never clips through it). Land/water heights share ONE eased
+   root-y channel, so wade→swim sinks and swim→wade rises
+   continuously (no snapping) while the clip crossfades.
+
+   B2 sea reach: the B1 shore clamp is GONE — the sea is playable
+   to the deep-edge margin SEA_DEEP_Z. In the sea she glides:
+   release decelerates into the float stance (no ground friction
+   in water; the 2D snap-stop stays on land/foam).
    ============================================================ */
 
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { toonify, blobShadowTexture, shorelineZ, sandY, zoneAt, WORLD } from "./world.js";
+import {
+  toonify, blobShadowTexture, sandY, zoneAt, waterSurfaceY, WORLD
+} from "./world.js";
 
 const GLB_URL = new URL("./assets/lily4_full.glb", import.meta.url).href;
 
 /* 2D LOCO_SPEED { sand .25, foam .18, sea .30 } width-units/s scaled
-   to ≈1.05 body-lengths/s (spec B1). sea is the B2 swim speed. */
+   to ≈1.05 body-lengths/s (spec B1). sea is the B2 swim speed
+   (≈1.32 m/s ≈ 1.3 body-lengths/s — spec band 1.2–1.3). */
 export const LOCO_SPEED = { sand: 1.10, foam: 0.80, sea: 1.32 };
 /* 2D ease/stop ratios kept at the B1 meter scale: full gait past
    0.45 m from the target, floor 0.45, snap-stop within 0.12 m. */
@@ -36,19 +50,50 @@ const LOCO_EASE_RANGE = 0.45;
 const LOCO_MIN_SPEED = 0.45;
 const LOCO_STOP_DIST = 0.12;
 
-/* B1 sea clamp — the ONE line to remove for B2 swimming: no target
-   or position may pass shoreline − SEA_CLAMP_Z. (world.js documents
-   the same note; set to Infinity-adjacent negative in B2.) */
-export const SEA_CLAMP_Z = 0.10;
+/* B2 replaces the B1 shore clamp with a DEEP-EDGE margin: she swims
+   all the way to the far water but stays this side of z −6.5 —
+   past it come the wave crest sheets (z −6.8…−3.4) and the styled
+   horizon band, and the seabed keeps falling (bedTo −7.0). The
+   foam band is untouched: it stays the wade zone. */
+export const SEA_DEEP_Z = -6.5;
 
-/* stance → { clip, timeScale at full speed, root-lift m, bob } */
+/* Swim/float root sink — node origin this far BELOW the animated
+   water surface. MEASURED on the shipped clip (boneHeights audit,
+   node-relative world-Y over the stroke cycle): hips +0.02,
+   mid-spine +0.066, neck/shoulders +0.12–0.13, head bone
+   +0.07…+0.15 (the crawl undulation), head-top ≈+0.22–0.28.
+   0.065 puts the waterline at the mid-spine — the spec's
+   mid-torso line: head + hands clear, back at the surface,
+   hips/thighs/legs submerged and visible through the 0.9-alpha
+   toon water. (The README's 0.34–0.41 chest figure is stale for
+   this asset and put the whole body under the surface: a bobbing
+   hair-ball, the B2 swim-look defect.) */
+export const SWIM_SINK = 0.065;
+/* swim gait rate = actual speed ÷ full-speed ref, clamped to the
+   spec band; float idles the SAME clip at a slow crawl. */
+const SWIM_TS_MIN = 0.5, SWIM_TS_MAX = 1.4;
+const FLOAT_TS = 0.25;
+/* float bob: face-down treading, ±2 cm at 0.4 Hz on the wave clock
+   (frozen with the clock under reduced motion). */
+const BOB_AMP = 0.02, BOB_HZ = 0.4;
+/* water glide (release → float): velocity eases out instead of the
+   land snap-stop; ~0.2 m of drift before she settles. */
+const GLIDE_RATE = 5.0, GLIDE_STOP_SPEED = 0.05;
+/* shared eased root-y + clip crossfade for the wade↔swim sink/rise
+   (≈0.3 s to be visually seamless, spec 0.25–0.35 s). */
+const ROOT_Y_RATE = 9.0, CROSSFADE = 0.30;
+/* the one 2D water talk line (js/beach-boat.js disembark — same
+   event: dropping INTO the sea with a splash). */
+const SPLASH_TALK = "Splash! 🌊";
+
+/* stance → { clip, timeScale at full speed, root-lift m, water, bob } */
 const STANCES = {
   stand: { clip: "Idle", ts: 1.00, lift: 0.017 },
   walk:  { clip: "Walk", ts: 1.00, lift: 0.145 },
   wade:  { clip: "Walk", ts: 0.80, lift: 0.145 },
-  /* pre-wired for B2/B3/B4 — one line each, clips already cached: */
-  swim:  { clip: "Swim", ts: 1.00, lift: 0.0, water: true },
-  float: { clip: "Idle", ts: 0.60, lift: 0.0, water: true, bob: true },
+  swim:  { clip: "Swim", ts: 1.00, water: true },
+  float: { clip: "Swim", ts: FLOAT_TS, water: true, bob: true },
+  /* pre-wired for B3/B4 — one line each, clips already cached: */
   ride:  { clip: "Sit",  ts: 1.00, lift: 0.111 },
   surf:  { clip: "SurfRide", ts: 1.00, lift: 0.171 }
 };
@@ -57,9 +102,34 @@ const STANCES = {
    shows moonwalking this constant flips by π. */
 const FWD_YAW = 0;
 
+/* waterline foam break: soft white ellipse sprite (2D parity: the
+   paintSubmerge surface-ellipse pair — without the break the prone
+   body at game-camera scale reads as a grey smudge; the line is
+   what sells "half of her is UNDER"). Module-cached texture. */
+let _foamBreakTex = null;
+function foamBreakTexture() {
+  if (_foamBreakTex) return _foamBreakTex;
+  const s = 64;
+  const c = document.createElement("canvas");
+  c.width = c.height = s;
+  const g = c.getContext("2d");
+  const grad = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  grad.addColorStop(0, "rgba(255,255,255,0.95)");
+  grad.addColorStop(0.55, "rgba(255,255,255,0.6)");
+  grad.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, s, s);
+  _foamBreakTex = new THREE.CanvasTexture(c);
+  _foamBreakTex.colorSpace = THREE.SRGBColorSpace;
+  return _foamBreakTex;
+}
+
 function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
 
-export function createCharacter(renderer, scene, reducedMotion) {
+/* fx (optional): { splash(x, z), talk(text) } — waterline splash
+   VFX + speech hook, wired by beach3d.js to world.splash and
+   BeachScene.say. */
+export function createCharacter(renderer, scene, reducedMotion, fx) {
   const mixRoot = new THREE.Group();      /* position + yaw */
   const model = new THREE.Group();        /* root lift lives here */
   mixRoot.add(model);
@@ -75,6 +145,26 @@ export function createCharacter(renderer, scene, reducedMotion) {
   shadow.rotation.x = -Math.PI / 2;
   scene.add(shadow);
 
+  /* waterline foam break — child of mixRoot so it rides position +
+     yaw for free; local y = live surface height each frame */
+  const foamRing = new THREE.Mesh(
+    new THREE.PlaneGeometry(1, 1),
+    new THREE.MeshBasicMaterial({
+      map: foamBreakTexture(), transparent: true, opacity: 0,
+      depthWrite: false, side: THREE.DoubleSide
+    })
+  );
+  foamRing.rotation.x = -Math.PI / 2;
+  /* across × along the body — B2 audit: the original 0.44×0.86 ellipse
+     hid behind her silhouette; 0.9×1.5 wraps the ~0.9 m prone body so
+     the white waterline break reads from side and front, matching the
+     2D submerge-ellipse reference. */
+  foamRing.scale.set(0.9, 1.5, 1);
+  foamRing.position.set(0, 0, 0.06);          /* chest sits fwd of origin */
+  foamRing.renderOrder = 4;                   /* above water 2, sheets 3 */
+  foamRing.visible = false;
+  mixRoot.add(foamRing);
+
   const loco = {
     x: WORLD.rest.x, z: WORLD.rest.z,
     yaw: 0, yawTarget: 0,                   /* face the camera on open */
@@ -85,7 +175,14 @@ export function createCharacter(renderer, scene, reducedMotion) {
     stance: "stand",
     zone: zoneAt(WORLD.rest.x, WORLD.rest.z),
     lift: STANCES.stand.lift,
-    speed01: 1
+    speed01: 1,
+    /* B2: smoothed world velocity (sea glide) + the single eased
+       root height shared by land (sandY+lift) and water (surface−
+       sink) so every height change lerps, never snaps. */
+    vx: 0, vz: 0,
+    rootY: sandY(WORLD.rest.x, WORLD.rest.z) + STANCES.stand.lift,
+    snapY: false,                           /* teleport → plant instantly */
+    foam: 0                                 /* waterline break fade 0..1 */
   };
 
   let mixer = null;
@@ -115,21 +212,38 @@ export function createCharacter(renderer, scene, reducedMotion) {
   });
 
   const stanceCfg = () => STANCES[loco.stance] || STANCES.stand;
+  const gliding = () => loco.zone === "sea" && (loco.vx !== 0 || loco.vz !== 0);
 
   /* gait rate: full ts when idle (breathing Idle), ease-following
-     ts while walking (2D: actual displacement drives the gait). */
+     ts while walking (2D: actual displacement drives the gait).
+     In the sea the SWIM clip rate follows ACTUAL speed ÷ 1.32 m/s,
+     clamped to the spec band; float crawls the same clip at 0.25
+     (the swim→float release therefore decelerates the stroke too). */
   function applyTimeScale() {
     if (!ready || !current) return;
     if (reducedMotion()) { current.action.setEffectiveTimeScale(0); return; }
     const cfg = stanceCfg();
-    const f = loco.moving ? cfg.ts * loco.speed01 : cfg.ts;
+    let f;
+    if (cfg.water) {
+      f = (loco.stance === "swim" && loco.moving)
+        ? clamp(loco.speed01, SWIM_TS_MIN, SWIM_TS_MAX)
+        : cfg.ts;
+    } else {
+      f = cfg.ts * (loco.moving ? loco.speed01 : 1);
+    }
     current.action.setEffectiveTimeScale(f);
   }
 
-  /* reduced motion: clock frozen — park the pose at frame 0 (a
-     clean contact frame) whenever the stance swaps. */
+  /* reduced motion: clock frozen — park a GOOD static frame whenever
+     the stance swaps: standing clips park at frame 0 (clean contact);
+     the prone Swim clip parks mid-recovery (head+arm up — frame 0 is
+     the catch with the face in the water, which reads as drowning
+     when frozen). */
+  const PARK_TIME = { Swim: 1.13 };
   function parkIfNeeded() {
-    if (ready && reducedMotion() && current) current.action.time = 0;
+    if (ready && reducedMotion() && current) {
+      current.action.time = PARK_TIME[current.clipName] || 0;
+    }
   }
 
   function setStance(name) {
@@ -146,62 +260,123 @@ export function createCharacter(renderer, scene, reducedMotion) {
     next.reset();
     next.setEffectiveWeight(1);
     next.play();
-    if (current) current.action.fadeOut(0.18);
+    if (current) current.action.fadeOut(CROSSFADE);
     current = { clipName: cfg.clip, action: next };
     applyTimeScale();
     parkIfNeeded();
   }
 
-  /* ---------- the B1 sea clamp + playable box (one place) ---------- */
+  /* ---------- the playable box (one place) ----------
+     B2: the old B1 shore clamp is gone — the sea is playable to
+     the deep-edge margin; the x/z box keeps her on the strip. */
   function clampPoint(x, z) {
     const b = WORLD.box;
     const tx = clamp(x, b.xMin, b.xMax);
     let tz = clamp(z, b.zMin, b.zMax);
-    tz = Math.max(tz, shorelineZ(tx) - SEA_CLAMP_Z);   /* ← remove in B2 */
+    tz = Math.max(tz, SEA_DEEP_Z);
     return { x: tx, z: tz };
   }
 
-  /* ---------- one locomotion tick (2D stepLocomotion port, meters) ---------- */
+  /* ---------- sea-boundary crossing (2D locoFrame rule) ----------
+     Splash whenever she crosses INTO or OUT OF the sea (sand↔foam
+     alone = just wet feet, 2D parity). Checked per substep so the
+     splash lands exactly on the crossing point. Talk: the one 2D
+     water line exists — "Splash! 🌊" (beach-boat disembark) — ported
+     on entry; leaving the water stays wordless, like the 2D. */
+  function refreshZone() {
+    const zn = zoneAt(loco.x, loco.z);
+    if (zn === loco.zone) return zn;
+    const was = loco.zone;
+    loco.zone = zn;
+    if (fx && fx.splash && (zn === "sea") !== (was === "sea")) {
+      fx.splash(loco.x, loco.z);
+      if (zn === "sea" && fx.talk) fx.talk(SPLASH_TALK);
+    }
+    return zn;
+  }
+
+  /* ---------- one locomotion tick (2D stepLocomotion port, meters) ----------
+     Land/foam keep the 2D direct step + snap-stop. In the SEA the
+     velocity eases toward the desired heading (ease-in press,
+     ease-out near the target via `factor`, and a release GLIDE —
+     "swim→float: decelerate, settle"; motion is never teleported). */
   function step(dt) {
     const t = loco.target;
-    if (!t) { loco.moving = false; return; }
+    if (!t) {
+      loco.moving = false;
+      if (gliding()) {
+        const k = Math.exp(-GLIDE_RATE * dt);
+        loco.vx *= k; loco.vz *= k;
+        if (Math.hypot(loco.vx, loco.vz) < GLIDE_STOP_SPEED) {
+          loco.vx = loco.vz = 0;
+        } else {
+          loco.x += loco.vx * dt;
+          loco.z += loco.vz * dt;
+          const c = clampPoint(loco.x, loco.z);
+          loco.x = c.x; loco.z = c.z;
+          loco.speed01 = Math.hypot(loco.vx, loco.vz) / LOCO_SPEED.sea;
+          refreshZone();          /* a glide out of the sea splashes too */
+        }
+      } else {
+        loco.vx = loco.vz = 0;
+      }
+      return;
+    }
     const dx = t.x - loco.x, dz = t.z - loco.z;
     const dist = Math.hypot(dx, dz);
     if (dist < LOCO_STOP_DIST) {
+      loco.x = t.x; loco.z = t.z;                /* snap-arrive exactly */
+      loco.vx = loco.vz = 0;
       loco.moving = false;
       loco.target = null; loco.targetSrc = null;
+      refreshZone();
       return;
     }
     const factor = clamp(
       LOCO_MIN_SPEED + (1 - LOCO_MIN_SPEED) * Math.min(1, dist / LOCO_EASE_RANGE),
       LOCO_MIN_SPEED, 1);
     const v = (LOCO_SPEED[loco.zone] || LOCO_SPEED.sand) * factor;
-    let stepLen = v * dt;
-    if (stepLen > dist) stepLen = dist;          /* snap-arrive exactly */
-    loco.x += (dx / dist) * stepLen;
-    loco.z += (dz / dist) * stepLen;
+    const dirx = dx / dist, dirz = dz / dist;
+    if (loco.zone === "sea") {
+      const k = 1 - Math.exp(-6 * dt);
+      loco.vx += (dirx * v - loco.vx) * k;
+      loco.vz += (dirz * v - loco.vz) * k;
+      let g = Math.hypot(loco.vx, loco.vz) * dt;
+      if (g > dist) g = dist;                    /* no overshoot */
+      loco.x += (loco.vx / Math.max(1e-9, Math.hypot(loco.vx, loco.vz))) * g;
+      loco.z += (loco.vz / Math.max(1e-9, Math.hypot(loco.vx, loco.vz))) * g;
+      loco.speed01 = Math.hypot(loco.vx, loco.vz) / LOCO_SPEED.sea;
+    } else {
+      let stepLen = v * dt;
+      if (stepLen > dist) stepLen = dist;        /* snap-arrive exactly */
+      loco.x += dirx * stepLen;
+      loco.z += dirz * stepLen;
+      loco.vx = loco.vz = 0;
+      loco.speed01 = factor;   /* gait rate follows the ease (2D) */
+    }
     const clamped = clampPoint(loco.x, loco.z);
     loco.x = clamped.x; loco.z = clamped.z;
     loco.moving = true;
-    loco.speed01 = factor;   /* gait rate follows the ease (2D) */
     /* zone from the NEW position (2D uses the returned anchor);
-       a change here is the future B2 splash/entry hook */
-    const zn = zoneAt(loco.x, loco.z);
-    if (zn !== loco.zone) loco.zoneCrossed = zn;  /* B2 reads + clears */
-    loco.zone = zn;
-    /* stance table (2D driveRig): sea→swim/float (B2), foam moving→
+       sea-boundary crossings splash (+ the ported talk line) */
+    const zn = refreshZone();
+    /* stance table (2D driveRig): sea moving→swim, foam moving→
        wade, land moving→walk; the idle half lives in update(). */
     setStance(zn === "sea" ? "swim" : zn === "foam" ? "wade" : "walk");
     /* yaw toward the movement direction (smoothed in update) */
     loco.yawTarget = Math.atan2(dx, dz) + FWD_YAW;
   }
 
-  /* ---------- per-frame entry (beach3d.js owns the loop) ---------- */
-  function update(dt) {
+  /* ---------- per-frame entry (beach3d.js owns the loop) ----------
+     tNow = the world wave clock (frozen under reduced motion), used
+     to sample the same animated water surface the mesh draws. */
+  function update(dt, tNow) {
     if (!ready) return;
+    const t = tNow || 0;
     if (loco.enabled && dt > 0) step(dt);
 
-    /* smooth yaw, exponential damping ~10/s (spec) */
+    /* smooth yaw, exponential damping ~10/s (spec) — in the sea it
+       keeps swinging toward the glide direction while she settles */
     const k = 1 - Math.exp(-10 * dt);
     let d = loco.yawTarget - loco.yaw;
     while (d > Math.PI) d -= Math.PI * 2;
@@ -209,19 +384,44 @@ export function createCharacter(renderer, scene, reducedMotion) {
     if (Math.abs(d) > 0.003) loco.yaw += d * k;
     else loco.yaw = loco.yawTarget;
 
-    /* stopped → stand everywhere B1 allows (2D: foam idle also
-       stands; sea idle becomes "float" in B2 via the stance map) */
-    if (!loco.moving && loco.stance !== "stand") setStance("stand");
+    /* stopped → the 2D idle half of the table: sea → float,
+       foam/sand → stand */
+    if (!loco.moving && !gliding()) {
+      setStance(loco.zone === "sea" ? "float" : "stand");
+    }
 
-    /* plant on the sand: eased root lift + surface height. water:
-       true stances (B2) will float at the surface instead. */
+    /* ONE eased root-height channel: land stances plant on the sand
+       (surface + eased lift), water stances ride the animated
+       surface at the SWIM_SINK mid-torso waterline, float adds the
+       gentle bob (frozen with the wave clock under reduced motion).
+       Crossings between the two therefore sink/rise smoothly —
+       wade→swim dives, swim→wade rises at the waterline, nothing
+       ever snaps or teleports. */
     const cfg = stanceCfg();
-    loco.lift += (cfg.lift - loco.lift) * (1 - Math.exp(-12 * dt));
+    loco.lift += ((cfg.lift || 0) - loco.lift) * (1 - Math.exp(-12 * dt));
     const gy = sandY(loco.x, loco.z);
+    const surf = waterSurfaceY(loco.x, loco.z, t);
+    const bob = (cfg.bob && !reducedMotion())
+      ? BOB_AMP * Math.sin(t * 2 * Math.PI * BOB_HZ) : 0;
+    const targetY = cfg.water ? surf - SWIM_SINK + bob : gy + loco.lift;
+    if (loco.snapY) { loco.rootY = targetY; loco.snapY = false; }
+    else loco.rootY += (targetY - loco.rootY) * (1 - Math.exp(-ROOT_Y_RATE * dt));
     mixRoot.position.set(loco.x, 0, loco.z);
     mixRoot.rotation.y = loco.yaw;
-    model.position.y = gy + loco.lift;
+    model.position.y = loco.rootY;
     shadow.position.set(loco.x, gy + 0.008, loco.z);
+
+    /* waterline break: fades in over the sink, rides the live
+       surface (mixRoot y=0 → local y IS world height). Static under
+       reduced motion — it only tracks position, no animation. */
+    loco.foam += ((cfg.water ? 0.9 : 0) - loco.foam) * (1 - Math.exp(-8 * dt));
+    foamRing.material.opacity = loco.foam;
+    foamRing.visible = loco.foam > 0.02;
+    foamRing.position.y = surf + 0.014;
+    /* no puddle-shadow on her in deep water (it would sit on the
+       seabed metres below; the water hides it anyway — fade it out
+       early so nothing dark bleeds through the translucent plane) */
+    shadow.visible = zoneAt(loco.x, loco.z) !== "sea";
 
     applyTimeScale();
     mixer.update(reducedMotion() ? 0 : dt);
@@ -261,7 +461,55 @@ export function createCharacter(renderer, scene, reducedMotion) {
       const p = clampPoint(x, z);
       loco.x = p.x; loco.z = p.z;
       loco.target = null; loco.targetSrc = null; loco.moving = false;
+      loco.vx = loco.vz = 0; loco.snapY = true;
       loco.zone = zoneAt(p.x, p.z);
+    },
+    /* eased root height + live zone (QA waterline asserts) */
+    getRootY: () => model.position.y,
+    /* QA: world-space Y of named bones at the current pose — proves
+       exactly what the waterline crosses (B2 swim-look audit) */
+    boneHeights(names) {
+      if (!ready) return null;
+      const out = {};
+      const v = new THREE.Vector3();
+      /* live bone names drop the glTF ":" (mixamorigHips) — try both */
+      const find = (n) => model.getObjectByName(n) ||
+        model.getObjectByName(n.replace(":", ""));
+      for (const n of names) {
+        const bone = find(n);
+        if (bone) { bone.getWorldPosition(v); out[n] = +v.y.toFixed(4); }
+      }
+      return out;
+    },
+    /* QA: which clip is driving the pose right now (stance/pose
+       audits — e.g. B2 swim-look gate, B3/B4 stance-map checks) */
+    actionInfo() {
+      const all = {};
+      for (const name of Object.keys(actions)) {
+        const a = actions[name];
+        all[name] = {
+          run: a.isRunning(),
+          w: +a.getEffectiveWeight().toFixed(3)
+        };
+      }
+      if (!current) return { all };
+      const a = current.action;
+      return {
+        stance: loco.stance,
+        clip: current.clipName,
+        playing: a.isRunning(),
+        weight: +a.getEffectiveWeight().toFixed(3),
+        time: +a.time.toFixed(3),
+        timeScale: +a.getEffectiveTimeScale().toFixed(3),
+        all
+      };
+    },
+    /* QA: bake one frozen pose at clip time s (used to pick the RM
+       park frame; harmless mid-run — the next frame re-advances) */
+    probePose(s) {
+      if (!ready || !current) return;
+      current.action.time = s;
+      mixer.update(0);
     },
     /* full teardown with the world (one context per beach visit) */
     dispose() {
@@ -274,12 +522,17 @@ export function createCharacter(renderer, scene, reducedMotion) {
       scene.remove(shadow);
       shadow.geometry.dispose();
       shadow.material.dispose();
+      foamRing.geometry.dispose();
+      foamRing.material.dispose();   /* texture is module-cached (stable count) */
     },
     reset() {
       loco.x = WORLD.rest.x; loco.z = WORLD.rest.z;
       loco.yaw = loco.yawTarget = 0;
       loco.target = null; loco.targetSrc = null;
       loco.enabled = true; loco.moving = false;
+      loco.vx = loco.vz = 0; loco.speed01 = 1;
+      loco.rootY = sandY(loco.x, loco.z) + STANCES.stand.lift;
+      loco.snapY = true;
       loco.zone = zoneAt(loco.x, loco.z);
       if (ready) {
         loco.stance = "walk";          /* force the re-push */

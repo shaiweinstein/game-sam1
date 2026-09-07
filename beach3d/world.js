@@ -11,8 +11,10 @@
                  (2D: wavy --sand-top waterline).
 
    Zones (2D zoneAtFy port): sand z > S+0.30, foam band
-   z ∈ (S−0.30, S+0.30], sea z ≤ S−0.30. B1 clamps targets to
-   z ≥ S−SEA_CLAMP (see character3d.js — the clamp is one flag).
+   z ∈ (S−0.30, S+0.30], sea z ≤ S−0.30. B2 (swim): the sea is
+   playable — the old B1 shore clamp is gone; character3d clamps
+   the DEEP edge instead (SEA_DEEP_Z margin short of the far
+   water line). The foam band stays the wade zone.
 
    Camera: FIXED 3/4 high angle (not a follow cam), gentle
    wheel/pinch zoom 0.8×–1.6× — tuned via stills so the sea/sky
@@ -36,8 +38,6 @@ export const WORLD = {
   /* zone bands relative to the shoreline z at the same x (2D port) */
   zoneSandDz: 0.30,     /* sand   = dz > +0.30 */
   zoneSeaDz: 0.30,      /* sea    = dz < −0.30 (foam between)  */
-  /* B1 sea clamp: targets may not go past shoreline − this.
-     B2 (swim): delete the clamp — character3d reads SEA_CLAMP_Z. */
   /* sand height profile across the shore band (the waterline is
      where sandY equals WATER_Y); a gentle 0.9m-wide ramp then a
      slower rise to the back of the beach, and a seabed dropoff. */
@@ -50,6 +50,10 @@ export const WORLD = {
   water: { y: 0.12, xHalf: 16, zFar: -7.5, zNear: 0.92, segX: 64, segZ: 40,
            /* toon sea blues = the 2D .beach-sea gradient hexes */
            colDeep: 0x2b93b6, colMid: 0x3cb0cf, colShallow: 0x63d1e1,
+           /* B1 approved look (commit 94b64da stills): flat toon
+              blue at 0.9 — the submerged swimmer still reads
+              through it (B2's per-vertex alpha grading washed the
+              shallows out to pale sage: sand bleed over the blue) */
            opacity: 0.9 },
   /* playable box (raycast targets + step clamps) */
   box: { xMin: -6.2, xMax: 6.2, zMin: -9.0, zMax: 5.0 },
@@ -98,6 +102,28 @@ export function zoneAt(x, z) {
   if (dz > WORLD.zoneSandDz) return "sand";
   if (dz > -WORLD.zoneSeaDz) return "foam";
   return "sea";
+}
+
+/* ---------- the shared water surface height field ----------
+   Used by the water mesh, the foam lap, the swimmer waterline
+   (character3d B2) and the splash VFX — one source of truth so the
+   body line and every surface-riding effect always agree (2D:
+   foamEdgeY is THE shared waterline). 2–3 octaves, ≤0.06 m,
+   ~0.3–0.6 Hz. t is the wave clock owned by beach3d.js; under
+   reduced motion the clock freezes → the surface rests at its
+   frame-0 shape. Exported for B3 (boat bob) and B4 (wave ride). */
+const WAVE_A = 0.030, WAVE_B = 0.022, WAVE_C = 0.014;
+export function waterSurfaceY(x, z, t) {
+  /* amplitude damps to 0 in the wading band so legs see calm,
+     readable water over the lower legs, and again to 0 at the far
+     edge (stills round 1: wave vertices notched the sea/sky line) */
+  const shoreF = smoothstep01((shorelineZ(x) - z) / 1.6);
+  const farF = smoothstep01((z - WORLD.water.zFar) / 2.2);
+  const f = shoreF * farF;
+  return WORLD.water.y
+    + Math.sin(x * 0.9 + t * 1.30) * WAVE_A * f
+    + Math.sin(z * 1.7 - t * 2.05 + 1.1) * WAVE_B * f
+    + Math.sin((x + z) * 2.6 + t * 3.6 + 2.7) * WAVE_C * 0.6 * f;
 }
 
 /* ---------- toon materials (spike3 patterns, verbatim shapes) ---------- */
@@ -474,22 +500,9 @@ export function createWorld(hostEl) {
   waterMesh.renderOrder = 2;               /* after sand, before foam */
   scene.add(waterMesh);
 
-  /* water wave math — shared by the mesh and the foam lap so the
-     foam edge always rides the SAME animated surface (2D: foamEdgeY
-     is THE shared waterline). 2–3 octaves, ≤0.06m, ~0.3–0.6 Hz. */
-  const WAVE_A = 0.030, WAVE_B = 0.022, WAVE_C = 0.014;
-  function waterSurfaceY(x, z, t) {
-    /* amplitude damps to 0 in the wading band so legs see calm,
-       readable water over the lower legs, and again to 0 at the far
-       edge (stills round 1: wave vertices notched the sea/sky line) */
-    const shoreF = smoothstep01((shorelineZ(x) - z) / 1.6);
-    const farF = smoothstep01((z - wCfg.zFar) / 2.2);
-    const f = shoreF * farF;
-    return wCfg.y
-      + Math.sin(x * 0.9 + t * 1.30) * WAVE_A * f
-      + Math.sin(z * 1.7 - t * 2.05 + 1.1) * WAVE_B * f
-      + Math.sin((x + z) * 2.6 + t * 3.6 + 2.7) * WAVE_C * 0.6 * f;
-  }
+  /* (waterSurfaceY now lives at module scope — see the shared
+     height-field block above; the mesh, foam, swimmer and splashes
+     all sample it so nothing ever disagrees on where water is) */
   function updateWater(t) {
     const pos = waterGeo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
@@ -562,6 +575,119 @@ export function createWorld(hostEl) {
   function updateWaveSheets(t) {
     for (const { m, cfg } of sheetMeshes) {
       m.material.map.offset.x = (t * cfg.slide) % 1;
+    }
+  }
+
+  /* ---------- splash VFX (B2 — the shared waterline splash) ----------
+     splash(x, z) drops an entry/exit splash on the water: two
+     staggered expanding rings + six gravity droplets, every piece
+     riding waterSurfaceY. B3 (duck hop-off) and B4 (surf entry)
+     reuse THIS helper. Cost: two InstancedMeshes (+2 draw calls
+     total, ever), pooled, capped at 24 live splashes (2D: max 24
+     ripples, life 0.9 s). Additive white: fading the instance color
+     toward black IS the alpha ramp — no per-instance transparency.
+     Updated on the REAL clock: under reduced motion the shapes park
+     at mid-expansion (2D drawRipples policy) but the fade stays —
+     it reads as input feedback, not decoration. */
+  const SPLASH_MAX = 24, SPLASH_LIFE = 0.9, RING_LIFE = 0.8;
+  const RING_R = [0.62, 0.40];            /* main + staggered ring, m */
+  const splashes = [];
+  let splashSeed = 1;
+  const ringGeo = new THREE.RingGeometry(0.82, 1.0, 28);
+  ringGeo.rotateX(-Math.PI / 2);
+  const splashRings = new THREE.InstancedMesh(ringGeo,
+    new THREE.MeshBasicMaterial({
+      transparent: true, blending: THREE.AdditiveBlending,
+      depthWrite: false, side: THREE.DoubleSide
+    }), SPLASH_MAX * 2);
+  splashRings.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  splashRings.frustumCulled = false;
+  splashRings.renderOrder = 3;
+  splashRings.count = 0;
+  scene.add(splashRings);
+  const splashDrops = new THREE.InstancedMesh(
+    new THREE.SphereGeometry(1, 6, 4),
+    new THREE.MeshBasicMaterial({
+      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
+    }), SPLASH_MAX * 6);
+  splashDrops.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  splashDrops.frustumCulled = false;
+  splashDrops.renderOrder = 3;
+  splashDrops.count = 0;
+  scene.add(splashDrops);
+
+  function splash(x, z) {
+    const dots = [];
+    for (let d = 0; d < 6; d++) {
+      const a = hash01(splashSeed * 7 + d, 17);
+      const b = hash01(splashSeed * 13 + d, 29);
+      const c = hash01(splashSeed * 31 + d, 41);
+      const ang = a * Math.PI * 2;
+      const sp = 0.45 + 0.70 * b;                    /* m/s sideways */
+      dots.push({
+        vx: Math.cos(ang) * sp, vz: Math.sin(ang) * sp,
+        vy: 1.5 + 0.9 * c,                           /* m/s up       */
+        r: 0.014 + 0.016 * a                         /* m droplet    */
+      });
+    }
+    splashSeed++;
+    splashes.push({ x, z, age: 0, dots });
+    if (splashes.length > SPLASH_MAX) splashes.shift();
+  }
+
+  const _spM = new THREE.Matrix4();
+  const _spQ = new THREE.Quaternion();
+  const _spP = new THREE.Vector3();
+  const _spS = new THREE.Vector3();
+  const _spC = new THREE.Color();
+  function updateSplashes(dt, t, rm) {
+    if (!splashes.length) return;
+    for (let i = splashes.length - 1; i >= 0; i--) {
+      splashes[i].age += dt;
+      if (splashes[i].age >= SPLASH_LIFE) splashes.splice(i, 1);
+    }
+    let ri = 0, di = 0;
+    for (const s of splashes) {
+      const surf = waterSurfaceY(s.x, s.z, t);
+      for (let k = 0; k < 2; k++) {
+        const ra = s.age - 0.1 * k;
+        if (ra < 0 || ra >= RING_LIFE) continue;
+        const u = ra / RING_LIFE;
+        const grow = rm ? 0.5 : Math.sqrt(u);        /* fast out, ease off */
+        const rad = 0.12 + (RING_R[k] - 0.12) * grow;
+        const alpha = (1 - u) * (1 - u) * (k === 0 ? 0.85 : 0.55);
+        _spP.set(s.x, surf + 0.014, s.z);
+        _spS.set(rad, rad, rad);
+        _spM.compose(_spP, _spQ, _spS);
+        splashRings.setMatrixAt(ri, _spM);
+        _spC.setScalar(alpha);
+        splashRings.setColorAt(ri, _spC);
+        ri++;
+      }
+      for (const d of s.dots) {
+        const tau = rm ? 0.16 : s.age;               /* parked arc frame */
+        const arc = d.vy * tau - 3.4 * tau * tau;    /* apex ≈0.2 m     */
+        if (arc <= 0.002) continue;                  /* already re-entered */
+        const x = s.x + d.vx * tau, z = s.z + d.vz * tau;
+        const fade = (1 - tau / 0.8) * (1 - tau / 0.8) * 0.9;
+        _spP.set(x, waterSurfaceY(x, z, t) + arc, z);
+        _spS.set(d.r, d.r * 1.3, d.r);
+        _spM.compose(_spP, _spQ, _spS);
+        splashDrops.setMatrixAt(di, _spM);
+        _spC.setScalar(fade);
+        splashDrops.setColorAt(di, _spC);
+        di++;
+      }
+    }
+    splashRings.count = ri;
+    splashDrops.count = di;
+    if (ri) {
+      splashRings.instanceMatrix.needsUpdate = true;
+      if (splashRings.instanceColor) splashRings.instanceColor.needsUpdate = true;
+    }
+    if (di) {
+      splashDrops.instanceMatrix.needsUpdate = true;
+      if (splashDrops.instanceColor) splashDrops.instanceColor.needsUpdate = true;
     }
   }
 
@@ -791,12 +917,18 @@ export function createWorld(hostEl) {
       }
     },
     /* frame pass; under reduced motion the caller simply never
-       advances t (world stays on its resting frame) */
-    animate(t) {
+       advances t (world stays on its resting frame). dt is the REAL
+       frame delta — the splash VFX fade lives on it even when the
+       wave clock is parked (2D RM policy). */
+    animate(t, dt, rm) {
       updateWater(t);
       updateFoam(t);
       updateWaveSheets(t);
+      updateSplashes(dt || 0, t, !!rm);
     },
+    /* waterline splash helper — B2 swim entry/exit; B3/B4 reuse */
+    splash,
+    splashCount: () => splashes.length,
     render() { renderer.render(scene, camera); },
     resize, noteWindow,
     dispose() {
@@ -805,6 +937,16 @@ export function createWorld(hostEl) {
       if (scene.background) scene.background.dispose();
       renderer.dispose();
       renderer.domElement.remove();
+    },
+    /* QA: project a world point to PAGE CSS px (screenshot clips) */
+    project(x, y, z) {
+      const v = new THREE.Vector3(x, y, z).project(camera);
+      const r = canvas.getBoundingClientRect();
+      return {
+        x: r.left + (v.x * 0.5 + 0.5) * r.width,
+        y: r.top + (1 - (v.y * 0.5 + 0.5)) * r.height,
+        behind: v.z > 1
+      };
     },
     /* pointer raycast → playable ground point (y = water/sand line) */
     pickGround(ndcX, ndcY) {
