@@ -191,6 +191,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
   let ready = false;
   let disposed = false;
   let rideDriven = false, ridePaddling = false;
+  let rideStance = "ride", rideSurfaceY = null;
   let lastWaveT = 0;
 
   const readyPromise = new Promise((resolve) => {
@@ -413,8 +414,10 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
     const t = tNow || 0;
     lastWaveT = t;
     if (rideDriven) {
-      loco.rootY = waterSurfaceY(loco.x, loco.z, t) + STANCES.ride.lift
-        + Math.sin(t * Math.PI * 2 * 0.55 + 1.3) * 0.03;
+      loco.rootY = rideSurfaceY === null
+        ? waterSurfaceY(loco.x, loco.z, t) + STANCES[rideStance].lift
+          + Math.sin(t * Math.PI * 2 * 0.55 + 1.3) * 0.03
+        : rideSurfaceY + STANCES[rideStance].lift;
       mixRoot.position.set(loco.x, 0, loco.z);
       mixRoot.rotation.y = loco.yaw;
       model.position.y = loco.rootY;
@@ -484,15 +487,19 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
     root: mixRoot,
     loco,
     setStance,
-    attachRide(x, z, yaw) {
+    attachRide(x, z, yaw, stance = "ride", surfaceY = null) {
       if (!ready || ![x, z, yaw].every(Number.isFinite)) return false;
+      if (!STANCES[stance] || (surfaceY !== null && !Number.isFinite(surfaceY))) return false;
       rideDriven = true;
+      rideStance = stance; rideSurfaceY = surfaceY;
       loco.x = x; loco.z = z; loco.yaw = loco.yawTarget = yaw;
       loco.zone = "sea";
       loco.target = loco.targetSrc = null;
       loco.vx = loco.vz = 0; loco.moving = false;
-      loco.rootY = waterSurfaceY(x, z, lastWaveT) + STANCES.ride.lift
-        + Math.sin(lastWaveT * Math.PI * 2 * 0.55 + 1.3) * 0.03;
+      loco.rootY = surfaceY === null
+        ? waterSurfaceY(x, z, lastWaveT) + STANCES[stance].lift
+          + Math.sin(lastWaveT * Math.PI * 2 * 0.55 + 1.3) * 0.03
+        : surfaceY + STANCES[stance].lift;
       mixRoot.position.set(x, 0, z);
       mixRoot.rotation.y = yaw;
       model.position.y = loco.rootY;

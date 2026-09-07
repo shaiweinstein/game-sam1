@@ -34,6 +34,7 @@ import {
 } from "./world.js";
 import { createCharacter } from "./character3d.js";
 import * as boat from "./boat3d.js";
+import * as surf from "./surf3d.js";
 
 /* Speech hook for the 3D side (B2 talk port): js/beach.js owns the
    #beach-talk bubble; BeachScene.say is the canvas-module line API
@@ -97,6 +98,16 @@ function open(stageEl) {
   boat.attach(world, character, world.renderer, {
     sound: (name) => window.GameSounds?.play(name)
   }, sayLine);
+  surf.attach(world, character, world.renderer, {
+    sound: (name) => window.GameSounds?.play(name)
+  }, sayLine, {
+    rideActive: boat.active,
+    beforeCatch: () => {
+      /* Cancel a pending auto-board without changing B3's invitation API. */
+      if (boat.state()?.mode === "invited") boat.onPointerDown({});
+      if (trackedPointer !== null) pointerWasRide = true;
+    }
+  });
   trackedPointer = null;
   wireInput(world.canvas);
   opened = true;
@@ -114,6 +125,7 @@ function close() {
   if (loopId !== null) { cancelAnimationFrame(loopId); loopId = null; }
   /* full teardown per visit — one WebGL context per beach session,
      never a leak across open/close cycles (2D parity) */
+  surf.dispose();
   boat.dispose();
   trackedPointer = null;
   if (character) character.dispose();
@@ -140,6 +152,9 @@ function startLoop() {
     const rm = reducedMotion();
     if (!rm) waveT += raw;
     if (world) {
+      /* Surf's analytic movement cannot overshoot its target. Rebuild the
+         wave once per render, not for every character/boat integration step. */
+      surf.update(raw, waveT, rm);
       let remaining = raw;
       while (remaining > 1e-6) {
         const dt = Math.min(1 / 60, remaining);
@@ -152,7 +167,7 @@ function startLoop() {
         /* B2-cam: the zone-driven two-framing camera (world.js
            camera block) — LAND = the exact B1 shot, SEA = the gentle
            follow rig on her eased root */
-        const a = boat.getCameraAnchor() || character.getAnchor();
+        const a = surf.getCameraAnchor() || boat.getCameraAnchor() || character.getAnchor();
         world.updateCamera(raw, rm, a.x, a.y ?? character.getRootY(), a.z, a.zone);
       }
       world.animate(waveT, raw, rm);
@@ -186,22 +201,23 @@ function wireInput(canvas) {
     trackedPointer = ev.pointerId;
     try { canvas.setPointerCapture(ev.pointerId); } catch (e) { /* ok */ }
     const p = toWorld(ev);
-    if (!boat.onPointerDown(ev) && p) character.setTarget(p.x, p.z, "pointer");
-    pointerWasRide = boat.active();
+    if (!surf.onPointerDown(ev) && !boat.onPointerDown(ev) && p) character.setTarget(p.x, p.z, "pointer");
+    pointerWasRide = surf.active() || boat.active();
     ev.preventDefault();
   });
   canvas.addEventListener("pointermove", (ev) => {
     if (!character || ev.pointerId !== trackedPointer) return;
-    if (pointerWasRide && !boat.active()) return;
-    if (boat.active()) pointerWasRide = true;
+    if (pointerWasRide && !surf.active() && !boat.active()) return;
+    if (surf.active() || boat.active()) pointerWasRide = true;
     const p = toWorld(ev);
-    if (!boat.onPointerMove(ev) && p) character.setTarget(p.x, p.z, "pointer");
+    if (!surf.onPointerMove(ev) && !boat.onPointerMove(ev) && p) character.setTarget(p.x, p.z, "pointer");
   });
   const up = (ev) => {
     if (ev.pointerId !== trackedPointer) return;
     trackedPointer = null;
     pointerWasRide = false;
     boat.onPointerUp(ev);
+    surf.onPointerUp(ev);
     if (character) character.clearTarget("pointer");    /* release stops */
   };
   canvas.addEventListener("pointerup", up);
@@ -267,7 +283,8 @@ window.__beach3d = {
       x: +a.x.toFixed(3), z: +a.z.toFixed(3), zone: a.zone,
       stance: character.stanceName(), moving: character.isMoving(),
       boat: boat.state(),
-      cameraAnchor: boat.getCameraAnchor(),
+      surf: surf.state(),
+      cameraAnchor: surf.getCameraAnchor() || boat.getCameraAnchor(),
       shoreZ: +shorelineZ(a.x).toFixed(3),
       rootY: +character.getRootY().toFixed(3),
       waterY: +waterSurfaceY(a.x, a.z, waveT).toFixed(3),
@@ -304,10 +321,16 @@ window.__beach3d = {
   },
   setTarget: (x, z) => window.Beach3D.locomotion.setTarget(x, z),
   boat: boat.state,
-  boatBoard: boat.board,
+  boatBoard: () => !surf.active() && boat.board(),
   boatHop: boat.hop,
   boatSetTarget: (x, z) => boat.active() && boat.onPointerDown({ x, z }),
   boatRelease: () => boat.onPointerUp(),
+  surf: surf.state,
+  surfToggle: () => surf.setSurfing(!surf.state()?.enabled),
+  surfCatch: surf.catchWave,
+  surfWave: surf.spawnWave,
+  surfSetTarget: (x) => surf.onPointerDown({ x }),
+  surfRelease: () => surf.onPointerUp(),
   stop: () => character && character.clearTarget("pointer"),
   /* active AnimationAction audit (clip/weight/time/timeScale) */
   action: () => (character ? character.actionInfo() : null),
