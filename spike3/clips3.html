@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lily4 clip pack — B0 test bench</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    color: #2a2a2a; background: #d8d8d8;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  header {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 8px 14px; background: #f2f2f2; border-bottom: 2px solid #c4c4c4;
+  }
+  header h1 { font-size: 17px; margin: 0 10px 0 0; }
+  button {
+    font: inherit; font-size: 14px; color: #2a2a2a;
+    background: #fff; border: 2px solid #8a8a8a; border-radius: 10px;
+    padding: 4px 12px; cursor: pointer;
+  }
+  button:hover { background: #eaeaea; }
+  button.active { background: #555; color: #fff; border-color: #555; }
+  #status { font-size: 12px; opacity: 0.75; margin-left: auto; }
+  #viewport { flex: 1; position: relative; min-height: 0; }
+  #viewport canvas { display: block; width: 100%; height: 100%; }
+  #fps {
+    position: absolute; right: 10px; bottom: 10px; font-size: 12px;
+    background: rgba(255,255,255,0.7); border-radius: 8px; padding: 2px 8px;
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "../lib/three/three.module.js",
+    "three/addons/": "../lib/three/addons/"
+  }
+}
+</script>
+</head>
+<body>
+  <header>
+    <h1>Lily4 &mdash; animation pack</h1>
+    <div id="btns"></div>
+    <span id="status">loading&hellip;</span>
+  </header>
+  <main id="viewport">
+    <div id="fps"></div>
+  </main>
+
+<script type="module">
+/* B0 clip bench — plays every clip of beach3d/assets/lily4_full.glb on the
+   real three.js runtime (same toonify + lights as spike3.js). Loopers use
+   LoopRepeat; Cheer/Greet are one-shots (LoopOnce, clamp, stop).
+   Test hook: window.__clips3 = { ready, play(name), current, fps(),
+   seek(name, frame), setView(name, 'front'|'side'), freeze(bool) }. */
+
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+const viewport = document.getElementById("viewport");
+
+function isSoftwareGL() {
+  try {
+    const c = document.createElement("canvas");
+    const gl = c.getContext("webgl2") || c.getContext("webgl");
+    if (!gl) return false;
+    const ext = gl.getExtension("WEBGL_debug_renderer_info");
+    const r = (ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)
+                   : gl.getParameter(gl.RENDERER)) || "";
+    return /swiftshader|llvmpipe|softpipe/i.test(r);
+  } catch (e) { return false; }
+}
+const SOFTWARE_GL = isSoftwareGL();
+const renderer = new THREE.WebGLRenderer({ antialias: !SOFTWARE_GL });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2) * (SOFTWARE_GL ? 0.8 : 1));
+viewport.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xbfbfbf);   // neutral gray, per spec
+
+const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 50);
+
+/* same lights as spike3.js */
+scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+const sun = new THREE.DirectionalLight(0xffffff, 1.7);
+sun.position.set(0.9, 1.1, 3.9);
+scene.add(sun);
+
+/* 4-step toon gradient + bright 3-step suit ramp — verbatim spike3.js */
+let _gradientMap = null;
+function gradientMap() {
+  if (_gradientMap) return _gradientMap;
+  const data = new Uint8Array([
+    148, 148, 148, 255,
+    180, 180, 180, 255,
+    218, 218, 218, 255,
+    255, 255, 255, 255
+  ]);
+  const t = new THREE.DataTexture(data, 4, 1, THREE.RGBAFormat);
+  t.magFilter = THREE.NearestFilter;
+  t.minFilter = THREE.NearestFilter;
+  t.generateMipmaps = false;
+  t.needsUpdate = true;
+  _gradientMap = t;
+  return t;
+}
+let _gradientMapSuit = null;
+function gradientMapSuit() {
+  if (_gradientMapSuit) return _gradientMapSuit;
+  const data = new Uint8Array([
+    214, 214, 214, 255,
+    238, 238, 238, 255,
+    255, 255, 255, 255
+  ]);
+  const t = new THREE.DataTexture(data, 3, 1, THREE.RGBAFormat);
+  t.magFilter = THREE.NearestFilter;
+  t.minFilter = THREE.NearestFilter;
+  t.generateMipmaps = false;
+  t.needsUpdate = true;
+  _gradientMapSuit = t;
+  return t;
+}
+const SUIT_MAT_RE = /suit|daisy/i;
+
+function toonify(root) {
+  root.traverse((node) => {
+    if (!node.isMesh) return;
+    const src = node.material;
+    const isSuit = SUIT_MAT_RE.test(src.name || "");
+    const m = new THREE.MeshToonMaterial({
+      color: src.color ? src.color.clone() : new THREE.Color(0xffffff),
+      gradientMap: isSuit ? gradientMapSuit() : gradientMap()
+    });
+    if (isSuit) {
+      m.emissive = (src.color ? src.color.clone() : new THREE.Color(0xffffff))
+        .multiplyScalar(0.34);
+    }
+    if (src.map) {
+      m.map = src.map;
+      m.map.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+    }
+    node.material = m;
+  });
+}
+
+/* GLB lives at repo root /beach3d/assets (serve.py roots at the repo). */
+const GLB = "../beach3d/assets/lily4_full.glb";
+const LOOPERS = ["Walk", "Idle", "Swim", "Sit", "Paddle", "SurfRide"];
+const ONE_SHOTS = ["Cheer", "Greet"];
+const CLIP_ORDER = ["Walk", "Idle", "Swim", "Sit", "Paddle", "SurfRide", "Cheer", "Greet"];
+
+/* camera preset per clip: ctr is three.js space (y=UP, +Z is the direction
+   Lily FACES — Blender export maps Blender -Y to three +Z, verified with
+   the __clips3.world() bone probe: walk toes sit at +Z). Standing clips
+   frame the chest (0.52); the prone/low poses (Swim/Paddle/Sit) need a
+   lower target so the whole body is inside the frustum.
+   view: front = from +Z (face), side = from +X (her LEFT profile, matching
+   spikes4's "left.png" convention), both slightly above target. */
+const CAMS = {
+  Walk:     { ctr: [0, 0.50, 0.02],  dist: 2.35 },
+  Idle:     { ctr: [0, 0.52, 0.00],  dist: 2.30 },
+  SurfRide: { ctr: [0, 0.46, 0.00],  dist: 2.20 },
+  Cheer:    { ctr: [0, 0.54, 0.00],  dist: 2.40 },
+  Greet:    { ctr: [0, 0.54, 0.00],  dist: 2.30 },
+  Sit:      { ctr: [0, 0.38, 0.10],  dist: 2.05 },
+  /* low/prone poses: front needs a raised 3/4 direction, a horizontal
+     front cam at a prone body sees nothing but the hair silhouette */
+  Paddle:   { ctr: [0, 0.20, -0.05], dist: 2.10, fdir: [0, 0.60, 1.0] },
+  Swim:     { ctr: [0, 0.12, 0.20],  dist: 2.35, fdir: [0, 0.85, 0.72],
+              sdir: [1, 0.35, 0] }
+};
+
+let model = null, mixer = null;
+const actions = {};
+const clips = {};           // name -> AnimationClip (action.clip is private in r170)
+let current = "Walk";
+let frozen = false;
+
+const loader = new GLTFLoader();
+let resolveReady = null;
+const ready = new Promise((res) => { resolveReady = res; });
+
+loader.load(GLB, (gltf) => {
+  model = gltf.scene;
+  toonify(model);
+  scene.add(model);
+  mixer = new THREE.AnimationMixer(model);
+  for (const clip of gltf.animations) {
+    clips[clip.name] = clip;
+    const a = mixer.clipAction(clip);
+    if (ONE_SHOTS.includes(clip.name)) {
+      a.setLoop(THREE.LoopOnce, 1);
+      a.clampWhenFinished = true;      // holds the last pose, then stops
+    } else {
+      a.setLoop(THREE.LoopRepeat, Infinity);
+    }
+    actions[clip.name] = a;
+  }
+  play("Walk");
+  document.getElementById("status").textContent =
+    CLIP_ORDER.map(n => `${n} ${clips[n].duration.toFixed(2)}s`).join(" · ");
+  resolveReady(true);
+}, undefined, (err) => {
+  document.getElementById("status").textContent = "LOAD FAILED: " + err;
+  console.error("glb load failed", err);
+});
+
+function play(name) {
+  if (!mixer) return;
+  for (const n of Object.keys(actions)) actions[n].stop();
+  mixer.stopAllAction();
+  const a = actions[name];
+  a.reset();
+  a.setEffectiveTimeScale(1);       // seek() pins it to 0
+  if (ONE_SHOTS.includes(name)) a.clampWhenFinished = true;
+  a.play();
+  current = name;
+  setView(name, "front");
+  for (const b of btnsEl.children) b.classList.toggle("active", b.dataset.clip === name);
+}
+
+/* deterministic seek for the capture script: pause the clock-driven update
+   and pin the clip to a 1-based frame number (30 fps authored). */
+function seek(name, frame) {
+  if (!mixer) return;
+  if (current !== name) play(name);
+  frozen = true;
+  const a = actions[name];
+  a.paused = false;
+  a.enabled = true;
+  a.setEffectiveTimeScale(0);
+  const t = Math.min((frame - 1) / 30, clips[name].duration);
+  a.time = t;
+  mixer.update(0);
+  renderer.render(scene, camera);
+}
+
+function setView(name, view) {
+  const c = CAMS[name] || CAMS.Walk;
+  const ctr = new THREE.Vector3(...c.ctr);
+  const dir = new THREE.Vector3(...(c[view === "side" ? "sdir" : "fdir"]
+    || (view === "side" ? [1, 0.22, 0] : [0, 0.22, 1]))).normalize();
+  camera.position.copy(ctr.clone().add(dir.multiplyScalar(c.dist)));
+  camera.lookAt(ctr);
+  renderer.render(scene, camera);
+}
+
+/* ---------- buttons ---------- */
+const btnsEl = document.getElementById("btns");
+for (const name of CLIP_ORDER) {
+  const b = document.createElement("button");
+  b.textContent = name + (ONE_SHOTS.includes(name) ? " \u25b8" : " \u21bb");
+  b.dataset.clip = name;
+  b.addEventListener("click", () => { frozen = false; play(name); });
+  btnsEl.appendChild(b);
+}
+
+/* ---------- resize / loop / fps ---------- */
+function resize() {
+  const w = viewport.clientWidth, h = viewport.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(viewport);
+resize();
+
+const clock = new THREE.Clock();
+let frames = 0, fpsTime = 0, fpsNow = 0;
+const fpsEl = document.getElementById("fps");
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.1);
+  if (mixer && !frozen) mixer.update(dt);
+  renderer.render(scene, camera);
+  frames++; fpsTime += dt;
+  if (fpsTime >= 0.5) {
+    fpsNow = Math.round(frames / fpsTime);
+    fpsEl.textContent = fpsNow + " fps";
+    frames = 0; fpsTime = 0;
+  }
+});
+
+window.__clips3 = {
+  ready,
+  play,
+  seek,
+  setView,
+  freeze: (v) => { frozen = !!v; },
+  get current() { return current; },
+  fps: () => fpsNow,
+  /* free camera for ad-hoc inspection (review diagonals) */
+  setCam: (pos, tgt) => {
+    camera.position.set(...pos);
+    camera.lookAt(new THREE.Vector3(...tgt));
+    renderer.render(scene, camera);
+  },
+  /* bone world position helper (debug/capture); GLTFLoader strips ':'
+     from node names, so callers may pass either form. */
+  world: (name) => {
+    if (!model) return null;
+    const v = new THREE.Vector3();
+    let ob = model.getObjectByName(name);
+    if (!ob) ob = model.getObjectByName(name.replace(/:/g, ""));
+    if (!ob) return null;
+    ob.getWorldPosition(v);
+    return [+v.x.toFixed(3), +v.y.toFixed(3), +v.z.toFixed(3)];
+  },
+  model: () => model,
+  clips: () => Object.fromEntries(Object.keys(actions)
+    .map(n => [n, {
+      duration: clips[n].duration,
+      loop: LOOPERS.includes(n),
+      frames: Math.round(clips[n].duration * 30) + 1
+    }]))
+};
+</script>
+</body>
+</html>
