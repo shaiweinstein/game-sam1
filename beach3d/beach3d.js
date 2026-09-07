@@ -20,7 +20,7 @@
    fallback until B6). Input is the 2D press-hold contract:
    first pointer down wins, drag re-targets, release stops —
    raycast onto the water/sand plane, clamped to the playable box
-   (+ the B1 sea clamp inside character3d.js).
+   (+ the B2 deep-edge margin inside character3d.js).
 
    Reduced motion (cached matchMedia + change listener, 2D
    pattern): the water/foam keep their resting frame, the gait
@@ -29,8 +29,22 @@
    Test hook: window.__beach3d (see bottom) for Playwright.
    ============================================================ */
 
-import { createWorld, webglSupported, shorelineZ } from "./world.js";
+import {
+  createWorld, webglSupported, shorelineZ, waterSurfaceY
+} from "./world.js";
 import { createCharacter } from "./character3d.js";
+
+/* Speech hook for the 3D side (B2 talk port): js/beach.js owns the
+   #beach-talk bubble; BeachScene.say is the canvas-module line API
+   the 2D boat/surf modules already use. Guarded — the 3D scene may
+   run with the shell detached in QA harnesses. */
+function sayLine(text) {
+  try {
+    if (window.BeachScene && typeof window.BeachScene.say === "function") {
+      window.BeachScene.say(text);
+    }
+  } catch (e) { /* bubble gone mid-splash — cosmetic only */ }
+}
 
 /* ---------- cached prefers-reduced-motion (js/beach-game.js L201) -- */
 let rmMatches = false;
@@ -75,7 +89,10 @@ function open(stageEl) {
     supportedFlag = false;
     return false;
   }
-  character = createCharacter(world.renderer, world.scene, reducedMotion);
+  character = createCharacter(world.renderer, world.scene, reducedMotion, {
+    splash: (x, z) => world.splash(x, z),
+    talk: sayLine
+  });
   wireInput(world.canvas);
   opened = true;
   character.ready.then((ok) => { if (!ok) console.error("beach3d: GLB failed to load"); });
@@ -117,9 +134,11 @@ function startLoop() {
       while (remaining > 1e-6) {
         const dt = Math.min(1 / 60, remaining);
         remaining -= dt;
-        if (character) character.update(dt);
+        if (character) character.update(dt, waveT);
       }
-      world.animate(waveT);
+      world.stepZoom(raw);   /* B1 left this unwired — zoom easing ran
+                               only when wheel events fired (never) */
+      world.animate(waveT, raw, rm);
       world.render();
     }
     frames++; fpsWindow += raw;
@@ -224,6 +243,9 @@ window.__beach3d = {
       x: +a.x.toFixed(3), z: +a.z.toFixed(3), zone: a.zone,
       stance: character.stanceName(), moving: character.isMoving(),
       shoreZ: +shorelineZ(a.x).toFixed(3),
+      rootY: +character.getRootY().toFixed(3),
+      waterY: +waterSurfaceY(a.x, a.z, waveT).toFixed(3),
+      splashes: world ? world.splashCount() : 0,
       waveT: +waveT.toFixed(3),
       fps, zoom: +world.zoom().toFixed(2),
       renderer: world.renderer ? {
@@ -237,8 +259,20 @@ window.__beach3d = {
   },
   setTarget: (x, z) => window.Beach3D.locomotion.setTarget(x, z),
   stop: () => character && character.clearTarget("pointer"),
+  /* active AnimationAction audit (clip/weight/time/timeScale) */
+  action: () => (character ? character.actionInfo() : null),
+  /* QA: world-space Y of named bones (swim waterline audit) */
+  boneY: (names) => (character ? character.boneHeights(names) : null),
   waitReady: () => (character ? character.ready : Promise.resolve(false)),
-  /* deterministic walk stills: teleport + pose via a short program
-     target, so screenshots land where QA aims them */
-  teleport: (x, z) => character && character.teleport(x, z)
+  /* deterministic walk/swim stills: teleport + pose via a short
+     program target, so screenshots land where QA aims them */
+  teleport: (x, z) => character && character.teleport(x, z),
+  /* force a waterline splash (QA of the B2 helper B3/B4 reuse) */
+  splash: (x, z) => !!(world && world.splash(x, z)),
+  /* QA framing: the gentle zoom is reachable without a wheel event */
+  setZoom: (k) => { if (world) world.setZoom(k); },
+  /* QA close-ups: world point → page CSS px */
+  project: (x, y, z) => (world ? world.project(x, y, z) : null),
+  /* QA: bake one frozen pose at clip time s (RM park-frame picking) */
+  probePose: (s) => character && character.probePose(s)
 };
