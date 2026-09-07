@@ -462,25 +462,64 @@ beach3d/
     upright crown) + in-game front/back swim shots. Stills
     `beach3d/shots2/final6_01_swim.png`, `final6_02_back.png` (workbench crops
     in /tmp/kilo/diag/final6_workbench_*.png).
-   - **Missions (sequential; family interim review after B2-swim3):**
-  - **FAMILY INTERIM REVIEW now: walk + wade + swim** (map → beach at
-    http://localhost:8123/). Swim is head-up freestyle (face out of the water,
-    upright head, no roll, no bald crescent) — both parent review rounds
-    closed; camera behavior is the other deliberate design change: gentle
-    follow in the sea only (B1 framing everywhere else).
-- **B3** — duck boat loop (model + board/paddle/steer/hop + wake + talk).
-- **B4** — surfboard + wave loop (catch/ride/roll-off + counter + talk).
-- **B5** — 6 suits + 4 friends (geometry variants, colors, face textures,
-  GameState wiring + live re-sync).
-- **B6** — juice (press ripples, splashes, wake, foam puffs, cheer pop) +
-  sound triggers + mobile/reduced-motion pass + Playwright E2E (all 5 loops,
-  suit/friend switches, fps sampling, zero console errors, offline,
-  dress-up/kitchen/map/friends regression, save integrity) → then CLEANUP:
-  delete `js/beach-game.js`, `js/beach-boat.js`, `js/beach-surf.js`,
-  `js/beach-rig.js`, `js/beach-rig-skf.js`, `js/beach-rig-v2.js`,
-  `js/beach-parts.js`, `lib/skelform/`, `spike/`, `spike2/`, the
-  `?skfrig=1`/`?rig2=1` flags + dead DOM-art code in js/beach.js → hand-off
-  note for the parent.
+   - **Missions (sequential; family review gate after each of B3/B4/B5):**
+  - **INTERIM REVIEW PASSED (2026-09-07): walk + wade + swim approved** —
+    both swim review rounds (B2-swim2 bald crescent + submerged head,
+    B2-swim3 sideways/rolled head) closed. Camera: gentle follow in the sea
+    only (B1 framing everywhere else). Next: **B3 duck boat**.
+- **B3** — duck boat loop (`beach3d/boat3d.js` + Blender duck model).
+  2D parity from `js/beach-boat.js` (BOAT tuning sheet): tap-hull-to-board
+  (raycast + proximity, auto-approach invite, 20 s timeout), handoff via
+  `locomotion.setEnabled(false)` → swim to the hull → **Sit** clip (hips
+  0.32 m; the boat sits on the water so her hips land on the gunwale) →
+  re-enable on disembark ("she pops out swimming, never teleports").
+  Riding: **Paddle** clip (single-stroke cycle, speed→timeScale),
+  hold-drag steer (sea-only, clamped to the sea box), boat anchor drives the
+  sea follow-camera through `world.updateCamera`; wake trail + foam puffs +
+  bob on the wave phase. Hop off: `boathop` activity (🏊 "Hop out & swim")
+  un-hidden by B3 + auto-hop at the shoreline. Talk lines + SFX
+  (travel/pop) carried over verbatim. QA: workbench duck stills, in-game
+  board/ride/steer/hop stills (front + side), steering clamp check,
+  mobile 420×720, RM (bob frozen, control kept), leak stable, zero console
+  errors, offline → **family review gate**.
+- **B4** — surfboard + wave loop (`beach3d/surf3d.js` + Blender board).
+  2D parity from `js/beach-surf.js` (SURF tuning sheet): shoreward-approaching
+  wave swell with foam crest (spawn deep-sea ~1.1 m/s toward shore, first
+  wave 1.8 s, gap 2.2–4.8 s), pink/teal-stripe board, 🏄 button / Space
+  catch (window: in sea + |dist| ≤ radius). Ride = **SurfRide** clip on the
+  board tracking the crest, steer = carve along the wave face, roll-off at
+  sand = SUCCESS +1 → `🌊 N` counter chip (session-only) + RIDE_TALKS +
+  cheer SFX; no wipeout ever (2D parity). `surfcatch` activity un-hidden by
+  B4. QA: catch/ride/roll-off stills from two angles, counter chip check,
+  wave spawn cadence vs 2D, mobile, RM (control kept, shimmer frozen), leak,
+  console, offline → **family review gate**.
+- **B5** — 6 suits + 4 friends (`character3d.js` suit/friend swap + Blender
+  geometry + face textures). Suits = geometry variants per the plan: 1pc
+  (v4 suit recolored per catalog), tankini (vest + high-waist shorts:
+  suit2/suit4), crop set (suit5); colors from `CATALOG.swimsuit[*].colors`,
+  daisy emblem on suit1 only. Friends (Amara/Mei/Sofia + Lily): skin/hair
+  material swaps + per-friend `face_texture.png` regenerated from the 2D face
+  markup (same Blender face-texture pipeline as Lily's). GameState wiring:
+  `characterId` + `outfit.swimsuit` with live re-sync — the 🩱 button
+  (wardrobe round-trip) and the friends screen both update the standing
+  character mid-session (same guarded idempotent sync pattern as the 2D
+  `scheduleSuitSync`). All friends inherit every loop (walk/wade/swim/boat/
+  surf — skeleton-shared clips; parent bar: "same for surfing and duck
+  riding"). QA: stills of each suit in sand + sea, each friend's face at the
+  workbench + in-game, suit round-trip test, friends screen → beach test,
+  leak (texture count), fps → **family review gate**.
+- **B6** — juice + sound + E2E + cleanup. Juice: press ripples, splashes
+  (B2's existing splash VFX), wake, foam puffs, cheer pop. Sound triggers on
+  every event (pop/yummy/travel/cheer/oops via `GameSounds.play`).
+  Mobile 420×720 + reduced-motion pass over ALL loops. Playwright E2E:
+  all 5 loops (walk/wade/swim/boat/surf) end-to-end, suit + friend switches,
+  fps sampling, zero console errors, offline, dress-up/kitchen/map/friends
+  regression, save integrity → then CLEANUP: delete `js/beach-game.js`,
+  `js/beach-boat.js`, `js/beach-surf.js`, `js/beach-rig.js`,
+  `js/beach-rig-skf.js`, `js/beach-rig-v2.js`, `js/beach-parts.js`,
+  `lib/skelform/`, `spike/`, `spike2/`, the `?skfrig=1`/`?rig2=1` flags +
+  dead DOM-art code in js/beach.js (incl. the `HIDDEN_IN_3D` gate itself) →
+  hand-off note for the parent.
 
 **Deferred (not in this build, note to parent at hand-off):** sandcastle
 builder (2D DOM art; would need a 3D rebuild — ask the family after B6),
