@@ -337,11 +337,21 @@ beach3d/
   mid-sea (2D: fx .72/fy .60); waves spawn deep-sea and travel shoreward
   (2D: right→left at 0.16 width-u/s → 3D: ~1.1 m/s toward shore, first wave
   1.8s, gap 2.2–4.8s).
-- **Camera decision:** FIXED 3/4 high angle showing most of the beach
-  (matches the 2D "whole world visible" feel; a kid-follow camera is
-  disorienting and hides the duck/waves). Character moves + rotates in all
-  directions (family's "every direction" bar met); gentle wheel/pinch zoom
-  allowed. If the family wants a follow cam later, it is a camera-mode swap.
+- **Camera decision (revised in B2-cam):** LAND = the B1 FIXED 3/4 high
+  angle showing most of the beach (pos (0, 3.6, 10.4), target (0, 1.66, 2.64),
+  fov 38 — pixel-identical on sand/foam, ~0.02% vs B1 stills). SEA = gentle
+  FOLLOW rig: ONE constant world-fixed direction (B1's ~14° down-tilt, never
+  rotates), camera position eases behind the swimmer at ~7.0 m
+  (SEA_DIST, offset collinear with the view axis → horizon stays ~45%),
+  exponential ease ~5 s⁻¹ capped at 2.5 m/s glides (~1.7 s entry from the
+  shoreline, ~2 s exit back to the EXACT B1 lock). Rationale: at the fixed
+  target the prone swimmer is ~15 m away = an 18-px hair-dot; the 2D original
+  kept her prominent at every distance (no perspective) — the family standard
+  is "always visible." Dolly-only attempts verified insufficient (zoom>1 =
+  farther in this rig). Wheel/pinch zoom 0.8–1.6 dollies the view axis in
+  both framings; user zoom persists across transitions. RM: ≤0.2 s camera
+  transitions, lag-free follow. B3 duck / B4 surf reuse the sea framing
+  (boat anchor through `world.updateCamera`).
 - **Input:** pointer raycast to ground/water plane = target; press-hold to
   move (first-down wins, drag re-targets, release stops) — same as 2D.
   Boat/surf keep the 2D handoff pattern: `locomotion.setEnabled(false)` →
@@ -404,9 +414,27 @@ beach3d/
   clamp is `SEA_CLAMP_Z = 0.10` in `clampPoint()` (character3d.js); stance
   map already resolves swim/float/ride/surf (cached clips); seabed profile
   deepens beyond bedTo −7.0.
-- **Missions (sequential; family interim review after B2):**
-- **B2** — swim loop: swim/float stances, water entry/exit splashes,
-  waterline occlusion. → **FAMILY INTERIM REVIEW** (walk+wade+swim).
+- **B2 ✅ (commits `b6cab8b` + `c768372`)** — swim loop + swim camera.
+  Swim/float stances (SWIM_SINK 0.065 → waterline mid-torso; Swim clip ts 1.0
+  swim / 0.25 float + bob ±0.02m @0.4Hz), entry/exit splashes (pooled
+  instanced ring+droplets riding `waterSurfaceY`, cap 24), sea unclamped to
+  SEA_DEEP_Z −6.5, "Splash! 🌊" talk line, waterline foam ring (0.9×1.5m).
+  B1 toon-blue sea RESTORED (the first B2 pass had debug alpha-graded it pale;
+  back to RGB vertex colors + opacity 0.9, 0x2b93b6/0x3cb0cf/0x63d1e1).
+  **Camera (see "Camera decision" above):** follow rig in the sea, B1 lock on
+  land. QA: swim 1.316 m/s (vs 2D 1.32, ±0.3%), transition max-frame-step
+  0.083 m (no pop), establishing pixel-delta 0.02% vs B1, float residual
+  0.000 m, ~56-60 fps software-GL, 420×720 touch, RM 0.18 s cam settle,
+  open/close×2 leak-stable 35g/10t, zero console errors, offline. Stills
+  `beach3d/shots2/final3_0*` (01 establishing, 04/08 entry+exit glide,
+  05 swim mid, 07 float) + breakage evidence r1–r3.
+  **Known (pre-existing, 2D-shell, B6 cleanup):** talk bubble persists until
+  the next talk call (js/beach.js setTalk never clears it) — 2D parity,
+  cosmetic only.
+ - **Missions (sequential; family interim review after B2):**
+- **B2 → FAMILY INTERIM REVIEW now: walk + wade + swim** (map → beach at
+  http://localhost:8123/). Camera behavior is the one deliberate design
+  change: gentle follow in the sea only (B1 framing everywhere else).
 - **B3** — duck boat loop (model + board/paddle/steer/hop + wake + talk).
 - **B4** — surfboard + wave loop (catch/ride/roll-off + counter + talk).
 - **B5** — 6 suits + 4 friends (geometry variants, colors, face textures,
