@@ -42,9 +42,10 @@ copied verbatim (keys, handles, interpolation) into a fresh action bound
 to LilyRig; the temp armature/action are deleted. Walk keeps its original
 action object untouched.
 
-NOTE on GLB inspection: the 32 parts are JOINED into one skinned mesh
+NOTE on GLB inspection: the 32 original parts are JOINED into one skinned mesh
 (node "Lily4", 7 primitives = 7 materials), so a mesh-name listing shows
 the leftover datablock name "HairCap" — identical layout to lily4_walk.glb.
+B5 adds four separately named, skinned suit variants on that same armature.
 
 Run (reproducible end-to-end, from a clean file):
   /usr/bin/blender --background --python spike3/blender/build_lily4_full.py
@@ -579,7 +580,8 @@ bpy.context.view_layer.update()
 bpy.ops.import_scene.gltf(filepath=LILY)
 meshes = [o for o in bpy.data.objects if o.type == "MESH"]
 print("lily4 mesh parts:", len(meshes))
-assert len(meshes) == 32, "expected 32 parts"
+variants = [o for o in meshes if o.name.startswith(("Suit_Tank_", "Suit_Crop_"))]
+assert len(meshes) == 36 and len(variants) == 4, "expected 32 original + 4 variant parts"
 
 # ---------- Walk: conform + damp through the reference pipeline -----------
 FR_W = range(1, 33)
@@ -687,6 +689,8 @@ BINDINGS.update({
 })
 for k in range(4):
     BINDINGS["DaisyP%d" % k] = BODY_BLEND
+for m in variants:
+    BINDINGS[m.name] = suit_bind
 
 unbound = [m.name for m in meshes if m.name not in BINDINGS]
 assert not unbound, f"parts missing bindings: {unbound}"
@@ -721,7 +725,7 @@ for m in meshes:
                 g2.add([v.index], w2, "REPLACE")
 
 for m in meshes:
-    if m.name in ("Suit", "TrimHem", "TrimNeckline"):
+    if m.name in ("Suit", "TrimHem", "TrimNeckline") or m in variants:
         bad = [v.index for v in m.data.vertices
                if sum(g.weight for g in v.groups) < 0.999]
         print(f"  bind check {m.name}: {len(m.data.vertices)} verts, "
@@ -734,13 +738,20 @@ for m in meshes:
 bpy.context.view_layer.objects.active = meshes[0]
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
-bpy.context.view_layer.objects.active = max(meshes, key=lambda m: len(m.data.vertices))
+# Keep the original join/order unchanged (including the head-up mesh markers).
+# Variant nodes retain their names and share this rig and its binding rules.
+for m in variants:
+    m.select_set(False)
+bpy.context.view_layer.objects.active = max((m for m in meshes if m not in variants),
+                                          key=lambda m: len(m.data.vertices))
 bpy.ops.object.join()
 lily = bpy.context.view_layer.objects.active
 lily.name = "Lily4"
 
 bpy.ops.object.select_all(action="DESELECT")
 lily.select_set(True)
+for m in variants:
+    m.select_set(True)
 main.select_set(True)
 bpy.context.view_layer.objects.active = main
 bpy.ops.object.parent_set(type="ARMATURE_NAME")
@@ -1043,6 +1054,8 @@ print(f"  Swim head-up applied ({sf1 - sf0 + 1} frames; worst face err "
       f"deg; roll deg min {_rmin:.2f} max {_rmax:.2f} std {_rstd:.3f})")
 
 # ---------- 7. workbench previews (per clip, 4 phases, front+side) --------
+for m in variants:
+    m.hide_render = True
 sc.frame_start = 1
 sc.frame_end = 32
 sc.render.fps = 30
@@ -1134,11 +1147,15 @@ for name, fbx, loops, hzero in CLIPS:
 print("MESH Z RANGE per clip (min,max over ~12 frames):", metrics)
 
 # ---------- 8. export (walk-script settings + ACTIONS single-armature) ----
+for m in variants:
+    m.hide_render = False
 main.animation_data.action = walk_act
 sc.frame_set(1)
 bpy.context.view_layer.update()
 bpy.ops.object.select_all(action="DESELECT")
 lily.select_set(True)
+for m in variants:
+    m.select_set(True)
 main.select_set(True)
 bpy.context.view_layer.objects.active = main
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
@@ -1146,3 +1163,46 @@ bpy.ops.export_scene.gltf(filepath=OUT, export_format="GLB",
                           use_selection=True, export_animations=True,
                           export_skins=True)
 print("EXPORTED:", OUT, os.path.getsize(OUT), "bytes")
+
+# Exported-channel regression, independent of mesh/node index changes.
+import json
+import struct
+import numpy as np
+
+
+def glb_tracks(path, clip):
+    with open(path, "rb") as f:
+        raw = f.read()
+    size = struct.unpack_from("<I", raw, 12)[0]
+    doc = json.loads(raw[20:20 + size])
+    binary = raw[28 + size:]
+    def values(index):
+        a = doc["accessors"][index]
+        v = doc["bufferViews"][a["bufferView"]]
+        assert a["componentType"] == 5126 and "byteStride" not in v
+        count = a["count"] * {"SCALAR": 1, "VEC3": 3, "VEC4": 4}[a["type"]]
+        return np.frombuffer(binary, dtype="<f4", count=count,
+                             offset=v.get("byteOffset", 0) + a.get("byteOffset", 0))
+    if clip is None:
+        assert len(doc["animations"]) == 1, "Walk reference must contain one clip"
+        anim = doc["animations"][0]
+    else:
+        anim = next(a for a in doc["animations"] if a["name"] == clip)
+    tracks = {}
+    for channel in anim["channels"]:
+        target = channel["target"]
+        sampler = anim["samplers"][channel["sampler"]]
+        key = (doc["nodes"][target["node"]]["name"], target["path"])
+        tracks[key] = (values(sampler["input"]), values(sampler["output"]))
+    return doc, tracks
+
+
+doc, actual = glb_tracks(OUT, "Walk")
+_, reference = glb_tracks(BASE + "/assets/lily4_walk.glb", None)
+assert actual.keys() == reference.keys(), "Walk channel set changed"
+worst = max(float(np.max(np.abs(a - b))) for key in actual
+            for a, b in zip(actual[key], reference[key]))
+assert worst < 1e-4, f"Walk regression: {worst}"
+assert len(doc["animations"]) == 8
+assert all(len(s["joints"]) == 65 for s in doc["skins"])
+print(f"GLB GATES: 8 clips / 65 bones; Walk regression worst-diff {worst:.9g} < 1e-4")

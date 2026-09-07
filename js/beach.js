@@ -880,7 +880,7 @@
     /* mission 14: push the chosen swimsuit into the canvas rig —
        immediate + 0ms + bounded rAF retries (the rig attaches inside
        Phaser's scene create, timing not fixed). */
-    scheduleSuitSync();
+    if (!using3D) scheduleSuitSync();
   }
 
   function close() {
@@ -942,7 +942,7 @@
        changes from doing anything. */
     if (window.GameState && typeof window.GameState.onChange === "function") {
       window.GameState.onChange(function () {
-        if (isOpen()) syncSuitToRig();
+        if (isOpen() && !using3D) syncSuitToRig();
       });
     }
 

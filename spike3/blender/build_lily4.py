@@ -390,6 +390,10 @@ def main():
         "daisy": mat("daisyPetal", PALETTE["daisy"]),
         "face":  mat("faceTexture", PALETTE["skin"], image=face_img),
     }
+    # Include "suit" in the material names to inherit the bright toon ramp.
+    for variant in ("Tank", "Crop"):
+        for slot, color in (("Main", "suit"), ("Bottom", "suit"), ("Trim", "trim")):
+            M[variant + slot] = mat("suit" + variant + slot, PALETTE[color])
     parts = []
 
     # ================= HEAD (face texture — v1's proven mapping) =========
@@ -648,6 +652,120 @@ def main():
         parts.append(ellipsoid("DaisyP%d" % k, (0.0115, 0.0080, 0.0115),
                                daisy_seat(ox, dz + oz, 0.0020), M["daisy"]))
 
+    # B5: closed fabric shells using the SAME body/thigh wrap, with trim
+    # integrated into the surface rather than overlapping tubes. The tank
+    # halves meet at the natural waist; the crop leaves a midriff band.
+    def suit_variant(name, variant, bottom, top, shorts=False):
+        angles = [i * 2 * math.pi / N for i in range(N)]
+        # Shorts branch at the crotch: a shared waist ring becomes two leg
+        # rings joined along ONE gusset edge, not a skirt or intersecting tubes.
+        base = (lambda a: 0.278) if shorts else bottom
+        levels = max(3, math.ceil(max(top(a) - base(a) for a in angles) / 0.0088))
+        rows = []
+        for j in range(levels + 1):
+            rows.append([suit_ring_pt(a, base(a) + (top(a) - base(a)) * j / levels)
+                         for a in angles])
+        ob = loft(name, rows, M[variant + ("Bottom" if shorts else "Main")])
+        ob.data.materials.append(M[variant + "Trim"])
+        for poly in ob.data.polygons:
+            row = poly.index // N
+            poly.material_index = int((row == 0 and not shorts) or row == levels - 1)
+        if shorts:
+            verts = [tuple(v.co) for v in ob.data.vertices]
+            faces = [tuple(p.vertices) for p in ob.data.polygons]
+            indices = [p.material_index for p in ob.data.polygons]
+            front, back = Vector(verts[0]), Vector(verts[N // 2])
+            gusset = [0]
+            for j in range(1, 8):
+                gusset.append(len(verts))
+                verts.append(tuple(front.lerp(back, j / 8)))
+            gusset.append(N // 2)
+            hem = 0.213 if variant == "Tank" else 0.244
+            steps = max(3, math.ceil((0.278 - hem) / 0.0088))
+            for sign in (1, -1):
+                outer = (list(range(N // 2 + 1)) if sign == 1 else
+                         list(range(N // 2, N)) + [0])
+                inner = list(reversed(gusset[1:-1])) if sign == 1 else gusset[1:-1]
+                first = outer + inner
+                prev = first
+                for j in range(1, steps + 1):
+                    t = j / steps
+                    z = 0.278 + (hem - 0.278) * t
+                    xc, cy, radius = thigh_wrap(z)
+                    start_x, start_y, _ = thigh_wrap(0.278)
+                    row = []
+                    for index in first:
+                        p = Vector(verts[index])
+                        dx, dy = p.x - sign * start_x, p.y - start_y
+                        d = math.hypot(dx, dy)
+                        target = Vector((sign * xc + dx / d * radius,
+                                         cy + dy / d * radius, z))
+                        p = p.lerp(target, t)
+                        p.z = z
+                        row.append(len(verts))
+                        verts.append(tuple(p))
+                    for k in range(len(row)):
+                        kk = (k + 1) % len(row)
+                        faces.append((prev[k], prev[kk], row[kk], row[k]))
+                        indices.append(int(j == steps))
+                    prev = row
+            mesh = bpy.data.meshes.new(name + "_pants")
+            mesh.from_pydata(verts, [], faces)
+            mesh.update()
+            for m in ob.data.materials:
+                mesh.materials.append(m)
+            old_mesh = ob.data
+            ob.data = mesh
+            bpy.data.meshes.remove(old_mesh)
+            for p, index in zip(mesh.polygons, indices):
+                p.material_index = index
+        bm = bmesh.new()
+        bm.from_mesh(ob.data)
+        if variant == "Tank" and not shorts:
+            # Weld shoulder bridges into the top edge: three true openings
+            # (neck and two armholes), not disconnected front/back tabs.
+            for sign in (1, -1):
+                bm.verts.ensure_lookup_table()
+                front = [bm.verts[levels * N + (sign * j) % N] for j in range(4, 9)]
+                back = [bm.verts[levels * N + (N // 2 - sign * j) % N]
+                        for j in range(4, 9)]
+                previous = front
+                for step in range(1, 7):
+                    t = step / 6
+                    row = back if step == 6 else []
+                    if step != 6:
+                        for a, b in zip(front, back):
+                            p = a.co.lerp(b.co, t)
+                            p.z += 0.010 * math.sin(math.pi * t)
+                            row.append(bm.verts.new(p))
+                    for j in range(len(row) - 1):
+                        face = bm.faces.new((previous[j], previous[j + 1], row[j + 1], row[j]))
+                        face.material_index = int(j in (0, len(row) - 2))
+                    previous = row
+        bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
+        bm.to_mesh(ob.data)
+        bm.free()
+        solidify(ob, 0.006)
+        smooth(ob)
+        bm = bmesh.new()
+        bm.from_mesh(ob.data)
+        assert all(e.is_manifold for e in bm.edges), f"{name}: open fabric edge"
+        euler = len(bm.verts) - len(bm.edges) + len(bm.faces)
+        expected_euler = -2 if shorts else -4 if variant == "Tank" else 0
+        assert euler == expected_euler, f"{name}: opening topology {euler}"
+        bm.free()
+        parts.append(ob)
+        print(f"  variant {name}: watertight, Euler {euler}, {len(ob.data.vertices)} verts")
+
+    def tank_top(a):
+        # Broad shoulder straps front-to-back, with lower armholes at sides.
+        return 0.514 + 0.050 * math.exp(-((abs(math.sin(a)) - 0.73) / 0.20) ** 2)
+
+    suit_variant("Suit_Tank_Vest", "Tank", lambda a: 0.400, tank_top)
+    suit_variant("Suit_Tank_Short", "Tank", suit_bot, lambda a: 0.400, shorts=True)
+    suit_variant("Suit_Crop_Top", "Crop", lambda a: 0.465, lambda a: 0.532)
+    suit_variant("Suit_Crop_Short", "Crop", lambda a: 0.244, lambda a: 0.400, shorts=True)
+
     # ================= HAIR (S3 pass) =================
     # Family review fixes: cap SNUG to the skull (no shelf), hairline HIGH
     # so the bangs band is its own visible fringe, locks FLUSH to the
@@ -863,6 +981,9 @@ def main():
     )
     print("EXPORTED", OUT, os.path.getsize(OUT), "bytes,", len(parts), "parts")
 
+    for ob in parts:
+        if ob.name.startswith(("Suit_Tank_", "Suit_Crop_")):
+            ob.hide_render = True
     debug_renders()
 
 

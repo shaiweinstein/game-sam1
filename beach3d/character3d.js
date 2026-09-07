@@ -39,6 +39,28 @@ import {
 } from "./world.js";
 
 const GLB_URL = new URL("./assets/lily4_full.glb", import.meta.url).href;
+const friendFaces = new Map();
+const cachedFaceTextures = new Set();
+
+function friendFace(id, baked) {
+  if (id === "lily") return Promise.resolve(baked);
+  if (!friendFaces.has(id)) {
+    const pending = new THREE.TextureLoader().loadAsync(
+      new URL(`./assets/face_${id}.png`, import.meta.url).href
+    ).then(texture => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.flipY = false; // glTF's UV convention, unlike TextureLoader's default
+      texture.anisotropy = baked.anisotropy;
+      cachedFaceTextures.add(texture);
+      return texture;
+    }).catch(() => {
+      friendFaces.delete(id); // allow a later open to retry a failed local fetch
+      return null;
+    });
+    friendFaces.set(id, pending);
+  }
+  return friendFaces.get(id);
+}
 
 /* 2D LOCO_SPEED { sand .25, foam .18, sea .30 } width-units/s scaled
    to ≈1.05 body-lengths/s (spec B1). sea is the B2 swim speed
@@ -193,14 +215,104 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
   let rideDriven = false, ridePaddling = false;
   let rideStance = "ride", rideSurfaceY = null;
   let lastWaveT = 0;
+  const materials = new Map();
+  const suitMeshes = { one: [], tank: [], crop: [] };
+  let bakedFace = null;
+  let requestedSuit = "suit1", requestedFriend = "lily";
+  let appliedSuit = null, appliedFriend = null, suitKey = null;
+  let pendingFriend = null;
+
+  function recolor(name, color, emissive = false) {
+    for (const m of materials.get(name) || []) {
+      m.color.set(color);
+      if (emissive) m.emissive.copy(m.color).multiplyScalar(0.34);
+    }
+  }
+
+  function setSuit(id) {
+    try {
+      const colors = window.CharacterRenderer?.catalog?.swimsuit?.[id]?.colors;
+      if (disposed || typeof id !== "string" || !colors) return false;
+      requestedSuit = id;
+      if (!ready) return false;
+      const group = colors.twoPiece ? (id === "suit5" ? "crop" : "tank") : "one";
+      const key = [id, colors.main, colors.trim, colors.bottom, group].join("|");
+      if (suitKey === key) return true;
+      for (const [name, meshes] of Object.entries(suitMeshes)) {
+        for (const mesh of meshes) mesh.visible = name === group;
+      }
+      // The original torso loft has inward faces, previously covered by the
+      // one-piece. Render both sides when the crop exposes that midriff.
+      for (const m of materials.get("skin") || []) {
+        const side = group === "crop" ? THREE.DoubleSide : THREE.FrontSide;
+        if (m.side !== side) { m.side = side; m.needsUpdate = true; }
+      }
+      const prefix = group === "one" ? "suit" : group === "tank" ? "suitTank" : "suitCrop";
+      recolor(prefix + "Main", colors.main, true);
+      recolor(prefix + "Trim", colors.trim, true);
+      recolor(prefix + "Bottom", colors.bottom, true);
+      // Only Sunny has white flower petals; the other one-pieces get a trim emblem.
+      recolor("daisyPetal", id === "suit1" ? "#fff9ec" : colors.trim, true);
+      appliedSuit = id;
+      suitKey = key;
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function setFriend(id) {
+    try {
+      const palette = window.CHARACTERS?.[id];
+      if (disposed || !["lily", "amara", "mei", "sofia"].includes(id) || !palette) {
+        return Promise.resolve(false);
+      }
+      requestedFriend = id;
+      if (!ready || !bakedFace) return Promise.resolve(false);
+      if (appliedFriend === id) return Promise.resolve(true);
+      if (pendingFriend?.id === id) return pendingFriend.promise;
+      const promise = friendFace(id, bakedFace).then(texture => {
+        if (!texture || disposed || requestedFriend !== id) return false;
+        recolor("skin", palette.skin);
+        recolor("hairMain", palette.hairMain);
+        recolor("hairShade", palette.hairShade);
+        for (const m of materials.get("faceTexture") || []) {
+          m.map = texture;
+          m.needsUpdate = true;
+        }
+        appliedFriend = id;
+        return true;
+      }).catch(() => false).finally(() => {
+        if (pendingFriend?.promise === promise) pendingFriend = null;
+      });
+      pendingFriend = { id, promise };
+      return promise;
+    } catch (e) { return Promise.resolve(false); }
+  }
 
   const readyPromise = new Promise((resolve) => {
     new GLTFLoader().load(GLB_URL, (gltf) => {
       if (disposed) { disposeMeshes(gltf.scene); resolve(false); return; }
       const originals = new Set();
-      gltf.scene.traverse(o => { if (o.isMesh) originals.add(o.material); });
+      const names = new Map();
+      gltf.scene.traverse(o => {
+        if (o.isMesh) { originals.add(o.material); names.set(o, o.material.name); }
+      });
       toonify(gltf.scene, renderer);
       originals.forEach(m => m.dispose());
+      gltf.scene.traverse(o => {
+        if (!o.isMesh) return;
+        const name = names.get(o);
+        o.material.name = name;
+        if (!materials.has(name)) materials.set(name, []);
+        materials.get(name).push(o.material);
+        if (name === "faceTexture") bakedFace = o.material.map;
+        if (/^suitMain$|^suitTrim$|^daisyPetal$/.test(name)) suitMeshes.one.push(o);
+        let parent = o;
+        while (parent && parent !== gltf.scene) {
+          if (parent.name.startsWith("Suit_Tank_")) { suitMeshes.tank.push(o); break; }
+          if (parent.name.startsWith("Suit_Crop_")) { suitMeshes.crop.push(o); break; }
+          parent = parent.parent;
+        }
+      });
       model.add(gltf.scene);
       mixer = new THREE.AnimationMixer(gltf.scene);
       for (const clip of gltf.animations) {
@@ -227,7 +339,8 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
       current = { clipName: STANCES.stand.clip, action: first };
       ready = true;
       parkIfNeeded();
-      resolve(true);
+      setSuit(requestedSuit);
+      setFriend(requestedFriend).then(() => resolve(!disposed));
     }, undefined, () => resolve(false));
   });
 
@@ -235,12 +348,15 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
   const gliding = () => loco.zone === "sea" && (loco.vx !== 0 || loco.vz !== 0);
 
   function disposeMeshes(root) {
+    const maps = new Set();
     root.traverse(o => {
       if (!o.isMesh) return;
       o.geometry.dispose();
-      if (o.material.map) o.material.map.dispose();
+      if (o.material.map) maps.add(o.material.map);
       o.material.dispose();
     });
+    if (bakedFace) maps.add(bakedFace); // may no longer be attached to the head
+    for (const map of maps) if (!cachedFaceTextures.has(map)) map.dispose();
   }
 
   /* gait rate: full ts when idle (breathing Idle), ease-following
@@ -487,6 +603,19 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
     root: mixRoot,
     loco,
     setStance,
+    setSuit,
+    setFriend,
+    appearance() {
+      return {
+        suit: appliedSuit, friend: appliedFriend,
+        visible: Object.fromEntries(Object.entries(suitMeshes).map(([k, v]) =>
+          [k, v.filter(m => m.visible).length])),
+        materials: Object.fromEntries([...materials].map(([k, v]) =>
+          [k, { color: "#" + v[0].color.getHexString(), type: v[0].type,
+            map: v[0].map?.uuid || null }])),
+        cachedFaces: cachedFaceTextures.size
+      };
+    },
     attachRide(x, z, yaw, stance = "ride", surfaceY = null) {
       if (!ready || ![x, z, yaw].every(Number.isFinite)) return false;
       if (!STANCES[stance] || (surfaceY !== null && !Number.isFinite(surfaceY))) return false;
