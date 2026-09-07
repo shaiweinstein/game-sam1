@@ -804,22 +804,22 @@ print("actions:", [(a.name, tuple(a.frame_range)) for a in bpy.data.actions])
 # ~50 deg BELOW the horizon, yawed ~116 deg to her right (an extreme breath
 # turn). From the follow-cam that exposes the pale face patch at the dome
 # edge and reads as a "bald crescent". Convert it to head-up freestyle by
-# applying a CONSTANT world rotation R_all to the head/neck subtree on every
-# frame: the per-frame wobble is preserved and the loop seam is unchanged
-# (frame 1 and 137 are identical, so they rotate identically).
+# retaining the existing Neck lift and stabilizing the Head's face AND crown
+# on every frame. Both endpoint poses receive the same deterministic solve.
 #
 # The rig's non-uniform scales (armature X scale + bone-length scales) make an
 # arbitrary world rotation non-representable as a pure quat key, so we solve
 # EXACTLY, per bone, for the quat that lands one rigid vector on its world
 # target (a bone's armature-space 3x3 = A @ Q, A fixed for a given parent
 # state, Q the pose rotation applied on the right):
-#   head: face(Q_h) = (Arm @ A_h @ Q_h @ f_loc) = R_all @ face_orig
+#   head: face(Q_h) = (Arm @ A_h @ Q_h @ f_loc) = face_tgt
 #         => Q_h = rot_between(f_loc, (Arm @ A_h)^-1 @ face_tgt)
+#         then twist about Q_h @ f_loc to constrain the crown as well
 #   neck: its Y (bone) axis rotated to R_n @ (orig world Y axis)
 # Verified 0.0 deg against the evaluated mesh (face verts are 100% on Head).
 swim_act = clip_acts["Swim"]
 SWIM_SPLIT_NECK = 0.40        # fraction of the total rotation on the Neck bone
-SWIM_TY_TARGET = -0.32        # target face y component (forward = -Y)
+SWIM_ELEV_DEG = 25.0          # face elevation above the horizon (head-up freestyle)
 SU_NECK_B, SU_HEAD_B = "mixamorig:Neck", "mixamorig:Head"
 SU_IDQ = Quaternion((1.0, 0.0, 0.0, 0.0))
 
@@ -866,6 +866,29 @@ def su_rot_between(a, b):
     return Matrix.Rotation(math.acos(d), 4, ax).to_quaternion()
 
 
+def su_correct_roll(Q_h):
+    """Close the evaluated crown's signed roll error with a local head twist."""
+    f = _SU_TARGET
+    total = 0.0
+    for _iter in range(12):
+        su_pb_h.rotation_quaternion = Q_h
+        bpy.context.view_layer.update()
+        _, c_now = su_head_axes_now()
+        p_now = (c_now - c_now.dot(f) * f).normalized()
+        p_tgt = (_SU_CROWN_TGT - _SU_CROWN_TGT.dot(f) * f).normalized()
+        roll = math.atan2(p_now.cross(p_tgt).dot(f), p_now.dot(p_tgt))
+        if abs(roll) < 1e-5:
+            break
+        # Left multiplication needs the SOLVED local axis, not the rest axis.
+        # Re-measure each pass because non-uniform scale changes world angles.
+        Q_h = Quaternion(Q_h @ su_f_loc, roll) @ Q_h
+        Q_h.normalize()
+        total += roll
+    su_pb_h.rotation_quaternion = Q_h
+    bpy.context.view_layer.update()
+    return Q_h, math.degrees(total)
+
+
 print("== head-up conversion of Swim ==")
 main.animation_data.action = swim_act
 sf0, sf1 = clip_frame_range(swim_act)
@@ -886,6 +909,23 @@ def su_face_now():
     return (n - (n + c + k) / 3.0).normalized()
 
 
+def su_head_axes_now():
+    """Anatomical face/crown axes measured on the evaluated, skinned head.
+
+    The nose/crown/one-cheek centroid is off-center: its two vectors are
+    oblique, not a face/up basis. Opposite nose/back markers locate the head
+    center without that yaw/roll bias. The old centroid remains Neck-only.
+    """
+    dgm = bpy.context.evaluated_depsgraph_get()
+    ev = lily.evaluated_get(dgm)
+    me = ev.to_mesh()
+    n = ev.matrix_world @ me.vertices[SU_NOSE].co
+    c = ev.matrix_world @ me.vertices[SU_CROWN].co
+    b = ev.matrix_world @ me.vertices[SU_BACK].co
+    ev.to_mesh_clear()
+    return (n - b).normalized(), (c - (n + b) / 2.0).normalized()
+
+
 # face feature indices from the STATIC mesh (A-pose build coordinates; meters)
 SU_HC = Vector((0.0, 0.0, 0.795))
 _su_static = [lily.data.vertices[i].co for i in range(len(lily.data.vertices))]
@@ -902,28 +942,39 @@ def su_nearest_band(target, lo=0.165, hi=0.250):
 SU_NOSE = su_nearest_band((0.0, -0.206, 0.795))
 SU_CROWN = su_nearest_band((0.0, 0.0, 0.988))
 SU_CHEEK = su_nearest_band((0.152, -0.146, 0.795))
+SU_BACK = su_nearest_band((0.0, 0.205, 0.795))
 print(f"  face verts NOSE={SU_NOSE} CROWN={SU_CROWN} CHEEK={SU_CHEEK}")
+assert all(len(lily.data.vertices[i].groups) == 1 and
+           lily.vertex_groups[lily.data.vertices[i].groups[0].group].name == SU_HEAD_B
+           for i in (SU_NOSE, SU_CROWN, SU_BACK)), "head markers must be rigid"
 
 # rotation params from the frame-1 face
 sc.frame_set(sf0); bpy.context.view_layer.update()
 _su_cur = su_face_now()
-_ty = SWIM_TY_TARGET
-_tz = _su_cur.z * _ty / _su_cur.y          # keeps the axis in the Y-Z plane
-_tx = -math.sqrt(max(0.0, 1.0 - _ty * _ty - _tz * _tz))   # her right side
+# Explicit forward+up, NO-sideways target: face points in the direction of
+# travel (+~25 deg above the horizon). The old Y-Z-plane axis target aimed
+# the face to her right (large -X). The crown constraint below removes the
+# remaining twist that a face-only solve cannot determine.
+_swim_elev = math.radians(SWIM_ELEV_DEG)
+_ty = -math.cos(_swim_elev)         # forward (in this armature frame forward = -Y)
+_tz = +math.sin(_swim_elev)         # up (+Z)
+_tx = 0.0                        # no sideways yaw
 _SU_TARGET = Vector((_tx, _ty, _tz))
+# crown (top of head) target: up + slightly back, orthogonal to the face
+# (dot(f_tgt,c_tgt)=0) so face+crown together fully fix the head roll.
+_SU_CROWN_TGT = Vector((0.0, +math.sin(_swim_elev), +math.cos(_swim_elev)))
 _su_axis = _su_cur.cross(_SU_TARGET).normalized()
 _su_angle = math.acos(max(-1.0, min(1.0, _su_cur.dot(_SU_TARGET))))
-SU_R_all = Matrix.Rotation(_su_angle, 4, _su_axis)
 SU_R_n = Matrix.Rotation(SWIM_SPLIT_NECK * _su_angle, 4, _su_axis)
-SU_Rall3, SU_Rn3 = SU_R_all.to_3x3(), SU_R_n.to_3x3()
-assert abs(_su_axis.x) < 0.05, "head-up axis must lie in the armature Y-Z plane"
+SU_Rn3 = SU_R_n.to_3x3()
 print(f"  cur face ({_su_cur.x:+.3f},{_su_cur.y:+.3f},{_su_cur.z:+.3f}) "
       f"target ({_SU_TARGET.x:+.3f},{_SU_TARGET.y:+.3f},{_SU_TARGET.z:+.3f}) "
       f"axis ({_su_axis.x:+.3f},{_su_axis.y:+.3f},{_su_axis.z:+.3f}) "
       f"angle {math.degrees(_su_angle):.1f} deg")
 
 # constants: bone-local face direction + neck arm 3x3 at Q_n = identity
-su_f_loc = (su_pb_h.matrix.to_3x3().inverted() @ Arm_lin.inverted() @ _su_cur)
+su_f_loc = (su_pb_h.matrix.to_3x3().inverted() @ Arm_lin.inverted()
+            @ su_head_axes_now()[0]).normalized()
 su_pb_n.rotation_quaternion = SU_IDQ
 bpy.context.view_layer.update()
 su_A_n = su_pb_n.matrix.to_3x3()
@@ -937,31 +988,59 @@ for _fr in range(sf0, sf1 + 1):
         f"Swim missing quat keys at {_fr}"
 
 _worst = 0.0
+_crown_worst = 0.0
+_rolls = []
 for fr in range(sf0, sf1 + 1):
     sc.frame_set(fr); bpy.context.view_layer.update()   # original pose
-    face_orig = su_face_now()
     H_n_orig = su_pb_n.matrix.to_3x3()
     # -- Neck: rotate its Y (bone) axis to R_n @ (original world Y axis) --
     dir_n_orig_w = (Arm_lin @ H_n_orig @ Vector((0, 1, 0))).normalized()
     dir_n_tgt_w = (SU_Rn3 @ dir_n_orig_w).normalized()
     v_n = (Arm_lin @ su_A_n).inverted() @ dir_n_tgt_w
     Q_n = su_rot_between(Vector((0, 1, 0)), v_n)
-    # -- Head: rotate the face to R_all @ face_orig (exact) --
+    # -- Head: keep the anatomical face forward and 25 degrees up --
     su_pb_n.rotation_quaternion = Q_n
     su_pb_h.rotation_quaternion = SU_IDQ
     bpy.context.view_layer.update()
     A_h = su_pb_h.matrix.to_3x3()
-    face_tgt = (SU_Rall3 @ face_orig).normalized()
+    face_tgt = _SU_TARGET
     v_h = (Arm_lin @ A_h).inverted() @ face_tgt
     Q_h = su_rot_between(su_f_loc, v_h)
-    _pred = (Arm_lin @ A_h @ Q_h.to_matrix() @ su_f_loc).normalized()
-    _worst = max(_worst, _pred.angle(face_tgt))
+    # -- Roll: constrain the crown so the head reads upright (no roll) --
+    Q_h, roll = su_correct_roll(Q_h)
+    _rolls.append(roll)
     su_set_quat([km_n[fr][a] for a in range(4)], Q_n)
     su_set_quat([km_h[fr][a] for a in range(4)], Q_h)
+# Keep the endpoint's world-space solve: copying the first local quaternion
+# would amplify the source parent-chain endpoint noise instead of cancelling it.
 for fc in fcs_n + fcs_h:
     fc.update()
-print(f"  Swim head-up applied ({sf1 - sf0 + 1} frames; worst model err "
-      f"{math.degrees(_worst):.4f} deg)")
+# Validate the baked keys, not just the solver's temporary pose. The exporter
+# adds a leading hold, so source keys 1..137 appear as runtime frames 2..138.
+_seam_poses = []
+for fr in range(sf0, sf1 + 1):
+    sc.frame_set(fr)
+    bpy.context.view_layer.update()
+    f_final, c_final = su_head_axes_now()
+    _worst = max(_worst, f_final.angle(_SU_TARGET))
+    _crown_worst = max(_crown_worst, c_final.angle(_SU_CROWN_TGT))
+    if fr in (sf0, sf1):
+        _seam_poses.append({pb.name: main.matrix_world @ pb.matrix
+                            for pb in main.pose.bones})
+assert math.degrees(_worst) < 0.5, \
+    f"face retarget mesh error too large: {math.degrees(_worst):.3f} deg"
+assert math.degrees(_crown_worst) < 1.0, \
+    f"crown retarget too large: {math.degrees(_crown_worst):.3f} deg"
+_seam = max(abs(_seam_poses[0][bn][i][j] - _seam_poses[1][bn][i][j])
+            for bn in _seam_poses[0] for i in range(4) for j in range(4))
+assert _seam < 1e-4, f"Swim world-pose seam drifted: {_seam:.7f}"
+print(f"  Swim baked world-pose seam: {_seam:.7f}")
+_rmin, _rmax = min(_rolls), max(_rolls)
+_rmean = sum(_rolls) / len(_rolls)
+_rstd = (sum((r - _rmean) ** 2 for r in _rolls) / len(_rolls)) ** 0.5
+print(f"  Swim head-up applied ({sf1 - sf0 + 1} frames; worst face err "
+      f"{math.degrees(_worst):.4f} deg, crown err {math.degrees(_crown_worst):.4f} "
+      f"deg; roll deg min {_rmin:.2f} max {_rmax:.2f} std {_rstd:.3f})")
 
 # ---------- 7. workbench previews (per clip, 4 phases, front+side) --------
 sc.frame_start = 1
