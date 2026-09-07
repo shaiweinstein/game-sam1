@@ -8,6 +8,9 @@
 # Playwright MCP screenshot/output artifacts
 .playwright-mcp/
 
+# Python bytecode (Blender build scripts)
+__pycache__/
+
 # Logs / temp
 *.log
 tmp/

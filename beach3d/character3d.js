@@ -58,22 +58,22 @@ const LOCO_STOP_DIST = 0.12;
 export const SEA_DEEP_Z = -6.5;
 
 /* Swim/float root sink — node origin this far BELOW the animated
-   water surface. MEASURED on the shipped clip (boneHeights audit,
-   node-relative world-Y over the stroke cycle): hips +0.02,
-   mid-spine +0.066, neck/shoulders +0.12–0.13, head bone
-   +0.07…+0.15 (the crawl undulation), head-top ≈+0.22–0.28.
-   0.065 puts the waterline at the mid-spine — the spec's
-   mid-torso line: head + hands clear, back at the surface,
-   hips/thighs/legs submerged and visible through the 0.9-alpha
-   toon water. (The README's 0.34–0.41 chest figure is stale for
-   this asset and put the whole body under the surface: a bobbing
-   hair-ball, the B2 swim-look defect.) */
+   water surface. MEASURED on the shipped head-up clip (boneY audit,
+   node-relative world-Y over the stroke cycle): hips −0.07…−0.04,
+   mid-spine −0.05…−0.03, upper-chest (Spine2) −0.01…+0.02, neck
+   +0.03…+0.06, head bone +0.02…+0.05. 0.065 puts the waterline at
+   the chin/upper-chest of the head-up freestyle stroke: face just
+   clear (breathing side only — no crescent), back + shoulders at
+   the surface, hips/thighs/legs submerged and visible through the
+   0.9-alpha toon water. (B2-swim2: the clip was converted from
+   face-down crawl to head-up in build_lily4_full.py §6c, which
+   changed this measurement; the value itself is unchanged.) */
 export const SWIM_SINK = 0.065;
 /* swim gait rate = actual speed ÷ full-speed ref, clamped to the
    spec band; float idles the SAME clip at a slow crawl. */
 const SWIM_TS_MIN = 0.5, SWIM_TS_MAX = 1.4;
 const FLOAT_TS = 0.25;
-/* float bob: face-down treading, ±2 cm at 0.4 Hz on the wave clock
+/* float bob: head-up treading, ±2 cm at 0.4 Hz on the wave clock
    (frozen with the clock under reduced motion). */
 const BOB_AMP = 0.02, BOB_HZ = 0.4;
 /* water glide (release → float): velocity eases out instead of the
