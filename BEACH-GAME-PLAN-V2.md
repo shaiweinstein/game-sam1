@@ -462,13 +462,28 @@ beach3d/
     upright crown) + in-game front/back swim shots. Stills
     `beach3d/shots2/final6_01_swim.png`, `final6_02_back.png` (workbench crops
     in /tmp/kilo/diag/final6_workbench_*.png).
-   - **Missions (sequential; family review gate after each of B3/B4/B5):**
-  - **INTERIM REVIEW PASSED (2026-09-07): walk + wade + swim approved** —
-    both swim review rounds (B2-swim2 bald crescent + submerged head,
-    B2-swim3 sideways/rolled head) closed. Camera: gentle follow in the sea
-    only (B1 framing everywhere else). Next: **B3 duck boat**.
-- **B3** — duck boat loop (`beach3d/boat3d.js` + Blender duck model).
-  2D parity from `js/beach-boat.js` (BOAT tuning sheet): tap-hull-to-board
+    - **Missions (sequential; parent asked for ONE review after B3+B4+B5):**
+   - **INTERIM REVIEW PASSED (2026-09-07): walk + wade + swim approved**
+     (both swim fix rounds B2-swim2/B2-swim3 closed; sea follow-cam kept).
+   - **B3 + B4 + B5 DONE — FAMILY REVIEW PENDING (2026-09-07):** duck boat
+     (`da0dc7f`), surf with opt-in shoreward waves + Space catch/hold-to-
+     auto-catch (`8a0e8ae`), 6 suits + 4 friends (`af37942`). Review at
+     http://localhost:8123/ (map → beach): 🏊 hop-out on the duck, 🏄
+     "Start surfing" + Space (tap/hold) for waves, 🩱 + friends screen for
+     looks. Stills: `beach3d/shots2/final7_*` (boat), `final8_*` (surf),
+     `final9_*` (suits/friends). After approval: **B6** (juice/sound/E2E/
+     cleanup).
+- **B3 ✅ (commit `da0dc7f`)** — duck boat loop (`beach3d/boat3d.js` +
+  `build_duck_boat.py` → `duck_boat.glb`, toon yellow duck per the 2D palette,
+  one draw call). Parked (4.7, −3.5), 3.0 m/s, clamps x ±6.6 / z ≥ −6.1 /
+  z ≤ shoreline−0.5, board < 0.5 m, 20 s invite, auto-hop < 0.7 m of shore,
+  wake every 0.5 m (cap 12, 0.9 s). `attachRide/detachRide/setRidePaddling`
+  added to character3d.js (ride-driven flag skips locomotion; B4 reuses it).
+  Stills `final7_*` (rest/boarding/ride front+side/steer/hop + regressions +
+  mobile + RM); mobile 56–60 fps; leak stable 39g/12t; zero console errors.
+  Known: the sea camera's 2.5 m/s catch-up cap lags on long 3 m/s lateral
+  rides (pre-existing cap, noted for B6).
+  Spec (as built): 2D parity from `js/beach-boat.js` (BOAT tuning sheet): tap-hull-to-board
   (raycast + proximity, auto-approach invite, 20 s timeout), handoff via
   `locomotion.setEnabled(false)` → swim to the hull → **Sit** clip (hips
   0.32 m; the boat sits on the water so her hips land on the gunwale) →
@@ -482,19 +497,53 @@ beach3d/
   board/ride/steer/hop stills (front + side), steering clamp check,
   mobile 420×720, RM (bob frozen, control kept), leak stable, zero console
   errors, offline → **family review gate**.
-- **B4** — surfboard + wave loop (`beach3d/surf3d.js` + Blender board).
-  2D parity from `js/beach-surf.js` (SURF tuning sheet): shoreward-approaching
-  wave swell with foam crest (spawn deep-sea ~1.1 m/s toward shore, first
-  wave 1.8 s, gap 2.2–4.8 s), pink/teal-stripe board, 🏄 button / Space
-  catch (window: in sea + |dist| ≤ radius). Ride = **SurfRide** clip on the
-  board tracking the crest, steer = carve along the wave face, roll-off at
-  sand = SUCCESS +1 → `🌊 N` counter chip (session-only) + RIDE_TALKS +
-  cheer SFX; no wipeout ever (2D parity). `surfcatch` activity un-hidden by
-  B4. QA: catch/ride/roll-off stills from two angles, counter chip check,
-  wave spawn cadence vs 2D, mobile, RM (control kept, shimmer frozen), leak,
-  console, offline → **family review gate**.
-- **B5** — 6 suits + 4 friends (`character3d.js` suit/friend swap + Blender
-  geometry + face textures). Suits = geometry variants per the plan: 1pc
+- **B4 ✅ (commit `8a0e8ae`)** — surfboard + wave loop
+  (`beach3d/surf3d.js` + `build_surfboard.py` → `surfboard.glb`, pink/teal
+  candy shortboard). As built: wave 1.1 m/s shoreward, 15 m crest, ~1 m tall,
+  first wave 1.82 s, gaps 2.2–4.8 s; catch 1.1 m / ≥0.8 m seaward; carve
+  2.0 m/s clamped x ±6.6; pocket 0.3 m behind crest; bob ±0.04 m @0.45 Hz;
+  roll-off ease 0.5 s; foam every 1.26 m (cap 16). Space tap = catch in
+  window, hold = auto-catch next wave (repeat-suppressed, cleaned on
+  blur/close); 🏄 button = "Start/Stop surfing" toggle (waves OFF by
+  default). Stills `final8_*` (calm/approach/catch/ride side+front/roll-off/
+  counter chip/mobile/RM + wave×duck coexistence + B3 regression); 3
+  successful rides verified counter/talk/cheer; mobile 54–60 fps; leak
+  stable 45g/13t; zero console errors.
+  Spec (as built): **Waves come from the sea toward the beach** (crest runs along x, advances
+  +z at ~1.1 m/s) like real beach waves — revised by the parent 2026-09-07:
+  waves are **opt-in**: the 🏄 activity button toggles wave spawning
+  ("Start surfing" ↔ "Stop surfing"); no waves while off. Tuning from the
+  2D SURF sheet (`js/beach-surf.js`): first wave 1.8 s after enabling, gap
+  2.2–4.8 s, foam-crest swell, pink/teal-stripe board. **Catch:** 🏄 button
+  or **Space** (tap = catch while the window is open: in sea + |crest dist|
+  ≤ radius); **holding Space arms auto-catch** — the next wave that enters
+  the window is caught automatically (family asked for the easier path).
+  Ride = **SurfRide** clip on the board tracking the crest, steer = hold-drag
+  carve along the wave face (x, clamped to the pocket band + beach strip),
+  roll-off at sand = SUCCESS +1 → `🌊 N` counter chip (session-only) +
+  RIDE_TALKS + cheer SFX; no wipeout ever (2D parity). `surfcatch` activity
+  un-hidden by B4. QA: wave approach / catch / ride / roll-off stills from
+  two angles, counter chip check, toggle + Space (tap + hold) checks, miss
+  path (wave rolls off empty + respawns), mobile, RM (control kept, shimmer
+  frozen), leak, console, offline → **family review gate**.
+- **B5 ✅ (commit `af37942`)** — 6 suits + 4 friends. Suits: suit1/3/6 =
+  existing 1pc recolored (daisy white on suit1, trim-colored emblem on
+  3/6); suit2/4 = new skinned tankini (`Suit_Tank_Vest` + `Suit_Tank_Short`);
+  suit5 = new crop set (`Suit_Crop_Top` + `Suit_Crop_Short`) — all in
+  build_lily4.py (single source of truth), full pipeline re-run: 8 clips /
+  65 bones, Walk regression 1.4e-05, Swim seam 8.8e-05, face/crown 0.0000°,
+  all variants watertight, animation tracks bit-identical to B4. Friends:
+  runtime skin/hair material recolor + per-friend head texture swap
+  (`make_face_textures.py` → `face_amara/mei/sofia.png`, 512×275,
+  RGB-distance remap of Lily's face texture, Amara blush 0.5, borders
+  asserted = destination skin, deterministic SHA-256); Lily keeps her baked
+  texture. Sync: `Beach3D.syncAppearance()` at open + `GameState.onChange`
+  hook (subscribed on open, unsubscribed on close); `__beach3d.appearance()`.
+  Stills `final9_*` (6 suits + suit2/5 swim + 4 friends + 4 face close-ups +
+  real-UI round-trips suit1→suit5 and Sofia + walk/swim/boat/surf
+  regressions + mobile); leak stable 49g/14t; mobile 56–60 fps; zero console
+  errors.
+  Spec (as built): Suits = geometry variants per the plan: 1pc
   (v4 suit recolored per catalog), tankini (vest + high-waist shorts:
   suit2/suit4), crop set (suit5); colors from `CATALOG.swimsuit[*].colors`,
   daisy emblem on suit1 only. Friends (Amara/Mei/Sofia + Lily): skin/hair
