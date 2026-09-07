@@ -89,6 +89,10 @@
   let characterEl = null;   // lazy <div id="beach-character"> inside the stage
   let sceneBuilt = false;   // true once the art layers exist inside #beach-stage
   let openState = false;
+  /* B1: which engine painted THIS visit — true = three.js beach3d
+     (window.Beach3D), false = the 2D Phaser canvas (or DOM art).
+     Set in open(), read by close() and renderActions(). */
+  let using3D = false;
 
   /* ---------- Activity framework state (see the header docs) ---------- */
 
@@ -584,7 +588,16 @@
     if (node && node.parentNode) node.parentNode.removeChild(node);
   }
 
+  /* B1 build-phase gate: activities whose 3D versions do not exist
+     yet stay out of the bar while the three.js beach runs —
+     🏰 castle + 🏄 surf are 2D-canvas-only (B4 brings surf, the
+     sandcastle stays deferred), 'boathop' can never fire in 3D B1
+     ('boat' mode is 2D-only). Registrations and 2D code untouched:
+     this only filters the render. */
+  const HIDDEN_IN_3D = { castle: true, boathop: true, surfcatch: true };
+
   function activityVisible(spec) {
+    if (using3D && HIDDEN_IN_3D[spec.id]) return false;
     if (spec.modes === "*") return true;
     return Array.isArray(spec.modes) && spec.modes.indexOf(currentMode) !== -1;
   }
@@ -848,19 +861,27 @@
     if (talkEl) talkEl.textContent = welcomeTalk();
     ensureScene();
     ensureCharacter();
+    /* B1: prefer the three.js beach (beach3d/beach3d.js, module —
+       window.Beach3D). open() returns false when WebGL is missing
+       or the boot failed, and the 2D Phaser canvas takes the visit
+       instead — the game never hard-dead-ends on a bad device.
+       The game-active class lives on the OVERLAY — not the stage —
+       so its CSS reaches both the #beach-stage art layers and
+       #beach-character, hiding the DOM backdrop the canvas now
+       paints (css/style.css "Beach game (Phaser) host" section).
+       The engine decision runs BEFORE setMode so the (3D-filtered)
+       action bar renders in one pass. */
+    overlayEl.classList.add("game-active");
+    using3D = false;
+    if (window.Beach3D && window.Beach3D.open(stageEl)) {
+      using3D = true;
+    } else if (window.BeachGame) {
+      window.BeachGame.open(stageEl);
+    }
     /* Always start on the sand: reopening never leaves her in the
        'boat' bar-mode from a finished ride. setMode also (re)builds
        the action bar for 'sand'. */
     setMode("sand");
-    /* Phaser canvas (js/beach-game.js): opt in for this visit. The
-       game-active class lives on the OVERLAY — not the stage — so
-       its CSS reaches both the #beach-stage art layers and
-       #beach-character, hiding the DOM backdrop the canvas now
-       paints (css/style.css "Beach game (Phaser) host" section).
-       Everything here is guarded: without the Phaser library the
-       DOM beach keeps working as the static fallback scene. */
-    overlayEl.classList.add("game-active");
-    if (window.BeachGame) window.BeachGame.open(stageEl);
     /* mission 14: push the chosen swimsuit into the canvas rig —
        immediate + 0ms + bounded rAF retries (the rig attaches inside
        Phaser's scene create, timing not fixed). */
@@ -887,9 +908,15 @@
       removeSceneEl(castleEl);
       castleEl = null;
     }
-    /* Phaser canvas: full destroy on every visit — no live game
-       survives a hidden overlay, and the next open() boots fresh. */
-    if (window.BeachGame) window.BeachGame.close();
+    /* Canvas engine: full destroy on every visit — no live game
+       survives a hidden overlay, and the next open() boots fresh
+       (2D Phaser OR the B1 3D beach, whichever ran this visit). */
+    if (using3D) {
+      if (window.Beach3D) window.Beach3D.close();
+      using3D = false;
+    } else if (window.BeachGame) {
+      window.BeachGame.close();
+    }
     overlayEl.classList.remove("game-active");
   }
 
