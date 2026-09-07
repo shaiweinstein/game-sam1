@@ -36,9 +36,12 @@ the table (sampling starts at t = 1/30 s, e.g. Walk = 1.067).
   standing clips hips ≈ 0.30–0.34, head-top ≈ 1.0. **Sit**: hip/seat ≈ 0.32
   above origin and toes −0.11 **below** it — the clip is a chair-sit: place the
   node so the seat lands on a ~0.35 m bench, or lift the origin by 0.11 m.
-  **Swim**: prone; chest/head sits ≈ 0.34–0.41 above origin, hips ≈ 0.01,
-  toes ≈ −0.18 — for a waterline through mid-torso put the node origin
-  ≈ 0.1–0.15 m below the surface. **Paddle**: low kneel on the board, head
+  **Swim**: head-up freestyle (converted from a face-down crawl in
+  `build_lily4_full.py` §6c); with the node origin `SWIM_SINK = 0.065` m
+  below the surface the waterline sits at the chin/upper-chest — face just
+  clear on the breathing side, back + shoulders at the surface, hips/legs
+  submerged and visible through the 0.9-alpha toon water.
+  **Paddle**: low kneel on the board, head
   ≈ 0.21, hands sweep down to ≈ −0.26 (below the deck). **SurfRide**: deep
   balanced crouch, hips ≈ 0.15, head ≈ 0.46, mesh sinks to −0.17 at wobble
   extremes (fine when parented to a board).

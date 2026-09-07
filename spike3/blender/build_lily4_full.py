@@ -799,6 +799,170 @@ for name, fbx, loops, hzero in CLIPS:
     bpy.context.view_layer.update()
 print("actions:", [(a.name, tuple(a.frame_range)) for a in bpy.data.actions])
 
+# ---------- 6c. head-up freestyle conversion of the Swim clip --------------
+# The authored Swim-FrontCrawl is a face-PRONE crawl: the head's face points
+# ~50 deg BELOW the horizon, yawed ~116 deg to her right (an extreme breath
+# turn). From the follow-cam that exposes the pale face patch at the dome
+# edge and reads as a "bald crescent". Convert it to head-up freestyle by
+# applying a CONSTANT world rotation R_all to the head/neck subtree on every
+# frame: the per-frame wobble is preserved and the loop seam is unchanged
+# (frame 1 and 137 are identical, so they rotate identically).
+#
+# The rig's non-uniform scales (armature X scale + bone-length scales) make an
+# arbitrary world rotation non-representable as a pure quat key, so we solve
+# EXACTLY, per bone, for the quat that lands one rigid vector on its world
+# target (a bone's armature-space 3x3 = A @ Q, A fixed for a given parent
+# state, Q the pose rotation applied on the right):
+#   head: face(Q_h) = (Arm @ A_h @ Q_h @ f_loc) = R_all @ face_orig
+#         => Q_h = rot_between(f_loc, (Arm @ A_h)^-1 @ face_tgt)
+#   neck: its Y (bone) axis rotated to R_n @ (orig world Y axis)
+# Verified 0.0 deg against the evaluated mesh (face verts are 100% on Head).
+swim_act = clip_acts["Swim"]
+SWIM_SPLIT_NECK = 0.40        # fraction of the total rotation on the Neck bone
+SWIM_TY_TARGET = -0.32        # target face y component (forward = -Y)
+SU_NECK_B, SU_HEAD_B = "mixamorig:Neck", "mixamorig:Head"
+SU_IDQ = Quaternion((1.0, 0.0, 0.0, 0.0))
+
+
+def su_find_fcs(act, bn):
+    out = {}
+    for lay in act.layers:
+        for strip in lay.strips:
+            for cb in strip.channelbags:
+                for fc in cb.fcurves:
+                    if fc.data_path == f'pose.bones["{bn}"].rotation_quaternion':
+                        out[fc.array_index] = fc
+    return [out.get(a) for a in range(4)]
+
+
+def su_key_map(fcs):
+    """{frame: {channel: KeyframePoint}} (find() is broken in this build)."""
+    frames = {}
+    for fc in fcs:
+        for kp in fc.keyframe_points:
+            frames.setdefault(int(round(kp.co.x)), {})[fc.array_index] = kp
+    return frames
+
+
+def su_set_quat(kps, q):
+    vals = (q.w, q.x, q.y, q.z)   # fcurve array order is (w, x, y, z)
+    for a in range(4):
+        kps[a].co.y = vals[a]
+
+
+def su_rot_between(a, b):
+    """Shortest-arc quaternion rotating unit vector a onto unit vector b."""
+    a = a.normalized(); b = b.normalized()
+    d = max(-1.0, min(1.0, a.dot(b)))
+    if d > 0.999999:
+        return Quaternion((1.0, 0.0, 0.0, 0.0))
+    if d < -0.999999:
+        ax = a.cross(Vector((1, 0, 0)))
+        if ax.length < 1e-6:
+            ax = a.cross(Vector((0, 1, 0)))
+        ax.normalized()
+        return Matrix.Rotation(math.pi, 4, ax).to_quaternion()
+    ax = a.cross(b).normalized()
+    return Matrix.Rotation(math.acos(d), 4, ax).to_quaternion()
+
+
+print("== head-up conversion of Swim ==")
+main.animation_data.action = swim_act
+sf0, sf1 = clip_frame_range(swim_act)
+Arm_lin = main.matrix_world.to_3x3()
+su_pb_n = main.pose.bones[SU_NECK_B]
+su_pb_h = main.pose.bones[SU_HEAD_B]
+
+
+def su_face_now():
+    """World face direction from the current evaluated mesh (no frame_set)."""
+    dgm = bpy.context.evaluated_depsgraph_get()
+    ev = lily.evaluated_get(dgm)
+    me = ev.to_mesh()
+    n = ev.matrix_world @ me.vertices[SU_NOSE].co
+    c = ev.matrix_world @ me.vertices[SU_CROWN].co
+    k = ev.matrix_world @ me.vertices[SU_CHEEK].co
+    ev.to_mesh_clear()
+    return (n - (n + c + k) / 3.0).normalized()
+
+
+# face feature indices from the STATIC mesh (A-pose build coordinates; meters)
+SU_HC = Vector((0.0, 0.0, 0.795))
+_su_static = [lily.data.vertices[i].co for i in range(len(lily.data.vertices))]
+
+
+def su_nearest_band(target, lo=0.165, hi=0.250):
+    t = Vector(target); best, bi = 1e9, -1
+    for i, p in enumerate(_su_static):
+        if lo <= (p - SU_HC).length <= hi and (p - t).length < best:
+            best, bi = (p - t).length, i
+    return bi
+
+
+SU_NOSE = su_nearest_band((0.0, -0.206, 0.795))
+SU_CROWN = su_nearest_band((0.0, 0.0, 0.988))
+SU_CHEEK = su_nearest_band((0.152, -0.146, 0.795))
+print(f"  face verts NOSE={SU_NOSE} CROWN={SU_CROWN} CHEEK={SU_CHEEK}")
+
+# rotation params from the frame-1 face
+sc.frame_set(sf0); bpy.context.view_layer.update()
+_su_cur = su_face_now()
+_ty = SWIM_TY_TARGET
+_tz = _su_cur.z * _ty / _su_cur.y          # keeps the axis in the Y-Z plane
+_tx = -math.sqrt(max(0.0, 1.0 - _ty * _ty - _tz * _tz))   # her right side
+_SU_TARGET = Vector((_tx, _ty, _tz))
+_su_axis = _su_cur.cross(_SU_TARGET).normalized()
+_su_angle = math.acos(max(-1.0, min(1.0, _su_cur.dot(_SU_TARGET))))
+SU_R_all = Matrix.Rotation(_su_angle, 4, _su_axis)
+SU_R_n = Matrix.Rotation(SWIM_SPLIT_NECK * _su_angle, 4, _su_axis)
+SU_Rall3, SU_Rn3 = SU_R_all.to_3x3(), SU_R_n.to_3x3()
+assert abs(_su_axis.x) < 0.05, "head-up axis must lie in the armature Y-Z plane"
+print(f"  cur face ({_su_cur.x:+.3f},{_su_cur.y:+.3f},{_su_cur.z:+.3f}) "
+      f"target ({_SU_TARGET.x:+.3f},{_SU_TARGET.y:+.3f},{_SU_TARGET.z:+.3f}) "
+      f"axis ({_su_axis.x:+.3f},{_su_axis.y:+.3f},{_su_axis.z:+.3f}) "
+      f"angle {math.degrees(_su_angle):.1f} deg")
+
+# constants: bone-local face direction + neck arm 3x3 at Q_n = identity
+su_f_loc = (su_pb_h.matrix.to_3x3().inverted() @ Arm_lin.inverted() @ _su_cur)
+su_pb_n.rotation_quaternion = SU_IDQ
+bpy.context.view_layer.update()
+su_A_n = su_pb_n.matrix.to_3x3()
+sc.frame_set(sf0); bpy.context.view_layer.update()
+
+fcs_n, fcs_h = su_find_fcs(swim_act, SU_NECK_B), su_find_fcs(swim_act, SU_HEAD_B)
+assert all(f is not None for f in fcs_n + fcs_h), "Swim missing Neck/Head quats"
+km_n, km_h = su_key_map(fcs_n), su_key_map(fcs_h)
+for _fr in range(sf0, sf1 + 1):
+    assert len(km_n.get(_fr, {})) == 4 and len(km_h.get(_fr, {})) == 4, \
+        f"Swim missing quat keys at {_fr}"
+
+_worst = 0.0
+for fr in range(sf0, sf1 + 1):
+    sc.frame_set(fr); bpy.context.view_layer.update()   # original pose
+    face_orig = su_face_now()
+    H_n_orig = su_pb_n.matrix.to_3x3()
+    # -- Neck: rotate its Y (bone) axis to R_n @ (original world Y axis) --
+    dir_n_orig_w = (Arm_lin @ H_n_orig @ Vector((0, 1, 0))).normalized()
+    dir_n_tgt_w = (SU_Rn3 @ dir_n_orig_w).normalized()
+    v_n = (Arm_lin @ su_A_n).inverted() @ dir_n_tgt_w
+    Q_n = su_rot_between(Vector((0, 1, 0)), v_n)
+    # -- Head: rotate the face to R_all @ face_orig (exact) --
+    su_pb_n.rotation_quaternion = Q_n
+    su_pb_h.rotation_quaternion = SU_IDQ
+    bpy.context.view_layer.update()
+    A_h = su_pb_h.matrix.to_3x3()
+    face_tgt = (SU_Rall3 @ face_orig).normalized()
+    v_h = (Arm_lin @ A_h).inverted() @ face_tgt
+    Q_h = su_rot_between(su_f_loc, v_h)
+    _pred = (Arm_lin @ A_h @ Q_h.to_matrix() @ su_f_loc).normalized()
+    _worst = max(_worst, _pred.angle(face_tgt))
+    su_set_quat([km_n[fr][a] for a in range(4)], Q_n)
+    su_set_quat([km_h[fr][a] for a in range(4)], Q_h)
+for fc in fcs_n + fcs_h:
+    fc.update()
+print(f"  Swim head-up applied ({sf1 - sf0 + 1} frames; worst model err "
+      f"{math.degrees(_worst):.4f} deg)")
+
 # ---------- 7. workbench previews (per clip, 4 phases, front+side) --------
 sc.frame_start = 1
 sc.frame_end = 32

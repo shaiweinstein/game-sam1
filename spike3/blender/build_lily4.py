@@ -78,6 +78,14 @@ is applied viewer-side via MeshToonMaterial (see spike3/spike3.js).
 
 import math
 import os
+import sys
+
+# Blender 5.0.1's embedded python ships without _ctypes (the glTF2 exporter's
+# draco.py needs it); the system CPython 3.14 has it. Make it importable
+# before touching addons (same shim as build_lily4_full.py).
+for _p in ("/usr/lib/python3.14/lib-dynload", "/usr/lib/python3/dist-packages"):
+    if _p not in sys.path:
+        sys.path.append(_p)
 
 import bpy
 import bmesh
@@ -663,7 +671,13 @@ def main():
         # temple shelf between cap rim and fringe/locks in side views. The
         # below-equator rim lip (azimuth 70-110) is overgrown by the mantle
         # top edge (starts at cap radius +2mm), so no side shelf reads.
-        return deg(44 + 60 * ((1 - math.cos(phi)) / 2) ** 0.22)
+        # B2-swim2: the head-up freestyle Swim turns the face up to grazing
+        # angles, so dip the SIDE rim ~5deg further below the equator
+        # (sin^2 peaks at the +/-X sides, zero at front/nape) for margin so
+        # no pale skin reads as a "bald crescent" from the follow-cam. The
+        # mantle top (cap_edge - 7deg) follows automatically.
+        bump = 5.0 * math.sin(phi) ** 2
+        return deg(44 + 60 * ((1 - math.cos(phi)) / 2) ** 0.22 + bump)
 
     cap = shell("HairCap",
                 lambda s, p: head_pt(s * cap_edge(p), p, CAPR, CAPC),
