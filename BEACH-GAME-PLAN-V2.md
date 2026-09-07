@@ -252,9 +252,178 @@ ever thrown away.
   movement, 3D swimsuits + 4 friends, gameplay loops ported from
   `js/beach-game.js` / `beach-boat.js` / `beach-surf.js`). "Fix specifics" →
   S4 polish mission on `spike3/blender/build_lily3.py` + walk pipeline.
-- **Prep in flight (verdict-independent):** downloading the additional
-  Mixamo clips the full build needs (swim, surf paddle/ride, sit, idle,
-  run, cheer) → `spike3/assets/mixamo/`.
+- **S4 ✅ (commit `fbd1d6b`) → family re-review of v4 PENDING (sole gate)** —
+  Family's v3 note was "swimsuit: parts of front and back are not covered"
+  (arrows at front + back crotch). Diagnosis: main-suit front hem rose to
+  z0.244 at center (skin at front crotch under the sagging trim V); back
+  hem sat at z0.262–0.292 (top of butt) with the two open leg-tab lofts
+  leaving a ~5cm skin slit down the center back. Fix (build_lily4*.py):
+  - **P0 full coverage:** below the hip line the suit cross-section blends
+    torso-ellipse → figure-8 thigh wraps with fabric bridges across the
+    crotch FRONT and BACK; continuous hem z≈0.212 all the way around
+    (front AND back), only an invisible 8mm front-center notch. Separate
+    SuitTab/TrimTab meshes deleted (absorbed into main suit). Verified
+    closed at all six idle angles + 3 walk-front + 3 walk-back mid-stride.
+  - **P1 silhouette:** shallow scoop (front-center z0.528, dip 0.028; sides
+    0.556) — no halter.
+  - **P2 daisy:** solid overlapping flower (4 petals r11.5mm @ ±15mm + 7.5mm
+    center, 2mm seated at z0.478) — reads as the 2D clover.
+  - **P3 color:** suit/daisy get a 3-step toon ramp + 0.34 emissive so the
+    lit yellow reads bright (front belly ≈ (255,225,64) vs #ffd93d
+    (255,217,61)); skin/hair/face untouched (v3-vs-v4 diff is swimsuit-only).
+  - Walk export: per-vertex binding (thigh wraps → UpLeg side×height ramp,
+    crotch bridge → Hips/Spine); GLB 40001/40001 verts weighted, 65 joints,
+    32 parts, S3 conform/rebake diff 0.000038 intact; skin-sim 0 unbound.
+  - Viewer: v4 (new) is the DEFAULT, v1/v2/v3 still toggleable, Walk works
+    on all four, __spike3 hooks intact. QA: 56–60 fps idle+walk, 0 console/
+    page errors, fully offline. Stills `spike3/shots4/` + `orbit4.gif` +
+    `walk-orbit4.gif`; v4-vs-2D compare at /tmp/kilo/suit_compare_v4.png.
+- **S3+ ✅ (commit `773c5f7`)** — 7 extra Mixamo clips fetched + verified for
+  the full build (all FBX Binary, 30fps, Without Skin, 65-bone mixamorig,
+  0 meshes): Swim-FrontCrawl (137f in-place), Surf-Paddle (218f in-place,
+  sub: single-oar canoe paddle — no surf clip exists), Surf-Ride (31f in-place,
+  sub: skateboarding idle), Sit-Relaxed (64f in-place, girl-on-bench),
+  Idle-Standing (299f in-place), Running (23f in-place), Cheer (88f),
+  Wave-Greet (17f). → `spike3/assets/mixamo/`. Trim Idle(299f)/Paddle(218f)
+  at retarget for tighter loops.
+- **Family verdict on v4 (2026-09-06): APPROVED — "that's Lily."** → full 3D
+  beach build begins (below).
+
+## Full 3D beach build (approved 2026-09-06)
+
+Replaces the Phaser `WorldScene` (2D) with a three.js world in the same
+overlay (`#beach-scene` in `js/beach.js`). DOM chrome stays: `#beach-talk`
+bubble, `#beach-close` (⬅️/Escape), `#beach-actions` bar, 🌊 N wave chip.
+Gameplay rules, constants, input model, speech lines and the 5 synth SFX
+(`pop/yummy/travel/cheer/oops` via `window.GameSounds.play`) carry over from
+`beach-game.js` / `beach-boat.js` / `beach-surf.js` (recon brief 2026-09-06
+is the spec; exact tuning sheets `LOCO_SPEED`, `BOAT`, `SURF` quoted there).
+
+**Architecture (new files, 2D stays until B6 verification):**
+```
+beach3d/
+  beach3d.js      — module entry; window.Beach3D = { open(stageEl), close(),
+                  isOpen(), locomotion: {getAnchor,isMoving,setEnabled,
+                  setTarget}, reducedMotion() }  ← mirrors BeachGame's public
+                  surface so js/beach.js swaps BeachGame→Beach3D in a few lines
+  world.js        — renderer (spike3 patterns: software-GL probe, adaptive
+                  scale), fixed 3/4 high camera, lights + 4-step toon ramp
+                  (suit 3-step bright ramp), sky gradient + sun, sand plane
+                  with shoreline curve + wet-sand band, animated water
+                  (semi-transparent toon, foam line at shore), props
+                  (umbrella, ball, shells, starfish) + blob shadows
+  character3d.js  — Lily 4 (lily4_full.glb): AnimationMixer + stance map
+                  stand→Idle / walk→Walk / wade→Walk+submerge / swim→Swim /
+                  float→Idle+bob / ride→Sit / surf→SurfRide; yaw-to-moving
+                  direction (smoothed); speed→timeScale; waterline offset
+                  (hip at water for swim/float, soles on anchor on land);
+                  suit material swap (6 suits) + friend material swap (4
+                  palettes, per-friend face textures)
+  boat3d.js       — 3D duck boat (Blender): tap-hull-to-board (proximity +
+                  auto-approach invite, 20s timeout), Sit + Paddle clips,
+                  hold-drag steer (sea-only, clamped), wake trail, bob on
+                  wave phase, hop via button or auto at shore
+  surf3d.js       — 3D surfboard (pink/teal stripe) + shoreward-approaching
+                  wave swell (foam crest); 🏄 button / Space catch (window:
+                  in sea + |dist| ≤ radius); ride = SurfRide clip on board
+                  following crest, steer = carve along the wave face;
+                  roll-off at sand = SUCCESS +1 (2D parity: no wipeout ever)
+```
+- **World scale** (meters): character ≈1.0m tall (B0-verified: soles z≈0,
+  crown ≈0.99; Walk clip's lowest foot contact is −0.144 → root-lift the
+  character ~0.15m so the deepest sole touch = ground, verify in stills);
+  beach strip x ∈ [-7, 7];
+  z: deep sea −9 → back of sand +5; shoreline/foam near z 0; duck parked in
+  mid-sea (2D: fx .72/fy .60); waves spawn deep-sea and travel shoreward
+  (2D: right→left at 0.16 width-u/s → 3D: ~1.1 m/s toward shore, first wave
+  1.8s, gap 2.2–4.8s).
+- **Camera decision:** FIXED 3/4 high angle showing most of the beach
+  (matches the 2D "whole world visible" feel; a kid-follow camera is
+  disorienting and hides the duck/waves). Character moves + rotates in all
+  directions (family's "every direction" bar met); gentle wheel/pinch zoom
+  allowed. If the family wants a follow cam later, it is a camera-mode swap.
+- **Input:** pointer raycast to ground/water plane = target; press-hold to
+  move (first-down wins, drag re-targets, release stops) — same as 2D.
+  Boat/surf keep the 2D handoff pattern: `locomotion.setEnabled(false)` →
+  own the anchor → re-enable (adopts position, "she pops out swimming,
+  never teleports").
+- **State:** beach stays energy-free, wave counter session-only, nothing
+  persisted (2D parity). Friend/suit come from GameState (`characterId`,
+  `outfit.swimsuit`) with live re-sync (the 🩱 "Change swimsuit" shortcut
+  round-trips through the wardrobe).
+- **Mobile + reduced motion:** 420×720, `touch-action:none` on the canvas,
+  one-pointer contract, cached `prefers-reduced-motion` — RM keeps control
+  (movement/wave travel/steer) but freezes shimmer/bob/animation amplitude
+  (parked stance frames), 2D policy verbatim.
+- **Suits (3D):** geometry variants: 1pc (v4 suit, recolored per catalog),
+  tankini (vest + high-waist shorts: suit2, suit4), crop set (top + shorts:
+  suit5); per-suit colors from `CATALOG.swimsuit[*].colors`; daisy emblem on
+  suit1 only, small trim-colored emblem elsewhere. Friends: skin/hair
+  material swaps + per-friend face textures (regenerate `face_texture.png`
+  per palette from the 2D face markup).
+- **Animation pack (B0):** `beach3d/assets/lily4_full.glb` — one GLB, 8
+  clips from `spike3/assets/mixamo/`: Walk (existing retarget, keep the
+  damped-swing + conform fix), Idle (Idle-Standing, trimmed to a seamless
+  breathing loop), Swim (Swim-FrontCrawl, in-place, loop), Sit
+  (Sit-Relaxed girl-on-bench, loop), Paddle (Surf-Paddle = single-oar canoe
+  paddle, trimmed to one stroke cycle), SurfRide (Surf-Ride = skate idle
+  balance, loop), Cheer (one-shot), Greet (one-shot). In-place normalize:
+  zero the Hips translation channels on every clip. No run clip (2D game has
+  no running; Running.fbx kept in repo for later).
+
+**Mission status:**
+- **B0 ✅ (commit `aca2b1d`)** — `beach3d/assets/lily4_full.glb`: 8 clips,
+  all gates passed (Walk regression 1.4e-05 vs lily4_walk.glb; Hips exactly
+  constant on the 7 normalized clips; 40,001 verts; 65 joints; three.js bench
+  clean, 32 stills in `spike3/shots5/`, test page `spike3/clips3.html` with
+  `window.__clips3`). Clip data for the game side: Walk 1.033s loop (keeps
+  ±4cm authored sway, intentional), Idle 9.933s loop (untouched 299f — fine,
+  or trim later), Swim 4.533s loop, Sit 2.1s loop (chair-sit: hips 0.32, toes
+  −0.11 → duck needs a ~0.35m seat), Paddle 7.233s loop (single-oar sweeps),
+  SurfRide 1.0s loop (deep balanced crouch, parent to board), Cheer 2.9s
+  one-shot, Greet 0.53s one-shot (near-rest end frame). MESH Z RANGES: Walk
+  −0.144…0.992, Idle −0.016…0.990, Swim −0.163…0.406 (prone: chest/head
+  0.34–0.41, hips ≈0.01, toes −0.18 → for a mid-torso waterline put the node
+  origin ~0.1–0.15m UNDER the surface), Sit −0.110…0.810, Paddle −0.333…0.562
+  (hands dip to −0.26 → board deck must sit ≤ −0.26), SurfRide −0.170…0.800,
+  Cheer −0.037…0.959, Greet −0.006…1.005. GLB quirk: sampler times start at
+  1/30s (duration reads one frame long; loops seamless, last≡first).
+- **B1 ✅ (commit `94b64da`)** — 3D beach world live in the real game:
+  `beach3d/{beach3d,world,character3d}.js` + index.html importmap/module
+  (root-level paths `./lib/three/...`) + minimal js/beach.js wiring
+  (Beach3D.open when available, 2D fallback until B6). Fixed 3/4 camera:
+  pos (0, 3.6, 10.4), target (0, 1.66, 2.64), fov 38, zoom 0.8–1.6;
+  horizon ~45%. Sky gradient + sun, sand + wet band + props (umbrella,
+  ball, starfish, shells), water with 2D-parity crest wave sheets
+  (occupy z −6.8…−3.4; splash VFX must ride `waterSurfaceY`). Walk/Wade
+  working (press-hold raycast, yaw-to-moving, root-lift so feet never clip).
+  QA: ~55 fps avg under software-GL dev box (adaptive pixel scale to 0.5;
+  real GPU expected 60), 420×720 touch OK, reduced-motion static water +
+  positional walk, open/close×2 leak-stable, zero console errors, offline.
+  Stills: `beach3d/shots/final_0*` + run7 mobile/RM. **B2 notes:** sea
+  clamp is `SEA_CLAMP_Z = 0.10` in `clampPoint()` (character3d.js); stance
+  map already resolves swim/float/ride/surf (cached clips); seabed profile
+  deepens beyond bedTo −7.0.
+- **Missions (sequential; family interim review after B2):**
+- **B2** — swim loop: swim/float stances, water entry/exit splashes,
+  waterline occlusion. → **FAMILY INTERIM REVIEW** (walk+wade+swim).
+- **B3** — duck boat loop (model + board/paddle/steer/hop + wake + talk).
+- **B4** — surfboard + wave loop (catch/ride/roll-off + counter + talk).
+- **B5** — 6 suits + 4 friends (geometry variants, colors, face textures,
+  GameState wiring + live re-sync).
+- **B6** — juice (press ripples, splashes, wake, foam puffs, cheer pop) +
+  sound triggers + mobile/reduced-motion pass + Playwright E2E (all 5 loops,
+  suit/friend switches, fps sampling, zero console errors, offline,
+  dress-up/kitchen/map/friends regression, save integrity) → then CLEANUP:
+  delete `js/beach-game.js`, `js/beach-boat.js`, `js/beach-surf.js`,
+  `js/beach-rig.js`, `js/beach-rig-skf.js`, `js/beach-rig-v2.js`,
+  `js/beach-parts.js`, `lib/skelform/`, `spike/`, `spike2/`, the
+  `?skfrig=1`/`?rig2=1` flags + dead DOM-art code in js/beach.js → hand-off
+  note for the parent.
+
+**Deferred (not in this build, note to parent at hand-off):** sandcastle
+builder (2D DOM art; would need a 3D rebuild — ask the family after B6),
+running speed (clip already in repo), voice/TTS (game is text-bubble only).
 
 ## 2D-vs-3D decision (raised by the parent, Sept 2026)
 
