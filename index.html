@@ -8,6 +8,18 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text x='0' y='14' font-size='14'>🌈</text></svg>">
   <!-- Styles: add future CSS files here -->
   <link rel="stylesheet" href="./css/style.css">
+  <!-- Import map for the 3D beach modules (must appear BEFORE any
+       module script). Vendored three.js r170 — offline, no CDN.
+       Served from the repo root, so the paths point straight at
+       lib/three/ (spike3/ uses ../lib because it is one level deep). -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./lib/three/three.module.js",
+      "three/addons/": "./lib/three/addons/"
+    }
+  }
+  </script>
   <!-- Scripts: add future JS files here (keep them deferred) -->
   <script src="./js/state.js" defer></script>
   <script src="./js/character.js" defer></script>
@@ -42,6 +54,11 @@
   <script src="./js/sounds.js" defer></script>
   <script src="./js/main.js" defer></script>
   <script src="./js/welcome.js" defer></script>
+  <!-- 3D beach (B1): ES module using the import map above. Loads
+       AFTER the classic scripts; if it ever fails (no WebGL, bad
+       device), window.Beach3D stays absent/unsupported and
+       js/beach.js silently keeps the 2D Phaser beach until B6. -->
+  <script type="module" src="./beach3d/beach3d.js"></script>
 </head>
 <body>
   <div class="game-area">
