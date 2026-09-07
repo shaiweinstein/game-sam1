@@ -345,7 +345,7 @@ beach3d/
   (SEA_DIST, offset collinear with the view axis → horizon stays ~45%),
   exponential ease ~5 s⁻¹ capped at 2.5 m/s glides (~1.7 s entry from the
   shoreline, ~2 s exit back to the EXACT B1 lock). Rationale: at the fixed
-  target the prone swimmer is ~15 m away = an 18-px hair-dot; the 2D original
+   target the swimmer is ~15 m away = an 18-px dot; the 2D original
   kept her prominent at every distance (no perspective) — the family standard
   is "always visible." Dolly-only attempts verified insufficient (zoom>1 =
   farther in this rig). Wheel/pinch zoom 0.8–1.6 dollies the view axis in
@@ -431,10 +431,26 @@ beach3d/
   **Known (pre-existing, 2D-shell, B6 cleanup):** talk bubble persists until
   the next talk call (js/beach.js setTalk never clears it) — 2D parity,
   cosmetic only.
- - **Missions (sequential; family interim review after B2):**
-- **B2 → FAMILY INTERIM REVIEW now: walk + wade + swim** (map → beach at
-  http://localhost:8123/). Camera behavior is the one deliberate design
-  change: gentle follow in the sea only (B1 framing everywhere else).
+- **B2-swim2 ✅ (commit `db84287`)** — parent re-review fixes on the swim:
+   (1) a pale "bald crescent" on the head at the follow-cam angle, (2) head
+   fully underwater. Swim clip converted from face-down crawl to **head-up
+   freestyle** in build_lily4_full.py §6c (a constant world rotation on the
+   Head/Neck subtree, solved exactly per bone per frame, loop seam preserved,
+   0.0° vs the evaluated mesh) so the face sits out of the water; hair
+   `cap_edge` gains a 5° side dip so no face-texture background reads as a
+   bald patch from grazing angles. SWIM_SINK stays 0.065 (waterline now at
+   chin/upper-chest). Walk regression worst-diff 1.8e-07 (<1e-4). QA: head
+   crops at 2 bob phases + high-res close-ups (crescent gone, head up),
+   mobile 420×720 (60fps), reduced-motion (54fps), idle leak stable 35g/10t,
+   zero console errors, offline. Stills `beach3d/shots2/final5_0*` (01
+   establish, 02 walk, 03 wade, 04 swim, 05b/c head, 06 mobile, 07 rm,
+   08_head_hr_0/1/2 close-ups).
+  - **Missions (sequential; family interim review after B2-swim2):**
+ - **B2-swim2 → FAMILY INTERIM REVIEW now: walk + wade + swim** (map → beach
+   at http://localhost:8123/). Swim is now head-up freestyle (face out of the
+   water, no bald crescent) — the parent's two fixes; camera behavior is the
+   other deliberate design change: gentle follow in the sea only (B1 framing
+   everywhere else).
 - **B3** — duck boat loop (model + board/paddle/steer/hop + wake + talk).
 - **B4** — surfboard + wave loop (catch/ride/roll-off + counter + talk).
 - **B5** — 6 suits + 4 friends (geometry variants, colors, face textures,
