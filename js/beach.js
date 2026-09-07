@@ -588,9 +588,8 @@
     if (node && node.parentNode) node.parentNode.removeChild(node);
   }
 
-  /* Build-phase gate: castle and surf are still 2D-only (B4 brings
-     surf). B3 registers the 3D boat hop action through the same bar. */
-  const HIDDEN_IN_3D = { castle: true, surfcatch: true };
+  /* Castle remains 2D-only; B3/B4 register their own ride actions. */
+  const HIDDEN_IN_3D = { castle: true };
 
   function activityVisible(spec) {
     if (using3D && HIDDEN_IN_3D[spec.id]) return false;
@@ -957,7 +956,7 @@
          same "Wait for a wave…" line as the button). preventDefault so
          the key never also scrolls the panel or space-activates a
          focused DOM button underneath. */
-      if (openState && (event.key === " " || event.key === "Spacebar") &&
+      if (openState && !using3D && (event.key === " " || event.key === "Spacebar") &&
           window.BeachSurf && typeof window.BeachSurf.catchWave === "function") {
         event.preventDefault();
         window.BeachSurf.catchWave();
