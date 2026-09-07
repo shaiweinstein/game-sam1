@@ -444,13 +444,30 @@ beach3d/
    mobile 420×720 (60fps), reduced-motion (54fps), idle leak stable 35g/10t,
    zero console errors, offline. Stills `beach3d/shots2/final5_0*` (01
    establish, 02 walk, 03 wade, 04 swim, 05b/c head, 06 mobile, 07 rm,
-   08_head_hr_0/1/2 close-ups).
-  - **Missions (sequential; family interim review after B2-swim2):**
- - **B2-swim2 → FAMILY INTERIM REVIEW now: walk + wade + swim** (map → beach
-   at http://localhost:8123/). Swim is now head-up freestyle (face out of the
-   water, no bald crescent) — the parent's two fixes; camera behavior is the
-   other deliberate design change: gentle follow in the sea only (B1 framing
-   everywhere else).
+    08_head_hr_0/1/2 close-ups).
+ - **B2-swim3 ✅ (commit `f1e047a`)** — parent re-review of the head-up swim:
+    head read "asymmetric / looking to the side / distorted". Two residual
+    defects fixed in §6c: (1) the old face target preserved the authored
+    ~116° breath yaw (Y-Z-plane axis constraint) — replaced with an explicit
+    no-sideways face direction f = (0, −cos e, +sin e), e = SWIM_ELEV_DEG 25°;
+    (2) a face-only solve leaves head ROLL free — added a per-frame
+    roll-correction pass that twists the head about its local face axis until
+    the evaluated-mesh crown direction hits c = (0, +sin e, +cos e) (orthogonal
+    to the face, so face+crown fully determine the head). Head marker basis
+    now uses opposite nose/back vertices (the old 3-marker centroid was
+    off-center). Roll applied: +30.2°…+36.3° (std ~1.9°). Gates: face err
+    0.0000°, crown err 0.0000° (<0.5°/1° asserts), 8 clips/65 bones intact,
+    walk regression worst 1.4e-05 (<1e-4), world-pose seam 8.8e-05. QA:
+    workbench front/side at Swim f69 (level eyes, blush on cheeks, hair-covered
+    upright crown) + in-game front/back swim shots. Stills
+    `beach3d/shots2/final6_01_swim.png`, `final6_02_back.png` (workbench crops
+    in /tmp/kilo/diag/final6_workbench_*.png).
+   - **Missions (sequential; family interim review after B2-swim3):**
+  - **FAMILY INTERIM REVIEW now: walk + wade + swim** (map → beach at
+    http://localhost:8123/). Swim is head-up freestyle (face out of the water,
+    upright head, no roll, no bald crescent) — both parent review rounds
+    closed; camera behavior is the other deliberate design change: gentle
+    follow in the sea only (B1 framing everywhere else).
 - **B3** — duck boat loop (model + board/paddle/steer/hop + wake + talk).
 - **B4** — surfboard + wave loop (catch/ride/roll-off + counter + talk).
 - **B5** — 6 suits + 4 friends (geometry variants, colors, face textures,
