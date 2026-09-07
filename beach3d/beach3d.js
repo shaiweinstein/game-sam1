@@ -33,6 +33,7 @@ import {
   createWorld, webglSupported, shorelineZ, waterSurfaceY
 } from "./world.js";
 import { createCharacter } from "./character3d.js";
+import * as boat from "./boat3d.js";
 
 /* Speech hook for the 3D side (B2 talk port): js/beach.js owns the
    #beach-talk bubble; BeachScene.say is the canvas-module line API
@@ -93,9 +94,16 @@ function open(stageEl) {
     splash: (x, z) => world.splash(x, z),
     talk: sayLine
   });
+  boat.attach(world, character, world.renderer, {
+    sound: (name) => window.GameSounds?.play(name)
+  }, sayLine);
+  trackedPointer = null;
   wireInput(world.canvas);
   opened = true;
-  character.ready.then((ok) => { if (!ok) console.error("beach3d: GLB failed to load"); });
+  const loadingCharacter = character;
+  character.ready.then((ok) => {
+    if (!ok && opened && character === loadingCharacter) console.error("beach3d: GLB failed to load");
+  });
   startLoop();
   return true;
 }
@@ -106,6 +114,8 @@ function close() {
   if (loopId !== null) { cancelAnimationFrame(loopId); loopId = null; }
   /* full teardown per visit — one WebGL context per beach session,
      never a leak across open/close cycles (2D parity) */
+  boat.dispose();
+  trackedPointer = null;
   if (character) character.dispose();
   if (world) world.dispose();
   character = null;
@@ -134,6 +144,7 @@ function startLoop() {
       while (remaining > 1e-6) {
         const dt = Math.min(1 / 60, remaining);
         remaining -= dt;
+        boat.update(dt, waveT, rm);
         if (character) character.update(dt, waveT);
       }
       world.stepZoom(raw);
@@ -141,8 +152,8 @@ function startLoop() {
         /* B2-cam: the zone-driven two-framing camera (world.js
            camera block) — LAND = the exact B1 shot, SEA = the gentle
            follow rig on her eased root */
-        const a = character.getAnchor();
-        world.updateCamera(raw, rm, a.x, character.getRootY(), a.z, a.zone);
+        const a = boat.getCameraAnchor() || character.getAnchor();
+        world.updateCamera(raw, rm, a.x, a.y ?? character.getRootY(), a.z, a.zone);
       }
       world.animate(waveT, raw, rm);
       world.render();
@@ -160,6 +171,7 @@ function startLoop() {
 /* ---------- pointer input (press-hold, first-down-wins, 2D) ---------- */
 
 let trackedPointer = null;      /* first-down pointerId (one-pointer) */
+let pointerWasRide = false;     /* auto-hop never hands an old hold to swimming */
 
 function wireInput(canvas) {
   const toWorld = (ev) => {
@@ -174,21 +186,27 @@ function wireInput(canvas) {
     trackedPointer = ev.pointerId;
     try { canvas.setPointerCapture(ev.pointerId); } catch (e) { /* ok */ }
     const p = toWorld(ev);
-    if (p) character.setTarget(p.x, p.z, "pointer");
+    if (!boat.onPointerDown(ev) && p) character.setTarget(p.x, p.z, "pointer");
+    pointerWasRide = boat.active();
     ev.preventDefault();
   });
   canvas.addEventListener("pointermove", (ev) => {
     if (!character || ev.pointerId !== trackedPointer) return;
+    if (pointerWasRide && !boat.active()) return;
+    if (boat.active()) pointerWasRide = true;
     const p = toWorld(ev);
-    if (p) character.setTarget(p.x, p.z, "pointer");    /* drag re-targets */
+    if (!boat.onPointerMove(ev) && p) character.setTarget(p.x, p.z, "pointer");
   });
   const up = (ev) => {
     if (ev.pointerId !== trackedPointer) return;
     trackedPointer = null;
+    pointerWasRide = false;
+    boat.onPointerUp(ev);
     if (character) character.clearTarget("pointer");    /* release stops */
   };
   canvas.addEventListener("pointerup", up);
   canvas.addEventListener("pointercancel", up);
+  canvas.addEventListener("lostpointercapture", up);
   /* gentle wheel zoom 0.8×–1.6× */
   canvas.addEventListener("wheel", (ev) => {
     ev.preventDefault();
@@ -248,6 +266,8 @@ window.__beach3d = {
     return {
       x: +a.x.toFixed(3), z: +a.z.toFixed(3), zone: a.zone,
       stance: character.stanceName(), moving: character.isMoving(),
+      boat: boat.state(),
+      cameraAnchor: boat.getCameraAnchor(),
       shoreZ: +shorelineZ(a.x).toFixed(3),
       rootY: +character.getRootY().toFixed(3),
       waterY: +waterSurfaceY(a.x, a.z, waveT).toFixed(3),
@@ -283,6 +303,11 @@ window.__beach3d = {
     };
   },
   setTarget: (x, z) => window.Beach3D.locomotion.setTarget(x, z),
+  boat: boat.state,
+  boatBoard: boat.board,
+  boatHop: boat.hop,
+  boatSetTarget: (x, z) => boat.active() && boat.onPointerDown({ x, z }),
+  boatRelease: () => boat.onPointerUp(),
   stop: () => character && character.clearTarget("pointer"),
   /* active AnimationAction audit (clip/weight/time/timeScale) */
   action: () => (character ? character.actionInfo() : null),

@@ -588,13 +588,9 @@
     if (node && node.parentNode) node.parentNode.removeChild(node);
   }
 
-  /* B1 build-phase gate: activities whose 3D versions do not exist
-     yet stay out of the bar while the three.js beach runs —
-     🏰 castle + 🏄 surf are 2D-canvas-only (B4 brings surf, the
-     sandcastle stays deferred), 'boathop' can never fire in 3D B1
-     ('boat' mode is 2D-only). Registrations and 2D code untouched:
-     this only filters the render. */
-  const HIDDEN_IN_3D = { castle: true, boathop: true, surfcatch: true };
+  /* Build-phase gate: castle and surf are still 2D-only (B4 brings
+     surf). B3 registers the 3D boat hop action through the same bar. */
+  const HIDDEN_IN_3D = { castle: true, surfcatch: true };
 
   function activityVisible(spec) {
     if (using3D && HIDDEN_IN_3D[spec.id]) return false;

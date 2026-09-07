@@ -189,14 +189,33 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
   const actions = {};          /* clipName -> AnimationAction */
   let current = null;          /* { clipName, action } */
   let ready = false;
+  let disposed = false;
+  let rideDriven = false, ridePaddling = false;
+  let lastWaveT = 0;
 
   const readyPromise = new Promise((resolve) => {
     new GLTFLoader().load(GLB_URL, (gltf) => {
+      if (disposed) { disposeMeshes(gltf.scene); resolve(false); return; }
+      const originals = new Set();
+      gltf.scene.traverse(o => { if (o.isMesh) originals.add(o.material); });
       toonify(gltf.scene, renderer);
+      originals.forEach(m => m.dispose());
       model.add(gltf.scene);
       mixer = new THREE.AnimationMixer(gltf.scene);
       for (const clip of gltf.animations) {
-        const a = mixer.clipAction(clip);
+        let playable = clip;
+        if (clip.name === "Paddle") {
+          /* The canoe clip's hips are 0.296 m below Sit. Keep the authored
+             stroke/rotations, but seat its constant root at Sit's anchor. */
+          playable = clip.clone();
+          const seat = gltf.animations.find(c => c.name === "Sit")
+            .tracks.find(t => t.name === "mixamorigHips.position");
+          const hips = playable.tracks.find(t => t.name === seat.name);
+          for (let i = 0; i < hips.values.length; i += 3) {
+            hips.values.set(seat.values.subarray(0, 3), i);
+          }
+        }
+        const a = mixer.clipAction(playable);
         a.setLoop(THREE.LoopRepeat, Infinity);
         actions[clip.name] = a;
       }
@@ -214,6 +233,15 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
   const stanceCfg = () => STANCES[loco.stance] || STANCES.stand;
   const gliding = () => loco.zone === "sea" && (loco.vx !== 0 || loco.vz !== 0);
 
+  function disposeMeshes(root) {
+    root.traverse(o => {
+      if (!o.isMesh) return;
+      o.geometry.dispose();
+      if (o.material.map) o.material.map.dispose();
+      o.material.dispose();
+    });
+  }
+
   /* gait rate: full ts when idle (breathing Idle), ease-following
      ts while walking (2D: actual displacement drives the gait).
      In the sea the SWIM clip rate follows ACTUAL speed ÷ 1.32 m/s,
@@ -221,10 +249,20 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
      (the swim→float release therefore decelerates the stroke too). */
   function applyTimeScale() {
     if (!ready || !current) return;
-    if (reducedMotion()) { current.action.setEffectiveTimeScale(0); return; }
+    if (reducedMotion()) {
+      /* A frozen mixer cannot finish crossfades into/out of a ride. */
+      if (rideDriven || loco.stance === "ride") {
+        for (const a of Object.values(actions)) if (a !== current.action) a.stop();
+        current.action.stopFading().setEffectiveWeight(1);
+      }
+      current.action.setEffectiveTimeScale(0);
+      return;
+    }
     const cfg = stanceCfg();
     let f;
-    if (cfg.water) {
+    if (rideDriven && ridePaddling) {
+      f = Math.max(0.4, loco.speed01);
+    } else if (cfg.water) {
       f = (loco.stance === "swim" && loco.moving)
         ? clamp(loco.speed01, SWIM_TS_MIN, SWIM_TS_MAX)
         : cfg.ts;
@@ -373,6 +411,19 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
   function update(dt, tNow) {
     if (!ready) return;
     const t = tNow || 0;
+    lastWaveT = t;
+    if (rideDriven) {
+      loco.rootY = waterSurfaceY(loco.x, loco.z, t) + STANCES.ride.lift
+        + Math.sin(t * Math.PI * 2 * 0.55 + 1.3) * 0.03;
+      mixRoot.position.set(loco.x, 0, loco.z);
+      mixRoot.rotation.y = loco.yaw;
+      model.position.y = loco.rootY;
+      shadow.visible = foamRing.visible = false;
+      loco.foam = 0;
+      applyTimeScale();
+      mixer.update(reducedMotion() ? 0 : dt);
+      return;
+    }
     if (loco.enabled && dt > 0) step(dt);
 
     /* smooth yaw, exponential damping ~10/s (spec) — in the sea it
@@ -432,6 +483,43 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
     ready: readyPromise,
     root: mixRoot,
     loco,
+    setStance,
+    attachRide(x, z, yaw) {
+      if (!ready || ![x, z, yaw].every(Number.isFinite)) return false;
+      rideDriven = true;
+      loco.x = x; loco.z = z; loco.yaw = loco.yawTarget = yaw;
+      loco.zone = "sea";
+      loco.target = loco.targetSrc = null;
+      loco.vx = loco.vz = 0; loco.moving = false;
+      loco.rootY = waterSurfaceY(x, z, lastWaveT) + STANCES.ride.lift
+        + Math.sin(lastWaveT * Math.PI * 2 * 0.55 + 1.3) * 0.03;
+      mixRoot.position.set(x, 0, z);
+      mixRoot.rotation.y = yaw;
+      model.position.y = loco.rootY;
+      shadow.visible = foamRing.visible = false;
+      return true;
+    },
+    detachRide() {
+      if (rideDriven && reducedMotion() && current) current.action.stop();
+      rideDriven = ridePaddling = false;
+      loco.zone = zoneAt(loco.x, loco.z);
+      loco.speed01 = 1;
+      setStance(loco.zone === "sea" ? "float" : "stand");
+    },
+    setRidePaddling(held, speed01) {
+      if (!ready || !rideDriven) return;
+      ridePaddling = !!held;
+      loco.speed01 = clamp(speed01, 0, 1);
+      const clipName = held ? "Paddle" : "Sit";
+      if (current.clipName !== clipName) {
+        const next = actions[clipName];
+        next.reset().setEffectiveWeight(1).play();
+        current.action.fadeOut(CROSSFADE);
+        current = { clipName, action: next };
+        parkIfNeeded();
+      }
+      applyTimeScale();
+    },
     setTarget(x, z, src) {
       if (!loco.enabled || !isFinite(x) || !isFinite(z)) return false;
       loco.target = clampPoint(x, z);
@@ -513,11 +601,10 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
     },
     /* full teardown with the world (one context per beach visit) */
     dispose() {
+      disposed = true;
       ready = false;
       if (mixer) mixer.stopAllAction();
-      model.traverse((o) => {
-        if (o.isMesh && o.geometry) o.geometry.dispose();
-      });
+      disposeMeshes(model);
       scene.remove(mixRoot);
       scene.remove(shadow);
       shadow.geometry.dispose();
@@ -526,6 +613,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
       foamRing.material.dispose();   /* texture is module-cached (stable count) */
     },
     reset() {
+      rideDriven = ridePaddling = false;
       loco.x = WORLD.rest.x; loco.z = WORLD.rest.z;
       loco.yaw = loco.yawTarget = 0;
       loco.target = null; loco.targetSrc = null;
