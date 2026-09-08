@@ -833,18 +833,8 @@
       label: "Change swimsuit",
       modes: "*",
       onClick: function () {
-        close();
-        const navBtn = document.querySelector('.nav-button[data-screen="wardrobe"]');
-        if (navBtn) navBtn.click();
-        /* showScreen (main.js) runs synchronously inside that click,
-           so the wardrobe is already the active screen; two frames
-           later it is painted — pick the swimsuit tab then. */
-        requestAnimationFrame(function () {
-          requestAnimationFrame(function () {
-            const tab = document.querySelector('.wardrobe-tab[data-slot="swimsuit"]');
-            if (tab) tab.click();
-          });
-        });
+        if (!openState) return;
+        window.GameUI.showScreen("wardrobe", { fromBeach: true });
       }
     });
   }
@@ -881,6 +871,7 @@
        immediate + 0ms + bounded rAF retries (the rig attaches inside
        Phaser's scene create, timing not fixed). */
     if (!using3D) scheduleSuitSync();
+    document.getElementById("beach-close").focus({ preventScroll: true });
   }
 
   function close() {
@@ -913,6 +904,8 @@
       window.BeachGame.close();
     }
     overlayEl.classList.remove("game-active");
+    const mapButton = document.querySelector('.nav-button[data-screen="map"]');
+    if (mapButton) mapButton.focus({ preventScroll: true });
   }
 
   function isOpen() {
