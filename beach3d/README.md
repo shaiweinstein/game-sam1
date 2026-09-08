@@ -111,51 +111,115 @@ constitute an exhaustive posed collision audit.
    goes through `action.layers[*].strips[*].channelbags[*].fcurves`
    (`collect_fcs()` in the script).
 
-## Camera (B2-cam) — the two-framing swim camera
+## Manual overview camera
 
-`world.js` owns the camera (see the `B2-cam` comment block there). It is a
-zone-driven, **two-framing** camera with **one constant orientation** — the
-B1 establishing shot's direction, which never rotates. The camera only ever
-translates and dollies along that fixed axis, so the horizon sits at the same
-viewport height (~45%) in both framings (no reframe, no wobble, mid-glide
-included).
+`world.js` owns one fixed beach overview for walking, swimming, duck boating,
+and surfing. There is **no zone-driven follow, recentering, or automatic zoom**.
+The original default pose is preserved: position `(0, 3.6, 10.4)`, target
+`(0, 1.66, 2.64)`, FOV `38`. The larger sea moves the visible horizon slightly
+upward without moving the camera.
 
-- **LAND** (zone `sand|foam`): the B1 establishing shot, kept pixel-identical —
-  pos `(0, 3.6, 10.4)`, lookAt `(0, 1.66, 2.64)`. Zoom behaves exactly as B1:
-  `pos = target + (base − target) × zoom`. On settled sand the position is set
-  by the exact formula (no residual ease), so the B1 framing is bit-identical.
-- **SEA** (zone `sea`): the follow rig —
-  `pos = swimmerAnchor + SEA_OFFSET × zoom`, `lookAt = pos + VIEW × SEA_LOOK`.
-  `swimmerAnchor = (anchor.x, rootY, anchor.z)` is her **eased** root height,
-  so the rig rides the waterline with her (wave + bob), never the seabed.
-  `SEA_OFFSET = −VIEW × SEA_DIST` is collinear with the view axis **by
-  construction**, so she sits on the frame-centre line. `SEA_DIST = 7.0 m` is
-  the readability distance (her above-water swim mass ≈ 80 px at 1280×800)
-  that also keeps the exit glide short enough to re-lock B1 before she is dry.
-  `SEA_LOOK = SEA_DIST + 0.6` puts the look point 0.6 m past her.
+- Manual distance factor: **0.55 to 1.6**, default `1`; smaller is closer.
+  Position is always `target + (base - target) * zoom`. Orientation and FOV
+  remain fixed; only a resize changes the aspect projection.
+- Wheel up, `+`, `=`, and `NumpadAdd` zoom in. Wheel down, `-`, and
+  `NumpadSubtract` zoom out. Two-finger spread zooms in; squeeze zooms out.
+- Wheel/key deltas accumulate on `world.zoomTarget()`, not the eased
+  `world.zoom()`. Key repeats are clamped to the range. Editing fields and
+  Ctrl/Meta/Alt shortcuts are ignored; the document listener is removed on close.
+- `world.setZoom(k)` and `__beach3d.setZoom(k)` remain available. Easing snaps
+  exactly to the requested value on settle and persists across stance changes.
+- Press-hold locomotion, boat steering/coasting, surf carving, and Space-hold
+  wave catching retain their existing input contracts. No free camera panning
+  is added. Distant swimmers remain small, and lateral edges can be offscreen
+  in portrait or close zoom; zoom out for the wider overview.
 
-**Motion:** the actual camera eases toward its target exponentially
-(`CAM_RATE 5 s⁻¹`) with a gentle velocity cap (`CAM_VMAX 2.5 m/s`). The
-~4.1 m land↔sea glide takes ~2 s while every 50 ms step stays ≤ 0.125 m (no
-pop); the in-sea follow settles in ~0.3–0.5 s and lags a full-speed swimmer by
-only `1.32/5 ≈ 0.26 m`. The chase `dt` is clamped to `1/30 s` so a dropped
-frame can never concentrate a big jump (per-frame travel ≤ 0.083 m). A
-sub-millimetre snap locks the camera exactly onto the B1 shot on the sand.
+`__beach3d.state()` exposes `cam`, full-precision `camFull`, `camMode` (always
+`overview`), `zoomTarget`, and diagnostic-only `rideAnchor`. `camStep` and
+`camSpeed` are get-and-clear maxima of manual zoom travel; without zoom input
+both remain zero across zone/ride changes. `renderer` now includes `prScale`.
 
-**Zoom** (wheel/pinch, 0.8–1.6, persists across transitions): LAND scales
-`(base − target)` exactly as B1; SEA scales the rig offset (the 14° geometry
-is kept, only the rig distance changes). The zoom ease **snaps** to its target
-on settle so "back to 1.0" is exact (no sub-millimetre residue).
+## Sea, sky, and range
 
-**Reduced motion:** the water keeps its resting frame (existing policy); camera
-transitions run uncapped at `CAM_RATE_RM 25 s⁻¹` (≤ 0.2 s, near-instant) and
-the follow is lag-free — no per-frame camera jitter. Positional control of the
-character is untouched.
+- Water remains unlit `MeshBasicMaterial` with vertex colors and opacity `0.9`.
+  The offshore/mid/shallow blues are `#246bc1`, `#388fda`, and `#78bdf0`;
+  the surf face shares the deep blue and lifts toward `#65b0ed` at the lip.
+  Waterline and foam behavior, character skin, and attachment heights are unchanged.
+- Three soft cloud groups share one cached canvas texture/material. Two small
+  gently flapping gulls share one ten-triangle batch. Like the sun, they occupy
+  viewport-relative sky positions, away from the controls and horizon. Total
+  added sky cost: **4 draw calls, 16 triangles, 1 texture**. No per-frame canvas
+  painting, spawning, reflections, postprocessing, or new dependencies.
+- `WORLD.box.zMin = -9.5` is the shared swimmer/target/teleport deep limit.
+  `SEA_DEEP_Z` aliases it. Surf spawns `0.8 m` farther out at `-10.3`; its
+  QA swimmer placement is `zMin + 0.8`. Catching waits until the board's
+  `crestZ + 0.3` pocket is also inside the playable box.
+- Water and seabed extend to `-12.2`, containing the whole surf profile
+  `[-1.55, 1.05]` plus its up-to-`0.17 m` ripple. Surface damping and the blue
+  gradient use that far edge; the decorative wave bands are redistributed.
+  Rendered planes extend to `x = +/-32`, with sand behind the camera view to
+  `z = 12`. Grid budgets stay **64 x 40 water**, **56 x 48 sand**; the surf
+  profile retains its **80** horizontal segments.
+- Wave speed stays **1.1 m/s toward +z**, with unchanged opt-in and Space-hold
+  semantics. The extra `3 m` adds about **2.73 s** to a comparable early ride.
+  Browser QA measured catch-to-landing at **6.53 s baseline / 9.25 s extended**.
+- Boat depth is inset `0.4 m` from the shared deep limit (`-9.1`). Its lateral
+  bounds inset `0.2 m` from the playable box so the offset seat stays legal.
+  Surf carving, its following board, and its parked board use the shared x bounds.
 
-**B3 (duck boat)** reuses the SEA framing for the ride stance: feed the boat's
-anchor/rootY/zone through the same `updateCamera()` entry — rig, ease, cap,
-zoom and RM policy all apply unchanged.
+Reduced motion freezes the decorative clock: water, shore foam, wave-sheet
+offsets, clouds, and gulls are not rebuilt when that clock is unchanged.
+Manual zoom, positional control, shoreward surf travel, and VFX fading continue.
+Unlit water no longer recomputes unused vertex normals each frame.
+Desktop, 420x720 portrait, wide zoom limits, repeated
+open/close, and the unchanged `ground_contact_test.py` were checked. Headless
+browser frame rate is not evidence of hardware GPU performance.
 
-**Test hooks** (`window.__beach3d.state()`): `cam` (3-decimal position),
-`camFull` (full precision), `camMode` (`land|sea`), and the no-pop audit
-`camStep`/`camSpeed` (get-and-clear max per-frame travel / real-time speed).
+## Performance and lifecycle
+
+The actual rendering context, not just the antialiasing probe, selects the
+budget: known software renderers (SwiftShader, llvmpipe, softpipe, WARP, etc.)
+render at up to **30 FPS**; hardware and unknown backends at up to **60 FPS**.
+Masked WebKit/ANGLE identities alone are reported as unknown, not hardware.
+No telemetry, driver changes, or browser flags are required by the game.
+
+Software rendering explicitly starts at the existing **0.5 pixel-scale floor**
+times device DPR capped at 2. This trades sharpness for resource savings rather
+than spending the frame cap's savings on a higher resolution. At device DPR 1,
+a 1280x652 stage renders at 640x326. Hardware/unknown start at scale 1 and retain
+the previous downward adaptation toward 0.5; slow-window thresholds are relative
+to the selected frame cap. Frame rate alone does not measure CPU/GPU efficiency.
+
+RAF deadlines retain their phase across 90/120/144 Hz displays; skipped render
+callbacks still contribute elapsed time to the unchanged locomotion substeps
+and shoreward wave speed. Hidden documents cancel RAF, release held input, and
+resume with a fresh time origin. Blur releases pointer, ride, and Space holds;
+zoom repeats after blur need a new press. Closing removes canvas and global
+input/visibility listeners, disposes resources, and explicitly loses the permanently retired
+renderer context. Cached JS cloud/wave/gradient textures upload into the next
+visit's new context; a retained JS context wrapper is not a live GPU context.
+
+While the beach is open, inspect locally in the browser console:
+
+```js
+window.__beach3d.performance()
+```
+
+The detached diagnostic snapshot includes Three.js revision, WebGL version,
+masked/unmasked vendor and renderer (when available), backend classification,
+device and actual pixel ratios, drawing-buffer size, configured/effective frame
+caps, FPS, pause state, context-loss status, draw calls, triangles, and resource
+counts. It returns `null` after close; changing a snapshot does not change policy.
+
+With the existing server on port 8123 and Python Playwright/Chromium installed,
+run the bounded scene/control/lifecycle regression in a fresh isolated context:
+
+```sh
+python3 -B beach3d/scene_test.py
+```
+
+It reuses the grounding test's entry helper, checks native controls and a full
+early surf ride, and writes `/tmp/kilo/beach-polish/scene-test.json`. Synthetic
+visibility and actual-source-function pacing/long-stall FPS shims verify policy;
+they are not native OS-visibility tests or hardware GPU benchmarks. The test does
+not start/stop the server or touch a user's browser profile.

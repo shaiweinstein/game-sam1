@@ -5,8 +5,8 @@
    in meters, character ≈1.0m tall, y-up:
 
       x ∈ [−7, 7]   the beach strip (playable box insets it)
-      z > shoreline → sand (back edge z ≈ 6.4)
-      z < shoreline → sea, far edge (the styled horizon) z = −7.5
+      z > shoreline → sand (playable back edge z = 5)
+      z < shoreline → sea, far edge (the styled horizon) z = −12.2
      shoreline = SHORE(x), a gentle WAVE curve ≈ z 0.12..0.58
                  (2D: wavy --sand-top waterline).
 
@@ -17,15 +17,15 @@
    water line). The foam band stays the wade zone.
 
    Camera: FIXED 3/4 high angle (not a follow cam), gentle
-   wheel/pinch zoom 0.8×–1.6× — tuned via stills so the sea/sky
+   wheel/pinch/keyboard zoom 0.55×–1.6× — tuned via stills so the sea/sky
    boundary (the far water edge = the "horizon") reads near the
    2D --sea-top proportion.
 
    Everything toon: MeshToonMaterial + the spike3 gradient ramps
    (4-step general, 3-step bright suit with 0.34 emissive lift),
    sky CanvasTexture background (#bfe6ff→#e8f7ff→#fff3dd), blob
-   shadows from a shared radial-gradient texture. Renderer uses
-   the spike3 software-GL probe + adaptive pixel scale.
+   shadows from a shared radial-gradient texture. The actual render
+   context determines the frame cap and software pixel budget.
    ============================================================ */
 
 import * as THREE from "three";
@@ -42,26 +42,21 @@ export const WORLD = {
      where sandY equals WATER_Y); a gentle 0.9m-wide ramp then a
      slower rise to the back of the beach, and a seabed dropoff. */
   sand: { base: 0.06, wet: 0.14, rampA: -0.30, rampB: 0.60, backRise: 0.10, backFrom: 1.2, backTo: 5.6,
-          bedDrop: 0.45, bedFrom: -0.9, bedTo: -7.0, halfX: 16, backZ: 6.4 },
-  /* zFar is the SEA EDGE — the styled horizon line. At the 14° camera
-     pitch below it projects to ≈45% viewport height (2D --sea-top).
-     xHalf is wide so the far side edges stay outside the frustum
-     (no visible plane sides). */
-  water: { y: 0.12, xHalf: 16, zFar: -7.5, zNear: 0.92, segX: 64, segZ: 40,
-           /* toon sea blues = the 2D .beach-sea gradient hexes */
-           colDeep: 0x2b93b6, colMid: 0x3cb0cf, colShallow: 0x63d1e1,
-           /* B1 approved look (commit 94b64da stills): flat toon
-              blue at 0.9 — the submerged swimmer still reads
-              through it (B2's per-vertex alpha grading washed the
-              shallows out to pale sage: sand bleed over the blue) */
+           bedDrop: 0.45, bedFrom: -0.9, bedTo: -7.0, halfX: 32, backZ: 12 },
+  /* The styled horizon contains the full surf back-profile, including its
+     +/-0.17m ripple at spawn. Wider planes cover manual zoom-out and wide
+     viewports without increasing either mesh's fixed grid budget. */
+  water: { y: 0.12, xHalf: 32, zFar: -12.2, zNear: 0.92, segX: 64, segZ: 40,
+           colDeep: 0x246bc1, colMid: 0x388fda, colShallow: 0x78bdf0,
+           /* Keep submerged skin readable without washing the shallows
+              out with sand bleed. Unlit vertex colors, not PBR water. */
            opacity: 0.9 },
   /* playable box (raycast targets + step clamps) */
-  box: { xMin: -6.2, xMax: 6.2, zMin: -9.0, zMax: 5.0 },
-  /* fixed camera, ~14° down-tilt (stills round 1: 30° pushed the sea
-     edge to 22% and showed the plane sides; 14° puts the edge at ~45%,
-     shoreline ~62%, Lily ~55–74% — the 2D strip split). */
+  box: { xMin: -6.2, xMax: 6.2, zMin: -9.5, zMax: 5.0 },
+  /* Original overview pose and ~14-degree down-tilt. The extended sea
+     moves the styled horizon up slightly; the camera itself stays put. */
   cam: { fov: 38, pos: [0, 3.6, 10.4], target: [0, 1.66, 2.64],
-         zoomMin: 0.8, zoomMax: 1.6 },
+         zoomMin: 0.55, zoomMax: 1.6 },
   rest: { x: 0, z: 2.6 }      /* where she stands on open (2D parity) */
 };
 
@@ -243,6 +238,27 @@ function makeSunTexture() {
   return t;
 }
 
+/* One soft cloud silhouette, shared by three sprites and cached on reopen. */
+let _cloudTex = null;
+function cloudTexture() {
+  if (_cloudTex) return _cloudTex;
+  const c = document.createElement("canvas");
+  c.width = 256; c.height = 96;
+  const g = c.getContext("2d");
+  for (const [x, y, rx, ry] of [[72,57,56,26], [118,42,49,36],
+    [166,53,49,28], [199,62,36,19], [126,66,84,20]]) {
+    g.save(); g.translate(x, y); g.scale(rx, ry);
+    const grad = g.createRadialGradient(0, 0, 0, 0, 0, 1);
+    grad.addColorStop(0, "rgba(255,255,255,0.95)");
+    grad.addColorStop(0.65, "rgba(255,255,255,0.85)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = grad; g.fillRect(-1, -1, 2, 2); g.restore();
+  }
+  _cloudTex = new THREE.CanvasTexture(c);
+  _cloudTex.colorSpace = THREE.SRGBColorSpace;
+  return _cloudTex;
+}
+
 /* foam band: opacity gradient across the strip (u = across shore,
    v = along it) — white crest fading to nothing at both ends. */
 function makeFoamTexture() {
@@ -260,9 +276,7 @@ function makeFoamTexture() {
   return new THREE.CanvasTexture(c);
 }
 
-/* wave-sheet crest pattern: one seamless tile of staggered toon
-   smile-arcs (2D .beach-wave SVG read). Cached per sheet index so
-   reopens never re-upload (texture-count stability in QA). */
+/* Cached CPU-side wave-sheet textures; each new context uploads its own copy. */
 const _waveSheetTex = [null, null, null];
 function makeWaveSheetTexture(i) {
   if (_waveSheetTex[i]) return _waveSheetTex[i];
@@ -342,18 +356,35 @@ function plantProp(scene, group, x, z, shadowR, shadowOp) {
    beach3d.js; the module owns the animation loop and input.
    ============================================================ */
 
+function rendererInfo(gl) {
+  const ext = gl.getExtension("WEBGL_debug_renderer_info");
+  const vendor = gl.getParameter(gl.VENDOR) || "";
+  const renderer = gl.getParameter(gl.RENDERER) || "";
+  const unmaskedVendor = ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : null;
+  const unmaskedRenderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : null;
+  const identity = `${unmaskedVendor || ""} ${unmaskedRenderer || ""}`;
+  const software = /swiftshader|llvmpipe|softpipe|\bwarp\b|microsoft basic render|software (?:rasterizer|renderer)|swrast|lavapipe/i
+    .test(`${identity} ${vendor} ${renderer}`);
+  /* Masked WebKit/ANGLE strings alone cannot confirm physical hardware. */
+  const hardware = /nvidia|geforce|radeon|\bamd\b|intel|adreno|qualcomm|\bmali\b|powervr|apple (?:gpu|[ma]\d)/i.test(identity);
+  return Object.freeze({
+    threeRevision: THREE.REVISION, webglVersion: gl.getParameter(gl.VERSION),
+    vendor, renderer, unmaskedVendor, unmaskedRenderer,
+    backend: software ? "software" : hardware ? "hardware" : "unknown"
+  });
+}
+
 export function isSoftwareGL() {
   try {
     const c = document.createElement("canvas");
     const gl = c.getContext("webgl2") || c.getContext("webgl");
     if (!gl) return false;
-    const ext = gl.getExtension("WEBGL_debug_renderer_info");
-    const r = (ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)
-                   : gl.getParameter(gl.RENDERER)) || "";
-    /* lose the probe context cleanly */
-    const lose = gl.getExtension("WEBGL_lose_context");
-    if (lose) lose.loseContext();
-    return /swiftshader|llvmpipe|softpipe/i.test(r);
+    try {
+      return rendererInfo(gl).backend === "software";
+    } finally {
+      const lose = gl.getExtension("WEBGL_lose_context");
+      if (lose) lose.loseContext();
+    }
   } catch (e) { return false; }
 }
 
@@ -385,8 +416,12 @@ function disposeNode(node) {
 }
 
 export function createWorld(hostEl) {
-  const SOFTWARE_GL = isSoftwareGL();
-  const renderer = new THREE.WebGLRenderer({ antialias: !SOFTWARE_GL });
+  /* The disposable probe only chooses creation-time antialiasing. */
+  const renderer = new THREE.WebGLRenderer({ antialias: !isSoftwareGL() });
+  const gl = renderer.getContext();
+  const info = rendererInfo(gl);
+  const SOFTWARE_GL = info.backend === "software";
+  const frameCap = SOFTWARE_GL ? 30 : 60;
   renderer.setClearColor(0xbfe6ff, 1);
   hostEl.appendChild(renderer.domElement);
   const canvas = renderer.domElement;
@@ -401,181 +436,27 @@ export function createWorld(hostEl) {
   const camTarget = new THREE.Vector3(camCfg.target[0], camCfg.target[1], camCfg.target[2]);
   const camera = new THREE.PerspectiveCamera(camCfg.fov, 1, 0.1, 60);
 
-  /* ============================================================
-     B2-cam — the two-framing swim camera (zone-driven, ONE constant
-     orientation)
-     ------------------------------------------------------------
-     Two framings share ONE world-fixed view direction — the B1
-     establishing shot's direction, which NEVER rotates. The camera
-     only ever translates and dollies along this fixed axis, so the
-     horizon sits at the same viewport height (~45%) in both:
-
-       LAND (zone sand|foam): the B1 establishing shot, kept
-         pixel-identical — pos (0, 3.6, 10.4), lookAt (0, 1.66, 2.64).
-         Zoom behaves exactly as B1: pos = target + (base−target)×zoom.
-        SEA (zone sea): the follow rig —
-          pos    = swimmerAnchor + SEA_OFFSET × zoom
-          lookAt = pos + VIEW × SEA_LOOK
-          where swimmerAnchor = (anchor.x, rootY, anchor.z) — her EASED
-           root height, so the rig rides the waterline with her (wave +
-           bob), never the seabed. SEA_OFFSET = −VIEW × SEA_DIST (7.0 m)
-           is collinear with the view axis BY CONSTRUCTION, so she sits
-           on the frame centre line and the horizon height matches the
-           B1 shot; SEA_DIST 7.0 m is the readability distance (her
-           above-water swim mass ≈ 80 px at 1280×800) that also keeps
-           the exit glide short enough to lock B1 before she is dry.
-           SEA_LOOK = SEA_DIST + 0.6 puts the look point 0.6 m past
-           her — fixed, so the framing only dollies, it never reframes.
-
-     Motion: the ACTUAL camera position eases toward the desired one
-      exponentially (CAM_RATE 5 s⁻¹, inside the spec band 3–5) with a
-      gentle velocity cap CAM_VMAX 2.5 m/s — the ~4.1 m land↔sea glide
-      then takes ~2 s to settle while every 50 ms step stays ≤
-      0.125 m (no pop); the in-sea follow settles in ~0.3–0.5 s and
-      lags a full-speed swimmer by only 1.32/5 ≈ 0.26 m. Pure
-     translation: the look point is always camPos + VIEW × const, so
-     there is no rotation and no lookAt wobble anywhere, including
-     mid-glide. Entry: the camera glides from the establishing shot
-     to the rig. Exit: it glides back and then locks EXACTLY onto
-     (0, 3.6, 10.4) / (0, 1.66, 2.64) (sub-millimetre snap → the B1
-     framing is bit-identical on sand again).
-
-     User zoom (wheel/pinch, 0.8×–1.6×): one value, persists across
-     transitions. LAND: scales (base−target) exactly as B1. SEA:
-     scales the rig offset (camPos = anchor + offset×zoom) — the 14°
-     geometry is kept, only the rig distance changes.
-
-     Reduced motion: the water keeps its resting frame (existing
-     policy); camera transitions run uncapped at CAM_RATE_RM 25 s⁻¹
-     (≤0.2 s, near-instant) and the follow is lag-free (~5 cm at full
-     swim speed) — no per-frame camera jitter. Positional control of
-     the character is untouched (existing RM policy).
-
-     B3 (duck boat) reuses the SEA framing for the ride stance: feed
-     the boat's anchor/rootY/zone through the same updateCamera()
-     entry — rig, ease, cap, zoom and RM policy all apply unchanged.
-     ============================================================ */
+  /* One beach overview for ALL zones and ride modes. Only manual zoom
+     translates the camera: target + (base - target) * distance factor.
+     Orientation and FOV never follow the character, boat, or surfboard. */
   let zoom = 1, zoomTarget = 1;
-  /* the ONE constant orientation: normalize(target − base) ≈
-     (0, −0.2425, −0.9701) — the B1 ~14° down-tilt */
-  const VIEW = new THREE.Vector3().subVectors(camTarget, camBase).normalize();
-  const D0 = camBase.distanceTo(camTarget);              /* 7.9988 m */
+  const D0 = camBase.distanceTo(camTarget);
   const BASE_MINUS_TARGET = new THREE.Vector3().subVectors(camBase, camTarget);
-  /* sea rig distance along the fixed axis. 7.0 m balances two coupled
-     constraints:
-       • readability — her above-water swim mass (~0.5 m of the 1.6 m
-         figure) lands at ~80 px in the 1280×800 frame, a clear
-         followed swimmer (vs the ~40 px head-dot at the B1 distance
-         ~8 m and the hair-dot the old fixed camera gave at 15 m);
-       • the exit glide — the rig at the waterline sits ~4.1 m from
-         the B1 camera, so the return glide (~2.0 s at the 2.5 m/s cap)
-         settles BEFORE she finishes her ~2.4 s walk back onto the
-         dry sand, keeping the exact B1 lock on the sand. (A closer
-         camera → a longer exit glide that outlasts her walk.)
-     Built exactly collinear with VIEW (negate×dist) so the frame-
-     centre line and horizon height hold BY CONSTRUCTION; SEA_LOOK
-     0.6 m past her keeps the same relative centring. */
-  const SEA_DIST = 7.0;
-  const SEA_OFFSET = new THREE.Vector3().copy(VIEW).negate().multiplyScalar(SEA_DIST);
-  const SEA_LOOK = SEA_DIST + 0.6;
-  const CAM_RATE = 5.0;        /* s⁻¹ normal: swim settle ~0.3–0.5 s          */
-  const CAM_RATE_RM = 25.0;    /* s⁻¹ reduced motion: ≤0.2 s, lag-free        */
-  const CAM_VMAX = 2.5;        /* m/s glide cap (50 ms step ≤ 0.125 m, no pop) */
-
-  let camPos = camBase.clone();   /* actual camera position (eased) */
-  let camSea = false;             /* camera currently in the sea framing */
-  const _desired = new THREE.Vector3();
-  const _landPos = new THREE.Vector3();
-  const _lookPt = new THREE.Vector3();
   const _prevCam = new THREE.Vector3().copy(camBase);
-  let camStepMax = 0;             /* m — max per-frame travel since reset */
-  let camSpeedMax = 0;            /* m/s — max real-time speed since reset */
-
-  /* exponential chase with the gentle velocity cap (lifted under
-     reduced motion → the near-instant transition). In normal mode the
-     frame dt is clamped to 1/30 s so a single dropped/stalled frame
-     can never concentrate a big jump: the per-frame camera travel is
-     bounded (≤ 2.5 × 0.033 = 0.083 m) and, since clamped-dt ≤ real-dt,
-     every 50 ms window moves ≤ 2.5 × 0.05 = 0.125 m < the 0.15 m
-     no-pop gate at ANY frame rate. At 30/60 fps the clamp never binds
-     (dt ≤ 33 ms), so normal tracking is unaffected and catch-up stays
-     full-speed even on slower devices. RM keeps the full dt so the
-     transition stays instant. */
-  function chase(target, dt, rm) {
-    if (dt <= 0) return;
-    if (!rm) dt = Math.min(dt, 0.033);
-    const R = rm ? CAM_RATE_RM : CAM_RATE;
-    let vx = (target.x - camPos.x) * R;
-    let vy = (target.y - camPos.y) * R;
-    let vz = (target.z - camPos.z) * R;
-    if (!rm) {
-      const sp = Math.hypot(vx, vy, vz);
-      if (sp > CAM_VMAX) {
-        const s = CAM_VMAX / sp;
-        vx *= s; vy *= s; vz *= s;
-      }
-    }
-    camPos.x += vx * dt;
-    camPos.y += vy * dt;
-    camPos.z += vz * dt;
-  }
-
-  /* per-frame camera (beach3d.js loop): (ax, ay, az) = the
-     swimmer's eased root (anchor.x, rootY, anchor.z). */
-  function updateCamera(dt, rm, ax, ay, az, zone) {
-    _prevCam.copy(camera.position);   /* for the per-frame step audit */
-    if (zone === "sea") {
-      /* SEA framing (also the entry glide from the B1 shot): chase
-         the follow rig; the look point rides 10 m down the fixed
-         axis → orientation never changes, no wobble */
-      _desired.set(ax + SEA_OFFSET.x * zoom,
-                   ay + SEA_OFFSET.y * zoom,
-                   az + SEA_OFFSET.z * zoom);
-      chase(_desired, dt, rm);
-      camera.position.copy(camPos);
-      _lookPt.copy(camPos).addScaledVector(VIEW, SEA_LOOK);
-      camera.lookAt(_lookPt);
-      camSea = true;
-    } else {
-      /* LAND: the exact B1 framing at the current zoom */
-      _landPos.copy(camTarget).addScaledVector(BASE_MINUS_TARGET, zoom);
-      if (camSea) {
-        /* EXIT glide: the rig → the B1 establishing shot (look point
-           stays on the fixed axis — same pixels as any axis dollies) */
-        chase(_landPos, dt, rm);
-        camera.position.copy(camPos);
-        _lookPt.copy(camPos).addScaledVector(VIEW, SEA_LOOK);
-        camera.lookAt(_lookPt);
-        if (camPos.distanceTo(_landPos) < 0.004) camSea = false;
-      }
-       if (!camSea) {
-         /* settled on land: the B1 shot bit-identical (exact zoom
-            formula, no residual ease) */
-         camPos.copy(_landPos);
-         camera.position.copy(camPos);
-         camera.lookAt(camTarget);
-       }
-     }
-    {
-      const step = camPos.distanceTo(_prevCam);
-      camStepMax = Math.max(camStepMax, step);
-      if (dt > 0) camSpeedMax = Math.max(camSpeedMax, step / dt);
-    }
+  let appliedZoom = 1, camStepMax = 0, camSpeedMax = 0;
+  camera.position.copy(camBase);
+  camera.lookAt(camTarget);
+  function updateCamera(dt) {
+    if (zoom === appliedZoom) return;
+    _prevCam.copy(camera.position);
+    camera.position.copy(camTarget).addScaledVector(BASE_MINUS_TARGET, zoom);
+    camera.updateMatrixWorld();
+    appliedZoom = zoom;
+    const step = camera.position.distanceTo(_prevCam);
+    camStepMax = Math.max(camStepMax, step);
+    if (dt > 0) camSpeedMax = Math.max(camSpeedMax, step / dt);
     placeSunSprite();
   }
-
-  /* the exact B1 framing at the current zoom (initial state + the
-     settled-land branch of updateCamera; the pixel-identical
-     pre-B2-cam applyZoom). Note: resize() must NOT call this — the
-     ResizeObserver can fire mid-sea-framing (the beach overlay's
-     late layout settles), and only updateCamera() owns the live
-     camera position. */
-  function applyLandFraming() {
-    camPos.copy(camTarget).addScaledVector(BASE_MINUS_TARGET, zoom);
-    camera.position.copy(camPos);
-    camera.lookAt(camTarget);
-  }
-  applyLandFraming();   /* boot: the B1 shot before the first frame */
 
   /* ---------- lights (spike3 pattern) ---------- */
   scene.add(new THREE.AmbientLight(0xffffff, 0.65));
@@ -677,7 +558,7 @@ export function createWorld(hostEl) {
       pos.setY(i, waterSurfaceY(x, z, t));
     }
     pos.needsUpdate = true;
-    waterGeo.computeVertexNormals();
+    /* MeshBasicMaterial is unlit; no normal recomputation is needed. */
   }
 
   /* ---------- foam band (lapping strip along the shoreline) ---------- */
@@ -717,11 +598,11 @@ export function createWorld(hostEl) {
      Three translucent crest-pattern strips sliding across the calm
      far sea — the 2D bands sit at 10/40/66% of the sea with
      opacity .30/.40/.55 and 22s/15s/9s(rev) slide periods. Textures
-     are module-cached so reopen adds zero GPU textures. */
+     are CPU-cached and uploaded again by each new render context. */
   const SHEETS = [
-    { z: -6.8, d: 0.70, repeat: 12, opacity: 0.45, slide:  0.03 },
-    { z: -5.3, d: 0.90, repeat: 9,  opacity: 0.60, slide:  0.05 },
-    { z: -3.4, d: 1.10, repeat: 7,  opacity: 0.70, slide: -0.07 }
+    { z: -10.9, d: 0.70, repeat: 24, opacity: 0.45, slide:  0.03 },
+    { z: -7.5,  d: 0.90, repeat: 18, opacity: 0.60, slide:  0.05 },
+    { z: -3.8,  d: 1.10, repeat: 14, opacity: 0.70, slide: -0.07 }
   ];
   const sheetMeshes = SHEETS.map((cfg, i) => {
     const tex = makeWaveSheetTexture(i);
@@ -886,19 +767,75 @@ export function createWorld(hostEl) {
   }));
   sunSprite.renderOrder = 0;               /* behind the world: sky paint */
   scene.add(sunSprite);
+  const sunNdc = new THREE.Vector3();
   function placeSunSprite() {
     /* anchor it at (fx, fy) fractions of the VIEWPORT via NDC */
-    const ndc = new THREE.Vector3(0.76, 0.72, 0.985);
-    ndc.unproject(camera);
-    const dir = ndc.sub(camera.position).normalize();
-    sunSprite.position.copy(camera.position).addScaledVector(dir, 30);
-    /* B2-cam: fixed viewport size — the sun is a sky-paint element
-       pinned to the NDC anchor; the old live camera→target distance
-       would shrink it to a dot in the sea framing. (Identical to
-       the B1 size at the default framing, where dist == D0.) */
+    sunNdc.set(0.76, 0.72, 0.985).unproject(camera);
+    sunNdc.sub(camera.position).normalize();
+    sunSprite.position.copy(camera.position).addScaledVector(sunNdc, 30);
+    /* Fixed viewport size, independent of the manual dolly. */
     const h = 0.11 * (2 * D0 *
       Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
     sunSprite.scale.set(h * 2.6, h * 2.6, 1);
+  }
+
+  /* Quiet viewport sky paint, like the sun. Three shared sprites and one
+     ten-triangle gull batch: four draws, one cached texture, no spawning. */
+  const sky = new THREE.Group();
+  sky.name = "skyAccents";
+  sky.position.z = -30;
+  camera.add(sky); scene.add(camera);
+  const cloudMat = new THREE.SpriteMaterial({ map: cloudTexture(),
+    transparent: true, opacity: 0.82, depthWrite: false, depthTest: false });
+  const clouds = [[0.18,0.20,0.17], [0.48,0.13,0.135], [0.71,0.23,0.13]]
+    .map(([x,y,width], i) => {
+      const sprite = new THREE.Sprite(cloudMat);
+      sprite.name = "cloud" + i;
+      sky.add(sprite);
+      return { sprite, x, y, width };
+    });
+  const gullGeo = new THREE.BufferGeometry();
+  const gullPos = new THREE.BufferAttribute(new Float32Array(30 * 3), 3);
+  gullPos.setUsage(THREE.DynamicDrawUsage);
+  gullGeo.setAttribute("position", gullPos);
+  const gulls = new THREE.Mesh(gullGeo, new THREE.MeshBasicMaterial({
+    color: 0x657d95, transparent: true, opacity: 0.78, depthWrite: false,
+    depthTest: false, side: THREE.DoubleSide, forceSinglePass: true
+  }));
+  gulls.name = "gulls";
+  gulls.frustumCulled = false;
+  sky.add(gulls);
+  let skyT = 0;
+  function updateSky(t) {
+    skyT = t;
+    const h = 60 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    const w = h * camera.aspect;
+    for (let i = 0; i < clouds.length; i++) {
+      const c = clouds[i];
+      const drift = Math.sin(t * 0.035 + i * 2) * 0.012;
+      c.sprite.position.set((c.x + drift - 0.5) * w, (0.5 - c.y) * h, 0);
+      const width = h * Math.min(camera.aspect, 1.7) * c.width;
+      c.sprite.scale.set(width, width * 96 / 256, 1);
+    }
+    let v = 0;
+    for (let i = 0; i < 2; i++) {
+      const x = ((i ? 0.57 : 0.34) + Math.sin(t * 0.12 + i * 2) * 0.025 - 0.5) * w;
+      const y = (0.5 - (i ? 0.31 : 0.28) + Math.sin(t * 0.21 + i) * 0.007) * h;
+      const size = h * (i ? 0.013 : 0.016);
+      const flap = Math.sin(t * 1.8 + i * 2) * 0.24;
+      for (let side = -1; side <= 1; side += 2) {
+        gullPos.setXYZ(v++, x, y, 0);
+        gullPos.setXYZ(v++, x + side * 0.38 * size, y + (0.34 + flap * 0.4) * size, 0);
+        gullPos.setXYZ(v++, x + side * size, y + (-0.03 + flap) * size, 0);
+        gullPos.setXYZ(v++, x, y, 0);
+        gullPos.setXYZ(v++, x + side * size, y + (-0.03 + flap) * size, 0);
+        gullPos.setXYZ(v++, x + side * 0.4 * size, y + (0.13 + flap * 0.4) * size, 0);
+      }
+      gullPos.setXYZ(v++, x - size * 0.1, y, 0);
+      gullPos.setXYZ(v++, x + size * 0.1, y, 0);
+      gullPos.setXYZ(v++, x, y - size * 0.18, 0);
+    }
+    gullPos.needsUpdate = true;
   }
 
   /* ---------- props (2D PROPS anchors ported to world coords) ---------- */
@@ -1037,7 +974,9 @@ export function createWorld(hostEl) {
 
   /* ---------- resize / render ---------- */
   const basePR = Math.min(window.devicePixelRatio || 1, 2);
-  let prScale = SOFTWARE_GL ? 0.8 : 1.0;
+  /* Explicit fallback budget: half of capped DPR, not extra pixels bought
+     with the 30 FPS cap. Hardware/unknown keep the existing quality policy. */
+  let prScale = SOFTWARE_GL ? 0.5 : 1.0;
   let slowWindows = 0;
 
   function resize() {
@@ -1049,9 +988,10 @@ export function createWorld(hostEl) {
     canvas.style.height = h + "px";
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    /* camera framing is owned by updateCamera() (B2-cam) — a resize
-       only re-fits the projection + the viewport-anchored sun */
+    /* Resize changes projection and sky layout, never the overview anchor. */
+    camera.updateMatrixWorld();
     placeSunSprite();
+    updateSky(skyT);
   }
   const ro = new ResizeObserver(resize);
   ro.observe(hostEl);
@@ -1062,7 +1002,7 @@ export function createWorld(hostEl) {
   /* adaptive pixel scale (spike3): two slow half-second windows step
      the render scale down toward 0.5× — the software-GL safety net. */
   function noteWindow(fps) {
-    if (fps > 0 && fps < 58) slowWindows++;
+    if (fps > 0 && fps < frameCap - 2) slowWindows++;
     else slowWindows = 0;
     if (slowWindows >= 2 && prScale > 0.5) {
       prScale = Math.max(0.5, Math.round((prScale - 0.1) * 10) / 10);
@@ -1072,38 +1012,34 @@ export function createWorld(hostEl) {
   }
 
   function setZoom(k) {
-    zoomTarget = clamp(k, camCfg.zoomMin, camCfg.zoomMax);
+    if (Number.isFinite(k)) zoomTarget = clamp(k, camCfg.zoomMin, camCfg.zoomMax);
   }
+
+  let surfaceT = null;
 
   return {
     renderer, scene, camera, canvas,
+    get frameCap() { return frameCap; },
     camTarget,
     zoom: () => zoom,
+    zoomTarget: () => zoomTarget,
     setZoom,
-    /* B2-cam: zoom easing only — updateCamera() applies the eased
-       zoom to the camera every frame (land: exact B1 formula; sea:
-       the scaled rig offset) */
+    /* Manual zoom easing only; updateCamera applies the same overview
+       formula on sand, in water, and on either ride. */
     stepZoom(dt) {
       const k = 1 - Math.exp(-8 * dt);
       if (Math.abs(zoomTarget - zoom) > 1e-4) {
         zoom += (zoomTarget - zoom) * k;
       } else {
-        /* snap exactly on settle — without this the ease stops at the
-           1e-4 dead-zone edge, leaving a sub-millimetre residue that
-           would keep the "land" framing ~0.8 mm short of the exact
-           B1 shot after any zoom-out→zoom-back cycle */
+        /* Snap on settle so returning to 1.0 restores the exact overview. */
         zoom = zoomTarget;
       }
     },
-    /* per-frame camera update (B2-cam two-framing architecture —
-       see the camera block above); (ax, ay, az) = the swimmer's
-       eased root, zone drives the framing */
+    /* No character/zone/ride input: only the manual zoom owns framing. */
     updateCamera,
-    camMode: () => (camSea ? "sea" : "land"),
-    /* QA: max per-frame camera travel (m) since the last read —
-       get-and-clear; the exact no-pop audit (wall-clock sampling of
-       the camera position can alias rAF frames). camSpeed is the max
-       real-time speed (m/s); the 50 ms step is bounded by speed×0.05. */
+    camMode: () => "overview",
+    /* QA: get-and-clear maximum manual zoom travel (m/frame, m/s).
+       Without user zoom both remain zero, including zone transitions. */
     camStep: () => { const m = camStepMax; camStepMax = 0; return m; },
     camSpeed: () => { const m = camSpeedMax; camSpeedMax = 0; return m; },
     /* frame pass; under reduced motion the caller simply never
@@ -1111,9 +1047,13 @@ export function createWorld(hostEl) {
        frame delta — the splash VFX fade lives on it even when the
        wave clock is parked (2D RM policy). */
     animate(t, dt, rm) {
-      updateWater(t);
-      updateFoam(t);
-      updateWaveSheets(t);
+      if (t !== surfaceT) {
+        updateWater(t);
+        updateFoam(t);
+        updateWaveSheets(t);
+        updateSky(t);
+        surfaceT = t;
+      }
       updateSplashes(dt || 0, t, !!rm);
     },
     /* waterline splash helper — B2 swim entry/exit; B3/B4 reuse */
@@ -1126,6 +1066,9 @@ export function createWorld(hostEl) {
       disposeNode(scene);
       if (scene.background) scene.background.dispose();
       renderer.dispose();
+      /* This renderer will never be reused. Cached JS textures remain valid
+         and upload into the next visit's context. */
+      renderer.forceContextLoss();
       renderer.domElement.remove();
     },
     /* QA: project a world point to PAGE CSS px (screenshot clips) */
@@ -1155,11 +1098,16 @@ export function createWorld(hostEl) {
     },
     stats() {
       return {
+        ...info,
         calls: renderer.info.render.calls,
         tris: renderer.info.render.triangles,
         geometries: renderer.info.memory.geometries,
         textures: renderer.info.memory.textures,
-        prScale
+        devicePixelRatio: window.devicePixelRatio || 1,
+        pixelRatio: renderer.getPixelRatio(), prScale,
+        drawingBuffer: [gl.drawingBufferWidth, gl.drawingBufferHeight],
+        frameCap, effectiveFrameCap: document.hidden ? 0 : frameCap,
+        contextLost: gl.isContextLost()
       };
     }
   };
