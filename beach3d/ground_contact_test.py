@@ -191,9 +191,11 @@ def main():
     parser.add_argument("--shots", action="store_true")
     parser.add_argument("--label")
     parser.add_argument("--reference", help="Serve character3d.js from this git ref, without touching the worktree")
+    parser.add_argument("--out", default="/tmp/kilo/lily-improvements")
+    parser.add_argument("--swim-style", choices=("head-up", "freestyle"), default="head-up")
     args = parser.parse_args()
     label = args.label or ("before" if args.baseline else "after")
-    out = Path("/tmp/kilo/lily-improvements")
+    out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
@@ -205,6 +207,7 @@ def main():
             source = subprocess.check_output(["git", "show", f"{args.reference}:beach3d/character3d.js"], text=True)
             page.route("**/beach3d/character3d.js", lambda r: r.fulfill(status=200, content_type="text/javascript", body=source))
         enter(page)
+        page.evaluate("s=>GameState.setSwimStyle(s)", args.swim_style)
         # Read clip duration from this load, never an archived animation audit.
         duration = page.evaluate("""async()=>{
             const {GLTFLoader}=await import('/lib/three/addons/loaders/GLTFLoader.js');

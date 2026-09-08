@@ -49,8 +49,10 @@ SHIMS = """async () => {
 
 
 def main():
-    argparse.ArgumentParser(description=__doc__).parse_args()
-    out = Path('/tmp/kilo/beach-polish')
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--out', default='/tmp/kilo/beach-polish')
+    args=parser.parse_args()
+    out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     results, errors, external = {}, [], []
 
@@ -179,6 +181,7 @@ def main():
                 };q.fixed=q.camera();
             }""")
             page.get_by_role('button', name='Start surfing').click()
+            # Keep native focus: Start surfing followed by Space must still work.
             page.keyboard.down('Space'); page.wait_for_function('__beach3d.surf().riding', timeout=5000)
             page.keyboard.up('Space'); page.wait_for_function('sceneQA.ride.end!==undefined', timeout=13000)
             ride = page.evaluate('sceneQA.ride')

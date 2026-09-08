@@ -1560,6 +1560,37 @@ b[data-char-name] {
   transform: scale(0.95);
 }
 
+.beach-swim-style {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: clamp(0.95rem, 2.8vw, 1.15rem);
+  font-weight: bold;
+}
+
+.beach-swim-style select {
+  width: 8.5rem;
+  min-height: 44px;
+  padding: 8px 10px;
+  font: inherit;
+  color: var(--text-color);
+  background: var(--pink);
+  border: var(--border-chunky);
+  border-radius: 999px;
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+}
+
+.beach-swim-status {
+  flex: 0 0 100%;
+  height: 3.6em; /* reserve three mobile lines, independent of style/readiness */
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--text-color);
+}
+
 /* ---------- 🌊 Play at the Beach! button (map screen, js/map.js toggles .hidden) ---------- */
 
 .beach-play-button {

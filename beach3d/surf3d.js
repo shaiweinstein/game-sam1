@@ -102,7 +102,8 @@ export function catchWave() {
 function isSpace(ev) { return ev.code === "Space" || ev.key === " " || ev.key === "Spacebar"; }
 export function onKeyDown(ev) {
   if (!st || document.hidden || !window.Beach3D?.isOpen() || !isSpace(ev) ||
-      ev.target?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+      ev.target?.isContentEditable ||
+      ev.target?.closest?.('button, a[href], input, textarea, select, [role="button"]')) return;
   ev.preventDefault();
   if (ev.repeat || active() || bus?.rideActive?.()) return;
   st.armed = true;
@@ -110,7 +111,7 @@ export function onKeyDown(ev) {
 }
 export function onKeyUp(ev) {
   if (!st || !isSpace(ev)) return;
-  if (window.Beach3D?.isOpen()) ev.preventDefault();
+  if (st.armed && window.Beach3D?.isOpen()) ev.preventDefault();
   st.armed = false;
 }
 export function releaseKeys() {

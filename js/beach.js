@@ -636,6 +636,59 @@
       });
       actionsEl.appendChild(button);
     });
+    if (openState && using3D) {
+      const label = document.createElement("label");
+      label.className = "beach-swim-style";
+      label.textContent = "Swim Style";
+      const select = document.createElement("select");
+      select.id = "beach-swim-style";
+      select.title = "Freestyle starts in deep water. Shallows and resting use Head-up.";
+      select.setAttribute("aria-description", select.title);
+      select.setAttribute("aria-describedby", "beach-swim-status");
+      [["head-up", "Head-up"], ["freestyle", "Freestyle"]].forEach(function (entry) {
+        const option = document.createElement("option");
+        option.value = entry[0]; option.textContent = entry[1]; select.appendChild(option);
+      });
+      select.value = window.GameState.getSwimStyle();
+      select.addEventListener("change", function () {
+        window.GameState.setSwimStyle(select.value);
+      });
+      label.appendChild(select);
+      actionsEl.appendChild(label);
+      const status = document.createElement("p");
+      status.id = "beach-swim-status";
+      status.className = "beach-swim-status";
+      status.setAttribute("role", "status");
+      actionsEl.appendChild(status);
+      syncSwimStatus();
+    }
+  }
+
+  /* Called by the existing scene loop and preference sync, not another timer.
+     Only replace changed text: keep the native selector and its focus intact. */
+  function syncSwimStatus() {
+    const node = openState && document.getElementById("beach-swim-status");
+    const status = node && window.Beach3D?.swimStatus?.();
+    if (!status) return;
+    const freestyle = status.selected === "freestyle";
+    const name = freestyle ? "Freestyle" : "Head-up";
+    let text;
+    if (status.mode === "loading") text = name + " selected. Loading swimmer...";
+    else if (status.mode === "boat" || status.mode === "surf") {
+      text = name + " selected for your next swim. " + (status.mode === "boat" ? "Boat ride" : "Surfing") + " continues.";
+    } else if (status.mode === "shore") {
+      text = name + " selected. Press and hold water to swim." + (freestyle ? " Aim farther toward the horizon." : " Release to rest.");
+    } else if (status.mode === "rest") {
+      text = freestyle && !status.ready
+        ? "Freestyle selected. Resting Head-up. Hold farther toward the horizon for deeper water."
+        : name + " ready. Resting Head-up. Press and hold water to swim.";
+    } else if (freestyle && status.effective !== "freestyle") {
+      text = "Freestyle selected; swimming Head-up in shallows. Hold farther toward the horizon for deeper water.";
+    } else {
+      text = "Swimming " + name + ". Release to rest Head-up.";
+      if (status.reducedMotion) text = name + " pose (reduced motion). Hold water to move; release to rest Head-up.";
+    }
+    if (node.textContent !== text) node.textContent = text;
   }
 
   function registerActivity(spec) {
@@ -936,6 +989,8 @@
     if (window.GameState && typeof window.GameState.onChange === "function") {
       window.GameState.onChange(function () {
         if (isOpen() && !using3D) syncSuitToRig();
+        const select = isOpen() && document.getElementById("beach-swim-style");
+        if (select) select.value = window.GameState.getSwimStyle();
       });
     }
 
@@ -971,6 +1026,7 @@
     isOpen: isOpen,
     registerActivity: registerActivity,
     say: say,                      // speech line for canvas modules (mission 8)
+    syncSwimStatus: syncSwimStatus,
     setMode: setMode,
     getMode: getMode,
     onModeChange: onModeChange,
