@@ -30,11 +30,13 @@
       CharacterRenderer.catalog                   -> item catalog
       CharacterRenderer.onChanged(cb)             -> unsubscribe fn
       CharacterRenderer.playAnimation(el, name)   -> 'bounce' | 'cheer' | 'eat'
-      CharacterRenderer.setPreviewSkip(slots|null)
-          -> array of layer names to paint empty on ALL instances
-             (wardrobe swimsuit tab passes ['top','bottom','shoes'];
-              null restores everything). Callers MUST clear the skip
-             when leaving the wardrobe screen.
+      CharacterRenderer.setPreviewSkip(containerEl, slots|null)
+          -> hide layers on this instance only, including after outfit
+             changes; null restores them. Hiding both top and bottom
+             enables swimsuit preview. Clear on leaving the wardrobe.
+      CharacterRenderer.renderItemPreview(containerEl, slot, itemId, opts)
+          -> standalone catalog SVG; opts may override characterId.
+             Never registers an instance or changes the saved outfit.
 
     Also exposes window.CharacterCatalog (slot -> items) for other files,
     and window.CHARACTERS (characterId -> palette + name) for the
@@ -174,16 +176,26 @@
      Each item's markup is positioned for its layer group.
      Hair items have both 'back' (behind head) and 'front'
      (fringe over forehead) parts. 'extra4' has a 'back' part
-     (the bag behind the body) plus 'front' straps. */
+     (the bag behind the body) plus 'front' straps. Simple tees tuck
+     into bottoms; untucked tops paint over the waistband. A dress
+     coversBottom visually without removing the saved bottom choice. */
 
   const TEE_PATH =
-    "M 116 162 Q 150 174 184 162 L 204 174 L 195 206 L 182 199 " +
-    "L 182 240 Q 150 248 118 240 L 118 199 L 105 206 L 96 174 Z";
+    "M 116 162 Q 150 174 184 162 L 204 174 L 195 206 L 184 199 " +
+    "L 184 240 Q 150 248 116 240 L 116 199 L 105 206 L 96 174 Z";
+
+  /* Follow the torso's full hips before narrowing around the legs
+     (centers 138/162, outer radius 8.5). Waist tucks under every vest. */
+  const SWIM_SHORTS_PATH =
+    "M 114 200 L 186 200 L 186 224 Q 186 240 174 251 L 174 272 " +
+    "Q 174 275 170 275 L 155 275 Q 152 275 152 272 L 151 259 " +
+    "Q 150 256 149 259 L 148 272 Q 148 275 145 275 L 130 275 " +
+    "Q 126 275 126 272 L 126 251 Q 114 240 114 224 Z";
 
   const CATALOG = {
     hair: {
       hair1: {
-        name: "Long Brown Hair",
+        name: "Long Hair",
         emoji: "💁‍♀️",
         /* long hair with middle part: two side falls behind + fringe */
         back:
@@ -292,21 +304,26 @@
       top2: {
         name: "Sparkly Dress",
         emoji: "👗",
+        coversBottom: true,
         front:
-          '<path d="M 116 162 Q 150 174 184 162 L 188 200 Q 196 216 206 224 ' +
-          "L 202 236 Q 150 246 98 236 L 94 224 Q 104 216 112 200 Z" +
+          '<path d="M 116 162 Q 150 174 184 162 L 186 207 Q 188 226 206 278 ' +
+          "Q 150 292 94 278 Q 112 226 114 207 Z" +
           '" fill="#a56bd6" stroke="#8449c1" stroke-width="4" stroke-linejoin="round"/>' +
-          sparkle(128, 192, 5) + sparkle(165, 186, 6) + sparkle(150, 224, 5) + sparkle(122, 218, 4)
+          '<path d="M 114 216 Q 150 224 186 216" fill="none" stroke="#8449c1" stroke-width="3"/>' +
+          '<path d="M 101 271 Q 150 284 199 271" fill="none" stroke="#d29ce8" stroke-width="3" stroke-linecap="round"/>' +
+          sparkle(128, 192, 5) + sparkle(165, 186, 6) + sparkle(150, 257, 6) + sparkle(122, 244, 4)
       },
       top3: {
         name: "Sunny Sweater",
         emoji: "🔆",
+        untucked: true,
         front:
           '<path d="M 118 172 Q 104 194 99 218" stroke="#e0b420" stroke-width="19" fill="none" stroke-linecap="round"/>' +
           '<path d="M 182 172 Q 196 194 201 218" stroke="#e0b420" stroke-width="19" fill="none" stroke-linecap="round"/>' +
           '<path d="M 118 172 Q 104 194 99 218" stroke="#ffd93d" stroke-width="13" fill="none" stroke-linecap="round"/>' +
           '<path d="M 182 172 Q 196 194 201 218" stroke="#ffd93d" stroke-width="13" fill="none" stroke-linecap="round"/>' +
-          '<rect x="114" y="162" width="72" height="88" rx="24" fill="#ffd93d" stroke="#e0b420" stroke-width="4"/>' +
+          '<path d="M 138 162 L 162 162 Q 186 162 186 186 L 186 244 ' +
+          'Q 150 256 114 244 L 114 186 Q 114 162 138 162 Z" fill="#ffd93d" stroke="#e0b420" stroke-width="4"/>' +
           '<path d="M 120 244 Q 150 250 180 244" fill="none" stroke="#e0b420" stroke-width="3" stroke-linecap="round"/>'
       },
       top4: {
@@ -321,6 +338,7 @@
       top5: {
         name: "Rainbow Shirt",
         emoji: "🌈",
+        untucked: true,
         front:
           '<path d="' + TEE_PATH + '" fill="#fff9ec" stroke="#c9a15a" stroke-width="4" stroke-linejoin="round"/>' +
           '<path d="M 120 188 Q 150 194 180 188" stroke="#ff5a5a" stroke-width="5" fill="none" stroke-linecap="round"/>' +
@@ -350,6 +368,7 @@
       top7: {
         name: "Cozy Hoodie",
         emoji: "🧥",
+        untucked: true,
         front:
           '<path d="' + TEE_PATH + '" fill="#4fc3d9" stroke="#2f9fb5" stroke-width="4" stroke-linejoin="round"/>' +
           /* scrunchy hood resting behind the neck (front arc at the neckline) */
@@ -378,7 +397,7 @@
     bottom: {
       bottom1: {
         name: "Denim Skirt",
-        emoji: "👖",
+        emoji: "👗",
         front:
           '<path d="M 114 232 L 186 232 L 194 272 Q 150 280 106 272 Z" ' +
           'fill="#5a8fd6" stroke="#3d6db3" stroke-width="4" stroke-linejoin="round"/>' +
@@ -403,12 +422,12 @@
         name: "Blue Shorts",
         emoji: "🩳",
         front:
-          '<path d="M 114 232 L 186 232 L 190 290 L 160 290 L 156 262 ' +
-          "Q 150 258 144 262 L 140 290 L 110 290 Z" +
+          '<path d="M 114 232 L 186 232 L 176 282 Q 164 286 152 282 L 151 262 ' +
+          "Q 150 258 149 262 L 148 282 Q 136 286 124 282 Z" +
           '" fill="#4a90e2" stroke="#3273b8" stroke-width="4" stroke-linejoin="round"/>' +
           '<path d="M 116 242 L 184 242" stroke="#3273b8" stroke-width="3"/>' +
-          '<path d="M 112 278 L 138 278" stroke="#8fc4f4" stroke-width="2.5" stroke-linecap="round"/>' +
-          '<path d="M 162 278 L 188 278" stroke="#8fc4f4" stroke-width="2.5" stroke-linecap="round"/>'
+          '<path d="M 126 277 L 146 277" stroke="#8fc4f4" stroke-width="2.5" stroke-linecap="round"/>' +
+          '<path d="M 154 277 L 174 277" stroke="#8fc4f4" stroke-width="2.5" stroke-linecap="round"/>'
       },
       bottom4: {
         name: "Tutu Skirt",
@@ -453,8 +472,8 @@
         emoji: "👖",
         /* full-length pants ending ~y298 so the shoes still show */
         front:
-          '<path d="M 114 232 L 186 232 L 188 298 L 153 298 L 151 262 ' +
-          "Q 150 258 149 262 L 147 298 L 112 298 Z\" " +
+          '<path d="M 114 232 L 186 232 L 176 298 L 152 298 L 151 262 ' +
+          "Q 150 258 149 262 L 148 298 L 124 298 Z\" " +
           'fill="#5a8fd6" stroke="#3d6db3" stroke-width="4" stroke-linejoin="round"/>' +
           '<path d="M 116 241 L 184 241" stroke="#3d6db3" stroke-width="3.5"/>' +
           '<path d="M 128 246 Q 135 252 142 246" fill="none" stroke="#8fb7e8" stroke-width="2.5" stroke-linecap="round"/>' +
@@ -462,11 +481,11 @@
           '<path d="M 122 268 Q 132 272 142 268" fill="none" stroke="#3d6db3" stroke-width="2.5" opacity="0.7" stroke-linecap="round"/>' +
           '<path d="M 158 268 Q 168 272 178 268" fill="none" stroke="#3d6db3" stroke-width="2.5" opacity="0.7" stroke-linecap="round"/>' +
           /* side stitching */
-          '<path d="M 118 248 L 117 282" stroke="#a8c8ee" stroke-width="2.5" stroke-dasharray="5 4"/>' +
-          '<path d="M 182 248 L 183 282" stroke="#a8c8ee" stroke-width="2.5" stroke-dasharray="5 4"/>' +
+          '<path d="M 118 248 L 126 282" stroke="#a8c8ee" stroke-width="2.5" stroke-dasharray="5 4"/>' +
+          '<path d="M 182 248 L 174 282" stroke="#a8c8ee" stroke-width="2.5" stroke-dasharray="5 4"/>' +
           /* folded cuffs */
-          '<path d="M 114 289 L 146 289" stroke="#a8c8ee" stroke-width="5" stroke-linecap="round"/>' +
-          '<path d="M 154 289 L 186 289" stroke="#a8c8ee" stroke-width="5" stroke-linecap="round"/>'
+          '<path d="M 127 289 L 146 289" stroke="#a8c8ee" stroke-width="5" stroke-linecap="round"/>' +
+          '<path d="M 154 289 L 173 289" stroke="#a8c8ee" stroke-width="5" stroke-linecap="round"/>'
       },
       bottom8: {
         name: "Party Skirt",
@@ -671,7 +690,7 @@
 
     /* Swimsuits — worn UNDER the clothes (layer right after "body").
        buildSVG only paints this layer while the wardrobe preview hides
-       the top/bottom layers (see setPreviewSkip + clothesSkipped), so a
+       both top/bottom layers (see setPreviewSkip + swimsuitPreview), so a
        suit never peeks out around normal clothes. Plain fills
        only (no palette tokens); the `colors` block is the contract the
        canvas beach rig reads to recolor the swimsuit on the sand. */
@@ -699,17 +718,12 @@
         colors: { main: "#ffd93d", trim: "#ff9a3d", bottom: "#ffd93d", twoPiece: false }
       },
       suit2: {
-        name: "Bubblegum Bikini",
+        name: "Bubblegum Tankini",
         emoji: "🎀",
-        /* full-coverage tankini: swim vest y165..214 with sweetheart
-           line + bow, high-waisted shorts from y207 (under the vest
-           hem) wrapping each thin leg — tabs x131..149 / x151..169
-           down to hems at y272, centre slit up to the crotch at y245 */
+        /* Full-coverage tankini: vest overlaps high-waisted shorts
+           that cover the hips before splitting below the torso. */
         front:
-          '<path d="M 116 207 L 184 207 Q 189 226 169 242 L 169 272 ' +
-          'Q 169 275 166 275 L 155 275 Q 151 275 151 271 L 150 245 ' +
-          'L 149 271 Q 149 275 145 275 L 134 275 Q 131 275 131 272 ' +
-          'L 131 242 Q 111 226 116 207 Z" ' +
+          '<path d="' + SWIM_SHORTS_PATH + '" ' +
           'fill="#ff8fb8" stroke="#d9568a" stroke-width="3.5" stroke-linejoin="round"/>' +
           '<path d="M 124 165 Q 150 175 176 165 L 183 170 Q 178 181 185 193 ' +
           'L 185 214 Q 150 225 115 214 L 115 193 Q 122 181 117 170 Z" ' +
@@ -742,14 +756,10 @@
       suit4: {
         name: "Strawberry Tankini",
         emoji: "🍓",
-        /* tank top 165..214 with scalloped ruffle hem + strawberry,
-           separate high-waisted shorts y207..275 wrapping each thin
-           leg (tabs x131..149 / x151..169, centre gap to crotch y245) */
+        /* Tank top with scalloped ruffle and strawberry, overlapping
+           the same full-hip shorts as the Bubblegum Tankini. */
         front:
-          '<path d="M 116 207 L 184 207 Q 189 226 169 242 L 169 272 ' +
-          'Q 169 275 166 275 L 155 275 Q 151 275 151 271 L 150 245 ' +
-          'L 149 271 Q 149 275 145 275 L 134 275 Q 131 275 131 272 ' +
-          'L 131 242 Q 111 226 116 207 Z" ' +
+          '<path d="' + SWIM_SHORTS_PATH + '" ' +
           'fill="#ff6f91" stroke="#ffd3e0" stroke-width="3.5" stroke-linejoin="round"/>' +
           '<path d="M 124 165 Q 150 175 176 165 L 183 170 Q 178 181 185 193 ' +
           'L 185 214 Q 150 225 115 214 L 115 193 Q 122 181 117 170 Z" ' +
@@ -769,15 +779,10 @@
       suit5: {
         name: "Citrus Stripe Set",
         emoji: "🍊",
-        /* crop top 165..203 whose hem overlaps the shorts waistband at
-           y200 (no belly gap), three vertical stripes sized to the
-           crop; shorts wrap each thin leg — tabs x131..149 / x151..169
-           down to hems y274 with a centre slit up to crotch y244 */
+        /* Shorter striped top still overlaps the y200 waistband;
+           shared shorts keep the full hips and upper legs covered. */
         front:
-          '<path d="M 116 200 L 184 200 Q 189 224 169 241 L 169 271 ' +
-          'Q 169 274 166 274 L 155 274 Q 151 274 151 270 L 150 244 ' +
-          'L 149 270 Q 149 274 145 274 L 134 274 Q 131 274 131 271 ' +
-          'L 131 241 Q 111 224 116 200 Z" ' +
+          '<path d="' + SWIM_SHORTS_PATH + '" ' +
           'fill="#ff9a3c" stroke="#ffd93d" stroke-width="3.5" stroke-linejoin="round"/>' +
           '<path d="M 125 165 Q 150 174 175 165 L 182 170 Q 177 181 184 192 ' +
           'L 184 203 Q 150 214 116 203 L 116 192 Q 123 181 118 170 Z" ' +
@@ -818,7 +823,7 @@
   /* ---------- Paint order (bottom -> top) ---------- */
 
   const LAYER_ORDER = [
-    "shadow", "hair-back", "body", "swimsuit", "extra-back",
+    "shadow", "hair-back", "extra-back", "body", "swimsuit",
     "top", "bottom", "shoes", "hair-front", "extra-front"
   ];
 
@@ -834,32 +839,40 @@
     return typeof markup === "string" ? markup : "";
   }
 
-  /* Preview override: when set to an array of layer names, buildSVG
-     paints those groups EMPTY (the <g> stays so DOM structure is
-     stable). The wardrobe swimsuit tab uses ['top','bottom','shoes']
-     so the girl is shown in her suit alone; null restores everything. */
-  let previewSkip = null;
-
-  function setPreviewSkip(slots) {
-    previewSkip = Array.isArray(slots) && slots.length ? slots.slice() : null;
-    refreshAll();
+  /* Keep the preview on its container, never on the shared outfit or
+     another screen's instance. Copy the list so callers cannot mutate it. */
+  function setPreviewSkip(containerEl, slots) {
+    if (!containerEl || typeof containerEl.innerHTML !== "string") return;
+    const opts = instances.get(containerEl) || { size: "big", characterId: null };
+    opts.previewSkip = Array.isArray(slots)
+      ? slots.filter(function (layer) { return LAYER_ORDER.indexOf(layer) !== -1; })
+      : null;
+    instances.set(containerEl, opts);
+    render(containerEl, opts);
   }
 
-  function buildSVG(outfit, sizeClass, characterId) {
+  function buildSVG(outfit, sizeClass, characterId, previewSkip) {
     const character = CHARACTERS[characterId] || CHARACTERS.lily;
-    /* The swimsuit only paints while the preview is already hiding the
-       clothes layers (wardrobe 🩱 tab); otherwise its straps/hems would
-       peek out under the shirt and skirt on the Dress Up page. */
-    const clothesSkipped = !!previewSkip &&
-      (previewSkip.indexOf("top") !== -1 || previewSkip.indexOf("bottom") !== -1);
-    const groups = LAYER_ORDER.map(function (layer) {
+    /* Dress coverage is separate from preview mode: suppressing its
+       bottom must never reveal a swimsuit underneath the dress. */
+    const swimsuitPreview = !!previewSkip &&
+      previewSkip.indexOf("top") !== -1 && previewSkip.indexOf("bottom") !== -1;
+    const top = CATALOG.top[outfit.top];
+    const coversBottom = top && top.coversBottom &&
+      (!previewSkip || previewSkip.indexOf("top") === -1);
+    const layers = LAYER_ORDER.slice();
+    if (top && top.untucked) {
+      layers.splice(layers.indexOf("top"), 2, "bottom", "top");
+    }
+    const groups = layers.map(function (layer) {
       let inner = "";
-      const skipped = !!previewSkip && previewSkip.indexOf(layer) !== -1;
+      const skipped = (previewSkip && previewSkip.indexOf(layer) !== -1) ||
+        (layer === "bottom" && coversBottom);
       if (!skipped) {
         if (layer === "body") {
           inner = applyPalette(BODY_MARKUP, characterId);
         } else if (layer === "swimsuit") {
-          inner = clothesSkipped
+          inner = swimsuitPreview
             ? applyPalette(layerMarkup("swimsuit", "front", outfit), characterId)
             : "";
         } else if (layer === "hair-back") {
@@ -891,7 +904,7 @@
 
   /* ---------- Instance registry (auto refresh on outfit change) ---------- */
 
-  const instances = new Map(); // container element -> { size, characterId }
+  const instances = new Map(); // container -> { size, characterId, previewSkip }
 
   function refreshAll() {
     instances.forEach(function (opts, container) {
@@ -921,10 +934,57 @@
         ? window.GameState.getCharacter().id
         : "lily");
 
-    containerEl.innerHTML = buildSVG(outfit, size === "small" ? "character-small" : "character-big", characterId);
+    const previous = instances.get(containerEl);
+    const previewSkip = previous ? previous.previewSkip : null;
+    containerEl.innerHTML = buildSVG(outfit, size === "small" ? "character-small" : "character-big", characterId, previewSkip);
     const svg = containerEl.querySelector("svg.character");
-    instances.set(containerEl, { size: size, characterId: override });
+    instances.set(containerEl, { size: size, characterId: override, previewSkip: previewSkip });
     return svg;
+  }
+
+  /* Padded art bounds work even in detached/hidden picker buttons, where
+     getBBox() cannot reliably measure. Extras need individual crops. */
+  const ITEM_VIEWBOXES = {
+    hair: "24 12 252 232",
+    top: "82 150 136 112",
+    bottom: "72 222 156 86",
+    shoes: "98 262 104 72",
+    swimsuit: "102 154 96 132",
+    extra: {
+      extra1: "170 28 52 54",
+      extra2: "192 162 68 76",
+      extra3: "64 10 172 64",
+      extra4: "90 158 120 110",
+      extra5: "106 -10 88 88",
+      extra6: "86 64 128 42",
+      extra7: "96 8 108 64"
+    }
+  };
+
+  function renderItemPreview(containerEl, slot, itemId, opts) {
+    if (!containerEl || typeof containerEl.innerHTML !== "string" ||
+        typeof containerEl.querySelector !== "function") return null;
+    containerEl.innerHTML = "";
+    if (typeof slot !== "string" || !Object.prototype.hasOwnProperty.call(CATALOG, slot)) return null;
+    const emptyExtra = slot === "extra" && (itemId == null || itemId === "");
+    const items = CATALOG[slot];
+    if (!emptyExtra && (typeof itemId !== "string" || !Object.prototype.hasOwnProperty.call(items, itemId))) return null;
+    const item = emptyExtra ? null : items[itemId];
+    const characterId = opts && typeof opts.characterId === "string" && opts.characterId
+      ? opts.characterId
+      : (window.GameState && typeof window.GameState.getCharacter === "function"
+        ? window.GameState.getCharacter().id : "lily");
+    const markup = item ? (item.back || "") + (item.front || "")
+      : '<circle cx="24" cy="24" r="16" fill="none" stroke="#c9bfcf" stroke-width="3"/>' +
+        '<path d="M 15 24 H 33" stroke="#c9bfcf" stroke-width="3" stroke-linecap="round"/>';
+    const viewBox = emptyExtra ? "0 0 48 48"
+      : slot === "extra" ? ITEM_VIEWBOXES.extra[itemId]
+      : slot === "top" && item.coversBottom ? "82 150 136 146"
+      : ITEM_VIEWBOXES[slot];
+    containerEl.innerHTML = '<svg class="wardrobe-item-preview" xmlns="http://www.w3.org/2000/svg" ' +
+      'viewBox="' + viewBox + '" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">' +
+      applyPalette(markup, characterId) + '</svg>';
+    return containerEl.querySelector("svg.wardrobe-item-preview");
   }
 
   /* Unregister a container so refreshAll() stops repainting it. Callers
@@ -995,6 +1055,7 @@
 
   window.CharacterRenderer = {
     render: render,
+    renderItemPreview: renderItemPreview,
     forget: forget,
     getItemName: getItemName,
     catalog: CATALOG,

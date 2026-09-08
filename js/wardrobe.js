@@ -1,259 +1,222 @@
-/* ============================================================
-   Lily's Dress-Up Adventure — Wardrobe (dress-up) screen
-   Renders item buttons from CharacterRenderer.catalog for the
-   active category tab. Clicking an item calls
-   GameState.setOutfitSlot; Lily auto-refreshes through the
-   existing onChange pipeline (character.js), so this file never
-   re-renders the character itself.
-
-   Uses window.GameUI.setTalk for cheerful feedback and spawns a
-   one-off sparkle burst over the wardrobe character stage.
-   ============================================================ */
-
+/* Dress-up picker. GameUI owns entry/exit; the renderer owns all art. */
 (function () {
   "use strict";
 
-  /* ---------- Cheerful feedback ---------- */
-
-  /* {name} is replaced with the current friend's name at pick time. */
-  const CHEERFUL_MESSAGES = [
-    "Ooooh, so pretty! 💕",
-    "{name} loves it! ✨",
-    "Wow, what a great choice! 🌈",
-    "So stylish, {name}! 💖",
-    "Ooh la la, fabulous! 🎉",
-    "That looks amazing on you! 😍"
-  ];
-
-  const SPARKLE_EMOJIS = ["✨", "💖", "🌈", "💫", "🎉"];
-
-  /* Fallback emoji for catalog items missing one (never overrides
-     character.js — only used as a safety net here). */
-  const FALLBACK_EMOJI = {
-    hair: "💇",
-    top: "🧥",
-    bottom: "🩲",
-    shoes: "🥿",
-    extra: "💖",
-    swimsuit: "🩱"
-  };
-
+  const SLOTS = ["hair", "top", "bottom", "shoes", "extra", "swimsuit"];
   let activeSlot = "hair";
+  let active = false;
+  let renderedSlot = null;
+  let renderedCharacter = null;
+  let previousState = null;
+  let undoChange = null;
+  let changingOutfit = false;
 
-  /* ---------- DOM helpers ---------- */
-
-  function getItemGrid() {
-    return document.getElementById("wardrobe-items");
+  function element(id) {
+    return document.getElementById(id);
   }
 
-  function getStage() {
-    return document.getElementById("character-stage-wardrobe");
+  function feedback(text) {
+    element("wardrobe-feedback").textContent = text;
   }
 
-  /* ---------- Item buttons ---------- */
+  function updateScrollHint() {
+    const panel = element("wardrobe-panel");
+    element("wardrobe-scroll-hint").textContent =
+      panel.scrollHeight > panel.clientHeight + 1
+        ? (panel.scrollTop + panel.clientHeight < panel.scrollHeight - 2
+          ? "Scroll for more choices" : "All choices above")
+        : "Tap an item to try it on";
+  }
 
-  function createItemButton(item, itemId, isNoneOption) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "wardrobe-item";
-    button.dataset.itemId = isNoneOption ? "" : itemId;
-    button.dataset.slot = activeSlot;
-    if (isNoneOption) button.classList.add("wardrobe-item-none");
-
-    const emoji = document.createElement("span");
-    emoji.className = "wardrobe-item-emoji";
-    emoji.textContent = isNoneOption
-      ? "✨"
-      : (item && item.emoji) || FALLBACK_EMOJI[activeSlot] || "💖";
-
-    const name = document.createElement("span");
-    name.className = "wardrobe-item-name";
-    name.textContent = isNoneOption
-      ? "None"
-      : (item && item.name) || "Pretty Thing";
-
-    button.appendChild(emoji);
-    button.appendChild(name);
-    return button;
+  function updateMarkers() {
+    const outfit = window.GameState.getOutfit();
+    element("wardrobe-items").querySelectorAll(".wardrobe-item").forEach(function (button) {
+      const worn = (button.dataset.itemId || null) === outfit[activeSlot];
+      button.classList.toggle("worn", worn);
+      button.setAttribute("aria-pressed", String(worn));
+      button.querySelector(".wardrobe-item-marker").textContent = worn ? "Wearing" : "Try on";
+    });
+    const top = window.CharacterRenderer.catalog.top[outfit.top];
+    const covered = activeSlot === "bottom" && top && top.coversBottom;
+    const hint = element("wardrobe-hint");
+    hint.hidden = !covered;
+    hint.textContent = covered ? "Dress covers bottoms. Choose a top." : "";
+    const undo = element("wardrobe-undo");
+    undo.disabled = !undoChange;
+    undo.setAttribute("aria-label", undoChange
+      ? "Undo last change: " + (window.CharacterRenderer.getItemName(undoChange.slot, undoChange.after) || "No extra")
+      : "Undo last clothing change");
   }
 
   function renderItems() {
-    const grid = getItemGrid();
-    if (!grid) return;
-    const catalog = window.CharacterRenderer ? window.CharacterRenderer.catalog : {};
-    const slotItems = catalog[activeSlot] || {};
-
-    grid.innerHTML = "";
-    if (activeSlot === "extra") {
-      // Extras are optional: first button clears the slot.
-      grid.appendChild(createItemButton(null, "", true));
+    const characterId = window.GameState.getCharacter().id;
+    const grid = element("wardrobe-items");
+    if (renderedSlot === activeSlot && renderedCharacter === characterId) {
+      updateMarkers();
+      return;
     }
-    Object.keys(slotItems).forEach(function (itemId) {
-      grid.appendChild(createItemButton(slotItems[itemId], itemId, false));
-    });
-    updateWornMarkers();
-  }
-
-  /* Marks the currently worn item's button. Runs on every outfit
-     change — it updates classes only, never rebuilds the grid. */
-  function updateWornMarkers() {
-    const grid = getItemGrid();
-    const gameState = window.GameState;
-    if (!grid || !gameState || typeof gameState.getOutfit !== "function") return;
-    const wornId = gameState.getOutfit()[activeSlot];
-    grid.querySelectorAll(".wardrobe-item").forEach(function (button) {
-      const isWorn = (button.dataset.itemId || "") === (wornId || "");
-      button.classList.toggle("worn", isWorn);
-      button.setAttribute("aria-pressed", isWorn ? "true" : "false");
-    });
-  }
-
-  /* ---------- Sparkle burst ---------- */
-
-  function spawnSparkles() {
-    const stage = getStage();
-    if (!stage) return;
-    const count = 5 + Math.floor(Math.random() * 2); // 5 or 6 sparkles
-    for (let i = 0; i < count; i++) {
-      const sparkle = document.createElement("span");
-      sparkle.className = "wardrobe-sparkle";
-      sparkle.textContent = SPARKLE_EMOJIS[Math.floor(Math.random() * SPARKLE_EMOJIS.length)];
-      sparkle.style.left = 8 + Math.random() * 84 + "%";
-      sparkle.style.top = 10 + Math.random() * 60 + "%";
-      sparkle.style.animationDelay = Math.random() * 0.15 + "s";
-
-      let removed = false;
-      function remove() {
-        if (removed) return;
-        removed = true;
-        sparkle.removeEventListener("animationend", remove);
-        if (sparkle.parentNode === stage) {
-          stage.removeChild(sparkle);
-        }
+    const sameSlot = renderedSlot === activeSlot;
+    const focusedId = grid.contains(document.activeElement) ? document.activeElement.dataset.itemId : undefined;
+    const panel = element("wardrobe-panel");
+    const scrollTop = sameSlot ? panel.scrollTop : 0;
+    const items = window.CharacterRenderer.catalog[activeSlot];
+    const ids = Object.keys(items);
+    if (activeSlot === "extra") ids.unshift("");
+    grid.replaceChildren();
+    ids.forEach(function (id) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "wardrobe-item";
+      button.dataset.itemId = id;
+      button.dataset.slot = activeSlot;
+      const art = document.createElement("span");
+      art.className = "wardrobe-item-art";
+      art.setAttribute("aria-hidden", "true");
+      if (id) {
+        window.CharacterRenderer.renderItemPreview(art, activeSlot, id, { characterId: characterId });
+        art.querySelector("svg").setAttribute("aria-hidden", "true");
+      } else {
+        art.classList.add("wardrobe-none-art");
+        art.textContent = "\u00d7";
       }
-      sparkle.addEventListener("animationend", remove);
-      // Safety net so nothing lingers if animationend never fires.
-      window.setTimeout(remove, 1300);
-      stage.appendChild(sparkle);
-    }
-  }
-
-  /* ---------- Interactions ---------- */
-
-  function onItemClick(button) {
-    const gameState = window.GameState;
-    if (!gameState || typeof gameState.setOutfitSlot !== "function") return;
-
-    const itemId = button.dataset.itemId;
-    gameState.setOutfitSlot(activeSlot, itemId === "" ? null : itemId);
-
-    // Cheerful spoken feedback + happy character.
-    const ui = window.GameUI;
-    if (ui && typeof ui.setTalk === "function") {
-      const template = CHEERFUL_MESSAGES[Math.floor(Math.random() * CHEERFUL_MESSAGES.length)];
-      const name = window.GameText ? window.GameText.name() : "Lily";
-      ui.setTalk(template.replace("{name}", name));
-    }
-    const stage = getStage();
-    const renderer = window.CharacterRenderer;
-    if (stage && renderer && typeof renderer.playAnimation === "function") {
-      renderer.playAnimation(stage, Math.random() < 0.5 ? "cheer" : "bounce");
-    }
-    spawnSparkles();
-  }
-
-  /* Swimsuit preview: while the Swimsuits tab is open the dress-up
-     character wears ONLY the suit — top/bottom/shoes layers are painted
-     empty via CharacterRenderer.setPreviewSkip. Every other tab (and
-     every other screen, see the nav hook in init) restores them. */
-  const SWIMSUIT_SKIP_LAYERS = ["top", "bottom", "shoes"];
-
-  function applyPreviewSkip() {
-    const renderer = window.CharacterRenderer;
-    if (renderer && typeof renderer.setPreviewSkip === "function") {
-      renderer.setPreviewSkip(
-        activeSlot === "swimsuit" ? SWIMSUIT_SKIP_LAYERS : null
-      );
-    }
-  }
-
-  function switchTab(tabButton) {
-    const slot = tabButton.dataset.slot;
-    if (!slot) return;
-    activeSlot = slot;
-    applyPreviewSkip();
-    document.querySelectorAll(".wardrobe-tab").forEach(function (tab) {
-      tab.classList.toggle("active", tab === tabButton);
+      const name = document.createElement("span");
+      name.className = "wardrobe-item-name";
+      name.textContent = id ? items[id].name : "No extra";
+      button.setAttribute("aria-label", name.textContent);
+      const marker = document.createElement("span");
+      marker.className = "wardrobe-item-marker";
+      marker.setAttribute("aria-hidden", "true");
+      button.append(art, name, marker);
+      grid.appendChild(button);
     });
+    renderedSlot = activeSlot;
+    renderedCharacter = characterId;
+    updateMarkers();
+    if (sameSlot && focusedId !== undefined) {
+      const button = Array.from(grid.children).find(function (item) { return item.dataset.itemId === focusedId; });
+      if (button) button.focus({ preventScroll: true });
+    }
+    panel.scrollTop = scrollTop;
+    updateScrollHint();
+  }
+
+  function applyPreview() {
+    window.CharacterRenderer.setPreviewSkip(element("character-stage-wardrobe"),
+      active && activeSlot === "swimsuit" ? ["top", "bottom", "shoes"] : null);
+  }
+
+  function switchTab(slot, focus) {
+    if (!SLOTS.includes(slot)) return;
+    activeSlot = slot;
+    applyPreview();
+    const selected = element("wardrobe-tab-" + slot);
+    document.querySelectorAll(".wardrobe-tab").forEach(function (tab) {
+      const chosen = tab === selected;
+      tab.classList.toggle("active", chosen);
+      tab.setAttribute("aria-selected", String(chosen));
+      tab.tabIndex = chosen ? 0 : -1;
+    });
+    element("wardrobe-panel").setAttribute("aria-labelledby", selected.id);
     renderItems();
-    tabPop();
+    if (focus) selected.focus({ preventScroll: true });
+    // Scroll only the category strip, never the page or the fitting area.
+    const row = selected.parentElement;
+    const tabBox = selected.getBoundingClientRect();
+    const rowBox = row.getBoundingClientRect();
+    if (tabBox.left < rowBox.left) row.scrollLeft -= rowBox.left - tabBox.left;
+    if (tabBox.right > rowBox.right) row.scrollLeft += tabBox.right - rowBox.right;
+    updateScrollHint();
   }
 
-  /* Tiny pop animation on the grid when the category changes. */
-  function tabPop() {
-    const grid = getItemGrid();
-    if (!grid) return;
-    grid.classList.remove("tab-pop");
-    void grid.offsetWidth; // restart the animation reliably
-    grid.classList.add("tab-pop");
+  function selectItem(button) {
+    const gs = window.GameState;
+    const after = button.dataset.itemId || null;
+    const before = gs.getOutfit()[activeSlot];
+    if (before === after) return;
+    undoChange = { slot: activeSlot, before: before, after: after, characterId: gs.getCharacter().id };
+    changingOutfit = true;
+    try {
+      gs.setOutfitSlot(activeSlot, after);
+    } finally {
+      changingOutfit = false;
+    }
+    feedback(after ? window.CharacterRenderer.getItemName(activeSlot, after) + " looks lovely!" : "Extra removed.");
   }
 
-  /* ---------- Bootstrap ---------- */
+  function undo() {
+    if (!undoChange) return;
+    const change = undoChange;
+    undoChange = null;
+    const gs = window.GameState;
+    if (gs.getCharacter().id !== change.characterId || gs.getOutfit()[change.slot] !== change.after) {
+      updateMarkers();
+      return;
+    }
+    changingOutfit = true;
+    try {
+      gs.setOutfitSlot(change.slot, change.before);
+    } finally {
+      changingOutfit = false;
+    }
+    switchTab(change.slot, false);
+    const selected = element("wardrobe-items").querySelector('[aria-pressed="true"]');
+    if (selected) {
+      selected.focus({ preventScroll: true });
+      const panel = element("wardrobe-panel");
+      panel.scrollTop += selected.getBoundingClientRect().top - panel.getBoundingClientRect().top - 6;
+    }
+    feedback("Last change undone.");
+  }
+
+  function enter(options) {
+    active = true;
+    switchTab(options && options.slot || activeSlot, true);
+    feedback("Try something you love!");
+  }
+
+  function exit() {
+    active = false;
+    applyPreview();
+  }
 
   function init() {
     document.querySelectorAll(".wardrobe-tab").forEach(function (tab) {
-      tab.addEventListener("click", function () {
-        switchTab(tab);
+      tab.addEventListener("click", function () { switchTab(tab.dataset.slot, false); });
+      tab.addEventListener("keydown", function (event) {
+        let index = SLOTS.indexOf(activeSlot);
+        if (event.key === "ArrowRight") index = (index + 1) % SLOTS.length;
+        else if (event.key === "ArrowLeft") index = (index + SLOTS.length - 1) % SLOTS.length;
+        else if (event.key === "Home") index = 0;
+        else if (event.key === "End") index = SLOTS.length - 1;
+        else return;
+        event.preventDefault();
+        switchTab(SLOTS[index], true);
       });
     });
-
-    /* Safety: the swimsuit preview skip must NEVER leak to another
-       screen (the kitchen/map/friends/beach characters would render
-       clothes-less). Screen switches only happen through .nav-button
-       clicks (main.js wires those in the bubbling phase), so a
-       document-level CAPTURE listener runs first and clears the skip
-       before showScreen — and every CharacterRenderer repaint — can
-       happen. Returning to the wardrobe screen with the swimsuit tab
-       still open re-applies the preview. */
-    document.addEventListener("click", function (event) {
-      const button = event.target && event.target.closest
-        ? event.target.closest(".nav-button")
-        : null;
-      if (!button) return;
-      if (button.dataset.screen === "wardrobe" && activeSlot === "swimsuit") {
-        applyPreviewSkip();
-      } else {
-        const renderer = window.CharacterRenderer;
-        if (renderer && typeof renderer.setPreviewSkip === "function") {
-          renderer.setPreviewSkip(null);
-        }
-      }
-    }, true);
-
-    const grid = getItemGrid();
-    if (grid) {
-      // Event delegation: buttons are created dynamically.
-      grid.addEventListener("click", function (event) {
-        const button = event.target.closest(".wardrobe-item");
-        if (button && grid.contains(button)) {
-          onItemClick(button);
-        }
-      });
-    }
-
+    element("wardrobe-category-next").addEventListener("click", function () {
+      switchTab(SLOTS[(SLOTS.indexOf(activeSlot) + 1) % SLOTS.length], true);
+    });
+    element("wardrobe-items").addEventListener("click", function (event) {
+      const button = event.target.closest(".wardrobe-item");
+      if (button) selectItem(button);
+    });
+    element("wardrobe-undo").addEventListener("click", undo);
+    element("wardrobe-panel").addEventListener("scroll", updateScrollHint);
+    new ResizeObserver(updateScrollHint).observe(element("wardrobe-panel"));
+    previousState = window.GameState.get();
     renderItems();
-
-    if (window.GameState && typeof window.GameState.onChange === "function") {
-      window.GameState.onChange(function () {
-        // Worn markers only — Lily herself is re-rendered by character.js.
-        updateWornMarkers();
-      });
-    }
+    window.GameState.onChange(function (state, reason) {
+      const friendChanged = state.characterId !== previousState.characterId;
+      const outfitChanged = SLOTS.some(function (slot) { return state.outfit[slot] !== previousState.outfit[slot]; });
+      if (reason === "reset" || friendChanged || (!changingOutfit && outfitChanged)) undoChange = null;
+      previousState = state;
+      if (reason === "reset") switchTab("hair", false);
+      else if (friendChanged) renderItems();
+      else updateMarkers();
+    });
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
-  } else {
-    init();
-  }
+  window.WardrobeUI = { enter: enter, exit: exit };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
 })();

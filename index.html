@@ -81,10 +81,10 @@
 
     <!-- Screen switcher -->
     <nav class="screen-nav" aria-label="Game screens">
-      <button class="nav-button" data-screen="wardrobe">👗 Dress Up</button>
-      <button class="nav-button" data-screen="kitchen">🍎 Kitchen</button>
-      <button class="nav-button" data-screen="map">🗺️ Map</button>
-      <button class="nav-button" data-screen="friends">👯 Friends</button>
+      <button class="nav-button" data-screen="wardrobe"><span class="nav-icon" aria-hidden="true">👗</span> Dress Up</button>
+      <button class="nav-button" data-screen="kitchen"><span class="nav-icon" aria-hidden="true">🍎</span> Kitchen</button>
+      <button class="nav-button" data-screen="map"><span class="nav-icon" aria-hidden="true">🗺️</span> Map</button>
+      <button class="nav-button" data-screen="friends"><span class="nav-icon" aria-hidden="true">👯</span> Friends</button>
     </nav>
 
     <main class="game-main">
@@ -94,19 +94,36 @@
 
       <!-- Wardrobe screen -->
       <section class="screen" id="screen-wardrobe">
-        <h2 class="screen-title">👗 Dress Up <b data-char-name>Lily</b>!</h2>
-        <!-- Lily is auto-rendered here by character.js -->
-        <div class="character-stage" id="character-stage-wardrobe"></div>
-        <div class="wardrobe-tabs" role="tablist" aria-label="Outfit categories">
-          <button class="wardrobe-tab active" data-slot="hair">💇 Hair</button>
-          <button class="wardrobe-tab" data-slot="top">👕 Tops</button>
-          <button class="wardrobe-tab" data-slot="bottom">👗 Bottoms</button>
-          <button class="wardrobe-tab" data-slot="shoes">👟 Shoes</button>
-          <button class="wardrobe-tab" data-slot="extra">🎀 Extras</button>
-          <button class="wardrobe-tab" data-slot="swimsuit">🩱 Swimsuits</button>
+        <div class="wardrobe-heading">
+          <h2 class="screen-title" id="wardrobe-title">Dress Up <b data-char-name>Lily</b>!</h2>
+          <button class="wardrobe-return" id="wardrobe-return" type="button" hidden>Back to Beach</button>
         </div>
-        <div class="helper-text">Tap a button to try it on <b data-char-name>Lily</b>!</div>
-        <div class="wardrobe-items" id="wardrobe-items"></div>
+        <div class="wardrobe-workspace">
+          <!-- Only this registered character gets swimsuit preview overrides. -->
+          <div class="wardrobe-fitting">
+            <div class="character-stage" id="character-stage-wardrobe"></div>
+            <p class="wardrobe-feedback" id="wardrobe-feedback" role="status">Try something you love!</p>
+          </div>
+          <div class="wardrobe-picker">
+            <div class="wardrobe-category-row">
+              <div class="wardrobe-tabs" role="tablist" aria-label="Outfit categories">
+                <button class="wardrobe-tab active" id="wardrobe-tab-hair" type="button" role="tab" aria-controls="wardrobe-panel" aria-selected="true" tabindex="0" data-slot="hair">Hair</button>
+                <button class="wardrobe-tab" id="wardrobe-tab-top" type="button" role="tab" aria-controls="wardrobe-panel" aria-selected="false" tabindex="-1" data-slot="top">Tops</button>
+                <button class="wardrobe-tab" id="wardrobe-tab-bottom" type="button" role="tab" aria-controls="wardrobe-panel" aria-selected="false" tabindex="-1" data-slot="bottom">Bottoms</button>
+                <button class="wardrobe-tab" id="wardrobe-tab-shoes" type="button" role="tab" aria-controls="wardrobe-panel" aria-selected="false" tabindex="-1" data-slot="shoes">Shoes</button>
+                <button class="wardrobe-tab" id="wardrobe-tab-extra" type="button" role="tab" aria-controls="wardrobe-panel" aria-selected="false" tabindex="-1" data-slot="extra">Extras</button>
+                <button class="wardrobe-tab" id="wardrobe-tab-swimsuit" type="button" role="tab" aria-controls="wardrobe-panel" aria-selected="false" tabindex="-1" data-slot="swimsuit">Swimsuits</button>
+              </div>
+              <button class="wardrobe-category-next" id="wardrobe-category-next" type="button" aria-label="Next outfit category">&gt;</button>
+              <button class="wardrobe-undo" id="wardrobe-undo" type="button" disabled>Undo</button>
+            </div>
+            <p class="wardrobe-hint" id="wardrobe-hint" role="status" hidden></p>
+            <div class="wardrobe-panel" id="wardrobe-panel" role="tabpanel" aria-labelledby="wardrobe-tab-hair">
+              <div class="wardrobe-items" id="wardrobe-items"></div>
+            </div>
+            <p class="wardrobe-scroll-hint" id="wardrobe-scroll-hint">Scroll for more choices</p>
+          </div>
+        </div>
       </section>
 
       <!-- Kitchen screen -->

@@ -12,7 +12,8 @@
 
   const DEFAULT_TALK = "Hello! Let's play! 💕";
 
-  let talkResetTimer = null;
+  let activeScreen = null;
+  let returnToBeach = false;
 
   /* ---------- Talk bubble ---------- */
 
@@ -40,23 +41,56 @@
 
   /* ---------- Screen navigation ---------- */
 
-  function showScreen(name) {
+  function showScreen(name, options) {
     const button = document.querySelector('.nav-button[data-screen="' + name + '"]');
     const screen = document.getElementById("screen-" + name);
     if (!button || !screen) return;
 
+    const beach = window.BeachScene;
+    // Only the live beach activity can create this one-visit intent.
+    const fromBeach = name === "wardrobe" && options && options.fromBeach === true &&
+      beach && beach.isOpen() && window.GameState.getLocation().id === "beach";
+    if (activeScreen === "wardrobe") window.WardrobeUI.exit();
+    returnToBeach = !!fromBeach;
+    document.getElementById("wardrobe-return").hidden = !returnToBeach;
+    if (beach && beach.isOpen()) beach.close();
+    activeScreen = name;
+    document.body.classList.toggle("wardrobe-open", name === "wardrobe");
+
     // Hide all screens, deactivate all buttons.
     document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
-    document.querySelectorAll(".nav-button").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".nav-button").forEach((b) => {
+      b.classList.remove("active");
+      b.removeAttribute("aria-current");
+    });
 
     // Show the chosen one.
     screen.classList.add("active");
     button.classList.add("active");
+    button.setAttribute("aria-current", "page");
     // The talk bubble lives inside the scrollable panel; un-scroll it so
     // it isn't left half-clipped behind the panel top after travel clicks.
     const main = document.querySelector(".game-main");
     if (main) main.scrollTop = 0;
     setTalk(DEFAULT_TALK);
+    if (name === "wardrobe") {
+      window.WardrobeUI.enter(fromBeach ? { slot: "swimsuit" } : null);
+    } else if (!options || options.focus !== false) {
+      const heading = screen.querySelector(".screen-title");
+      heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+    }
+  }
+
+  function backToBeach() {
+    const valid = returnToBeach && activeScreen === "wardrobe" &&
+      window.GameState.getLocation().id === "beach";
+    // Consume before any navigation, state listeners, or engine startup.
+    returnToBeach = false;
+    document.getElementById("wardrobe-return").hidden = true;
+    if (!valid) return;
+    showScreen("map", { focus: false });
+    window.BeachScene.open();
   }
 
   function wireNav() {
@@ -71,6 +105,15 @@
 
   function init() {
     wireNav();
+    document.getElementById("wardrobe-return").addEventListener("click", backToBeach);
+    window.GameState.onChange(function (state, reason) {
+      if (reason === "reset" && activeScreen === "wardrobe") {
+        showScreen("wardrobe");
+      } else if (state.location.id !== "beach") {
+        returnToBeach = false;
+        document.getElementById("wardrobe-return").hidden = true;
+      }
+    });
     showScreen("wardrobe");
     // Ask GameState for the loaded (persisted or default) energy value.
     const gameState = window.GameState;

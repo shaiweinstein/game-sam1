@@ -135,11 +135,12 @@
 
   const listeners = [];
 
-  function notify() {
+  function notify(reason) {
     const snapshot = getSnapshot();
     listeners.forEach(function (cb) {
       try {
-        cb(snapshot);
+        // Reset can leave the same values; ephemeral UI history still expires.
+        cb(snapshot, reason);
       } catch (e) {
         /* A broken listener must never break the game loop. */
       }
@@ -278,7 +279,7 @@
       /* Storage unavailable — ignore. */
     }
     syncHud();
-    notify();
+    notify("reset");
   }
 
   /* ---------- Bootstrap ---------- */
