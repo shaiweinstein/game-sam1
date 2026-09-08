@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""S4 spike — 3D Lily v4: the swimsuit full-coverage fix. Body, face, hair
-and daisy position are v3's (all passed); ONLY the swimsuit section below
-line ~472 changed, plus the P2 daisy rebuild.
+"""Lily v4: shared childlike body and full-coverage swimwear.
+Connected shoulder/neck/mitten topology, supported limb bends and continuous
+bare feet; garments have shoulder bridges and two real leg openings.
+Head, face UVs, hair and rig proportions are preserved. Historical notes:
 
 Run:  blender --background --python spike3/blender/build_lily4.py
 Out:  spike3/assets/lily4.glb   (neutral A-pose, no animation)
@@ -113,17 +114,26 @@ deg = math.radians
 
 # torso ring table: (z, rx, ry) — shoulders wide, waist nipped, hips round
 TORSO_RINGS = [
-    (0.605, 0.060, 0.048),
-    (0.565, 0.092, 0.063),
-    (0.545, 0.112, 0.077),
-    (0.505, 0.113, 0.076),
+    (0.645, 0.046, 0.048),
+    (0.625, 0.048, 0.049),
+    (0.610, 0.051, 0.051),
+    (0.587, 0.062, 0.055),
+    (0.565, 0.085, 0.064),
+    (0.554, 0.096, 0.069),
+    (0.543, 0.103, 0.073),
+    (0.532, 0.108, 0.075),
+    (0.521, 0.111, 0.076),
+    (0.510, 0.112, 0.076),
+    (0.499, 0.112, 0.076),
+    (0.475, 0.111, 0.077),
     (0.455, 0.108, 0.077),
     (0.400, 0.096, 0.071),
     (0.350, 0.104, 0.077),
     (0.305, 0.115, 0.084),
-    (0.270, 0.112, 0.082),
-    (0.240, 0.096, 0.073),
-    (0.222, 0.070, 0.056),
+    (0.270, 0.106, 0.079),
+    (0.250, 0.082, 0.066),
+    (0.238, 0.047, 0.035),
+    (0.234, 0.018, 0.014),
 ]
 
 
@@ -166,6 +176,23 @@ def new_obj(name, bm, M=None):
 def smooth(ob):
     for p in ob.data.polygons:
         p.use_smooth = True
+
+
+def finish_body(ob):
+    """One subdivision on connected control loops, never remesh face/hair."""
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
+    assert all(e.is_manifold for e in bm.edges), f"{ob.name}: open body edge"
+    assert len(bm.verts)-len(bm.edges)+len(bm.faces) == 2, f"{ob.name}: body topology"
+    assert bm.calc_volume(signed=True) > 0, f"{ob.name}: inward body"
+    bm.to_mesh(ob.data)
+    bm.free()
+    mod = ob.modifiers.new("BendSupport", "SUBSURF")
+    mod.levels = 1
+    bpy.context.view_layer.objects.active = ob
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+    smooth(ob)
 
 
 def solidify(ob, t):
@@ -231,8 +258,8 @@ def ring(x, y, z, rx, ry, n, phase=0.0):
             for i in range(n)]
 
 
-def loft(name, rings, M, cap_top=False, cap_bot=False, wrap=True):
-    """Bridge equal-length rings (lists of 3-tuples) in order."""
+def loft(name, rings, M, cap_top=False, cap_bot=False, wrap=True, reverse=False):
+    """Bridge rings; ring() winding is outward bottom-to-top, reverse for top-to-bottom."""
     n = len(rings[0])
     bm = bmesh.new()
     rows = [[bm.verts.new(p) for p in r] for r in rings]
@@ -260,6 +287,9 @@ def loft(name, rings, M, cap_top=False, cap_bot=False, wrap=True):
                 bm.faces.new((c, last[i], last[(i + 1) % n]))
             except ValueError:
                 pass
+    if reverse:
+        # Reverse caps too, without changing vertex/ring order or positions.
+        bmesh.ops.reverse_faces(bm, faces=list(bm.faces))
     bm.normal_update()
     ob = new_obj(name, bm, M)
     smooth(ob)
@@ -344,33 +374,6 @@ def head_pt(t, phi, R, C, cy=0.0):
             C[2] + R[2] * ct)
 
 
-def suit_top(a):
-    """Top edge of the one-piece, z at azimuth a (rad from front).
-    v4 (P1) shallow scoop, per the 2D spec: fabric sits at the shoulder
-    line all around — side/back edge z 0.556->0.552, center front dips to
-    0.528 (2D: y165 shoulders -> y172.5 center ~ 28mm in 3D scale).
-    v3's 0.058 c ** 1.5 front term (58mm halter scoop, thin-strap look)
-    is gone."""
-    c = math.cos(a)
-    if c > 0:
-        return 0.556 - 0.028 * c ** 1.6
-    return 0.556 - 0.004 * abs(c) ** 2.0
-
-
-def suit_bot(a):
-    """v4 (P0) hem: ONE continuous ring at upper-thigh height, front AND
-    back (2D hem y262 -> z 0.209-0.216; code mapping "2D tabs reach y262
-    -> z ~0.209"), z 0.212 everywhere — no W-dip, no high-cut back, no
-    separate tabs. Only a tiny (8mm) upward notch at the very front
-    center (2D notch rises 7px=26mm; capped at 8mm: the family's arrows
-    were about EXPOSURE, and the spec allows a subtle notch or none).
-    The back center is fully closed at hem height."""
-    ad = abs(math.degrees(a))
-    if ad <= 90.0:
-        return 0.212 + 0.008 * math.exp(-((ad / 12.0) ** 2))
-    return 0.212
-
-
 def main():
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.object.delete(use_global=False)
@@ -412,119 +415,160 @@ def main():
     parts.append(head)
 
     # ================= BODY =================
-    parts.append(loft("Torso",
-                      [ring(0, TORSO_CY, z, rx, ry, 48)
-                       for (z, rx, ry) in TORSO_RINGS],
-                      M["skin"], cap_top=False, cap_bot=True))
-
-    # small rounded kid shoulder caps (v2's were read as mounds): just a
-    # soft cap over the glenohumeral joint, tucked higher/back
-    for side, sx in (("L", 1), ("R", -1)):
-        parts.append(ellipsoid("ShoulderCap" + side, (0.038, 0.041, 0.035),
-                               (sx * 0.101, 0.012, 0.527), M["skin"]))
-
-    # neck: visible skin between chin (z 0.600) and shoulders (0.545)
-    parts.append(loft("Neck",
-                      [ring(0, 0.006, z, rx, ry, 32)
-                       for (z, rx, ry) in ((0.645, 0.046, 0.048),
-                                           (0.610, 0.053, 0.055),
-                                           (0.578, 0.058, 0.060),
-                                           (0.548, 0.068, 0.068))],
-                      M["skin"], cap_top=True, cap_bot=True))
-
-    # arms (S3) — TWO kinematic segments with a real elbow so the mocap
-    # ForeArm bone actually bends the arm (v2 bound the whole arm to the
-    # UpperArm -> the hand crossed the chest at midswing). BUT the mesh is
-    # ONE continuous loft through shoulder->elbow->wrist (v2's stacked
-    # capsule ends read as balloon beads); the walk script blends the
-    # skinning LeftArm/LeftForeArm across the elbow zone. Segment lengths
-    # mirror the Mixamo UpperArm/ForeArm split of the 0.205 shoulder->wrist
-    # length so the bent bone elbow sits AT the mesh elbow (z ~0.407).
-    # Chubby kid radii, mitten overlaps the wrist cap so it never floats.
-    # S3 round-2: the v3-r1 arms hung almost inside the torso silhouette
-    # (wrist x 0.135 vs chest rx 0.113), so in the FRONT view of the walk
-    # ("no hands from the front") the forward-swung arms foreshortened onto
-    # the body and vanished. Arms now splay outward like a relaxed kid A-pose
-    # (elbow x 0.144, wrist x 0.159: hands read outside the hips at every
-    # swing phase), are a touch chubbier, and the mitten is a rounder ball
-    # that visibly overlaps the wrist cap (no floating ball-mittens).
-    for side, sx in (("L", 1), ("R", -1)):
-        sho = (sx * 0.118, 0.006, 0.520)
-        elb = (sx * 0.144, 0.004, 0.409)
-        wri = (sx * 0.159, -0.008, 0.318)
-        parts.append(tube("Arm" + side,
-                          [sho, ((sho[0] + elb[0]) / 2, 0.006, (sho[2] + elb[2]) / 2),
-                           elb, ((elb[0] + wri[0]) / 2, -0.002, (elb[2] + wri[2]) / 2),
-                           wri],
-                          [0.0345, 0.0325, 0.0300, 0.0268, 0.0245],
-                          M["skin"], n=16))
-        parts.append(ellipsoid("Hand" + side, (0.0315, 0.0260, 0.0355),
-                               (sx * 0.1635, -0.011, 0.288), M["skin"],
-                               yaw=sx * math.radians(-8)))
+    # Cut two 6x6 socket patches and bridge their 24-edge boundaries directly
+    # to the arm loops. Neck, shoulders, shafts, wrists and mittens are ONE
+    # manifold surface, not joined/intersecting caps. Head is untouched.
+    n = 48
+    verts = [p for z, rx, ry in TORSO_RINGS
+             for p in ring(0, TORSO_CY, z, rx, ry, n)]
+    arm_weights = [0.0] * len(verts)
+    faces = []
+    for j in range(len(TORSO_RINGS) - 1):
+        for i in range(n):
+            if 4 <= j < 10 and (9 <= i < 15 or 33 <= i < 39):
+                continue
+            faces.append((j*n+i, j*n+(i+1)%n, (j+1)*n+(i+1)%n, (j+1)*n+i))
+    faces.extend([tuple(reversed(range(n))),
+                  tuple(range((len(TORSO_RINGS)-1)*n, len(verts)))])
+    for sx, col in ((1, 9), (-1, 33)):
+        boundary = ([4*n+i for i in range(col, col+7)] +
+                    [j*n+col+6 for j in range(5, 11)] +
+                    [10*n+i for i in range(col+5, col-1, -1)] +
+                    [j*n+col for j in range(9, 4, -1)])
+        for index in boundary:
+            arm_weights[index] = .35
+        # Closely spaced rings through the elbow and wrist. The palm is
+        # flattened across Y, with a small radial thumb lobe, not a new ball.
+        arm_rows = [  # z, x, y, width, depth, thumb
+            (.522, .120, .006, .034, .033, 0),
+            (.511, .123, .006, .034, .032, 0),
+            (.500, .125, .006, .034, .032, 0),
+            (.490, .128, .006, .034, .032, 0),
+            (.481, .130, .006, .033, .031, 0),
+            (.473, .132, .006, .033, .031, 0),
+            (.446, .138, .005, .032, .030, 0),
+            (.430, .141, .004, .031, .030, 0),
+            (.420, .143, .004, .031, .030, 0),
+            (.409, .144, .004, .031, .030, 0),
+            (.398, .146, .002, .030, .029, 0),
+            (.388, .148, .001, .029, .028, 0),
+            (.370, .150, -.001, .028, .027, 0),
+            (.344, .155, -.005, .025, .024, 0),
+            (.326, .158, -.007, .023, .021, 0),
+            (.316, .160, -.008, .023, .019, .001),
+            (.305, .162, -.010, .027, .018, .008),
+            (.295, .163, -.011, .029, .018, .009),
+            (.284, .164, -.012, .029, .018, .003),
+            (.271, .165, -.012, .025, .016, 0),
+            (.264, .165, -.012, .017, .011, 0),
+            (.261, .165, -.012, .007, .005, 0),
+        ]
+        rows = []
+        for z, x, y, rx, ry, thumb in arm_rows:
+            row = []
+            for k in range(24):
+                a = k * 2 * math.pi / 24
+                # Thumb points inward and slightly forward, part of the palm.
+                lobe = thumb * max(0, -sx * math.sin(a)) ** 6
+                row.append((sx*x + (rx+lobe)*math.sin(a),
+                            y - (ry+.25*lobe)*math.cos(a),
+                            z + sx*.18*rx*math.sin(a)))
+            rows.append(row)
+        # Preserve the descending tube's orientation; choose ONLY its phase.
+        # Minimizing over both signs made a shorter, folded socket with the
+        # entire arm turned inside out. A positive whole-body volume missed it.
+        order = min(([((k+shift) % 24) for k in range(24)]
+                     for shift in range(24)),
+                    key=lambda ids: sum((Vector(verts[v])-Vector(rows[0][i])).length_squared
+                                        for v, i in zip(boundary, ids)))
+        prev = boundary
+        for j, points in enumerate(rows):
+            row = list(range(len(verts), len(verts)+24))
+            verts.extend(points[i] for i in order)
+            arm_weights.extend([.75 if j == 0 else .92 if j == 1 else 1.0]*24)
+            for k in range(24):
+                kk = (k+1) % 24
+                faces.append((prev[k], prev[kk], row[kk], row[k]))
+            prev = row
+        faces.append(tuple(reversed(prev)))
+    mesh = bpy.data.meshes.new("Torso")
+    mesh.from_pydata(verts, [], faces)
+    # Persist the socket's topological ownership through subdivision and the
+    # intermediate GLB. Position alone cannot distinguish an inner arm from
+    # the adjacent torso. The full builder consumes this, not the renderer.
+    attr = mesh.attributes.new("_ARM", "FLOAT", "POINT")
+    attr.data.foreach_set("value", arm_weights)
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    # Interior vertices of removed socket patches have no incident faces.
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    # Relax only the socket turn; dense shaft/elbow loops retain their shape.
+    socket = [v for v in bm.verts if .492 < v.co.z < .588 and abs(v.co.x) > .060]
+    for _ in range(6):
+        bmesh.ops.smooth_vert(bm, verts=socket, factor=.45,
+                             use_axis_x=True, use_axis_y=True, use_axis_z=True)
+    body = new_obj("Torso", bm, M["skin"])
+    bpy.data.meshes.remove(mesh)
+    finish_body(body)
+    for value in body.data.attributes["_ARM"].data:
+        value.value = min(1.0, max(0.0, value.value))
+    # Local exterior gate: manifold/Euler/volume alone cannot reject an
+    # inverted lobe on an otherwise outward connected torso.
+    arm_dots = []
+    for v, ownership in zip(body.data.vertices, body.data.attributes["_ARM"].data):
+        if ownership.value < .99 or not .340 < v.co.z < .480:
+            continue
+        hi, lo = next((hi, lo) for hi, lo in zip(arm_rows, arm_rows[1:])
+                      if hi[0] >= v.co.z >= lo[0])
+        t = (hi[0]-v.co.z)/(hi[0]-lo[0])
+        cx = math.copysign(hi[1]*(1-t)+lo[1]*t, v.co.x)
+        cy = hi[2]*(1-t)+lo[2]*t
+        arm_dots.append((v.co.x-cx)*v.normal.x+(v.co.y-cy)*v.normal.y)
+    assert len(arm_dots) > 1000 and min(arm_dots) > .015, "inward/folded arm shaft"
+    print(f"  arm exterior: {len(arm_dots)} samples, min radial dot {min(arm_dots):.6f}")
+    parts.append(body)
 
     # legs (S3) — ONE continuous loft per leg. v2's thigh-sphere + knee
     # bead + calf-sphere read as balloon-animal beads; a lofted profile with
     # monotone radii (kid thigh -> soft knee -> chubby calf -> ankle) has no
     # pinch gaps at all. The knee stays near the bone knee (z 0.152) so the
     # walk script's UpLeg/Leg z-blend still bends it in the right place.
-    hip_x, knee_x, ank_x = 0.0565, 0.0588, 0.0605
     LEG_ROWS = [  # (z, x, y, rx)  [x is the LEFT side; mirrored for right]
+        (0.290, 0.0560, 0.0070, 0.0485),
         (0.278, 0.0560, 0.0070, 0.0485),
         (0.252, 0.0566, 0.0035, 0.0474),
         (0.222, 0.0571, 0.0005, 0.0455),
         (0.192, 0.0578, -0.0030, 0.0425),
         (0.165, 0.0584, -0.0050, 0.0401),
+        (0.154, 0.0586, -0.0045, 0.0400),
         (0.142, 0.0588, -0.0040, 0.0396),
+        (0.130, 0.0590, -0.0020, 0.0400),
         (0.118, 0.0592, 0.0000, 0.0404),
         (0.092, 0.0597, 0.0030, 0.0358),
         (0.068, 0.0601, 0.0040, 0.0284),
-        (0.050, 0.0605, 0.0040, 0.0240),
     ]
     for side, sx in (("L", 1), ("R", -1)):
-        parts.append(loft("Leg" + side,
-                          [ring(sx * x, y, z, rx, 0.90 * rx, 36)
-                           for (z, x, y, rx) in LEG_ROWS],
-                          M["skin"], cap_top=False, cap_bot=True))
+        rows = [ring(sx*x, y, z, rx, .90*rx, 36) for z, x, y, rx in LEG_ROWS]
+        # Same ankle/sole references, one low toe box and rounded heel. These
+        # loops are connected to the calf, not three overlapping ellipsoids.
+        rows += [ring(sx*.0605, y, z, rx, ry, 36) for z, y, rx, ry in (
+            (.058, .002, .0270, .029), (.049, -.011, .031, .046),
+            (.038, -.032, .039, .075), (.025, -.040, .042, .090),
+            (.010, -.040, .041, .090), (.002, -.040, .036, .078),
+            (-.0005, -.040, .030, .065), (-.0005, -.040, .015, .033))]
+        leg = loft("Leg"+side, rows, M["skin"], cap_top=True, cap_bot=True, reverse=True)
+        finish_body(leg)
+        parts.append(leg)
 
-        # BARE FEET (S3 round-2): ~12% longer + wider, a distinct LOW forward
-        # toe box (sole stays on the floor to y -0.121, toes read as a wedge
-        # pointing -Y from every angle) and a rounded heel behind — v2's round
-        # "sock" blob is gone. Ankle join sits under the leg loft (z 0.050).
-        parts.append(ellipsoid("Foot" + side, (0.0420, 0.0780, 0.0295),
-                               (sx * 0.0605, -0.0310, 0.0290), M["skin"],
-                               yaw=sx * math.radians(-6)))
-        parts.append(ellipsoid("FootToe" + side, (0.0400, 0.0365, 0.0245),
-                               (sx * 0.0600, -0.0965, 0.0245), M["skin"],
-                               yaw=sx * math.radians(-6)))
-        parts.append(ellipsoid("FootHeel" + side, (0.0340, 0.0310, 0.0320),
-                               (sx * 0.0610, 0.0225, 0.0320), M["skin"]))
-
-    # ================= SWIMSUIT (suit1 "Sunny One-Piece") ================
-    # v4 (P0) — ONE watertight garment, no tabs. Below the hip line the
-    # cross-section smoothly blends from the torso ellipse into a
-    # figure-8/peanut that wraps BOTH thighs:
-    #   * thigh wraps: radius = leg-loft radius + ~8mm pad, centers
-    #     following the leg axes (same interpolation the old tabs used),
-    #   * front & back crotch: bridged by the torso/pelvis ellipse itself
-    #     (smooth max of torso vs wraps), so EVERY z is a single closed
-    #     ring and no skin can show at the crotch, hem or elsewhere,
-    #   * hem: continuous z 0.212 all around (+ tiny front notch).
-    # The wrap outer radius (~0.110) stays inside the hip ellipse (~0.121),
-    # so the silhouette still PINCHES onto the thighs (no skirt flare) —
-    # replacing v3's suit_pinch hack entirely.
-    HIP_LINE = 0.300           # peanut fully gone at/above
-    BLEND_LO = 0.242           # peanut fully in at/below (blend 0.24..0.285)
-    HEM_Z = 0.212
+    # ================= FULL-COVERAGE SWIMWEAR ===========================
+    # Shared fitted surfaces and binding field for every catalog garment.
+    # The fork is BELOW the pelvis, with fabric across front AND back.
+    N = 48
+    CROTCH_Z = 0.226
 
     def _ss(x):
         x = min(1.0, max(0.0, x))
         return x * x * (3 - 2 * x)
-
-    def suit_rx(z):
-        return interp(z, 1) + 0.008
-
-    def suit_ry(z):
-        return interp(z, 2) + 0.008
 
     # (z, cx, cy, rx) samples of the leg loft (LEG_ROWS above) — the thigh
     # wrap circles ride this axis, so the suit hugs the leg it wraps.
@@ -546,90 +590,26 @@ def main():
                         r1 + (r2 - r1) * t + 0.008)
         return (rows[0][1], rows[0][2], rows[0][3] + 0.008)
 
-    def smax(p, q, k):
-        """smooth max with flat-ish blend band k (metres) — avoids the
-        visible kink where the wrap and torso radii cross."""
-        m = max(p, q)
-        d = abs(p - q)
-        return m + 0.25 * (k - d) if d < k else m
-
     def suit_ring_pt(a, z, pad=0.0):
-        """Single closed cross-section at height z, azimuth a (rad from
-        front -Y). Torso ellipse for z >= HIP_LINE, thigh peanut for
-        z <= BLEND_LO, smoothstep-blend radii in between."""
-        ux, uy = math.sin(a), -math.cos(a)
-        rx = suit_rx(z) + pad
-        ry = suit_ry(z) + pad
-        r = 1.0 / math.sqrt((ux / rx) ** 2 + (uy / ry) ** 2)   # torso ellipse
-        b = _ss((HIP_LINE - z) / (HIP_LINE - BLEND_LO))
-        if b > 1e-6:
-            cx, cy, R = thigh_wrap(z)
-            R += pad
-            rp = 0.0
-            for sgn in (1.0, -1.0):                            # both thighs
-                wx, wy = -sgn * cx, TORSO_CY - cy              # ray origin O
-                hb = -(ux * wx + uy * wy)
-                disc = hb * hb - (wx * wx + wy * wy - R * R)
-                if disc > 0.0:
-                    rp = max(rp, hb + math.sqrt(disc))
-            rp = smax(rp, r, 0.016)      # crotch bridges: never sink inside
-            r = r + b * (rp - r)         # the torso ellipse (closed crotch)
-        return (r * ux, TORSO_CY + r * uy, z)
-
-    srings, limits = [], []
-    N = 48
-    z = HEM_Z
-    while z <= 0.5851:
-        row, lim = [], []
-        for i in range(N):
-            a = i * 2 * math.pi / N
-            row.append(suit_ring_pt(a, z))
-            lim.append((suit_top(a), suit_bot(a)))
-        srings.append(row)
-        limits.append(lim)
-        z += 0.0088
-    suit = loft("Suit", srings, M["suit"], cap_top=False, cap_bot=False)
-    # smooth cut with rim snap (edge follows the exact curve -> no scallop)
-    bm = bmesh.new()
-    bm.from_mesh(suit.data)
-    keep = []
-    for k, v in enumerate(bm.verts):
-        row_i, col_i = divmod(k, N)      # creation order matches the grid
-        top, bot = limits[row_i][col_i]
-        if v.co.z > top + 1e-9 or v.co.z < bot - 1e-9:
-            keep.append(False)
-            if abs(v.co.z - top) < 0.011 or abs(v.co.z - bot) < 0.011:
-                v.co.z = top if abs(v.co.z - top) < 0.011 else bot
-                keep[-1] = True          # snapped exactly onto the edge
-        else:
-            keep.append(True)
-    bad = [v for v, kp in zip(bm.verts, keep) if not kp]
-    bmesh.ops.delete(bm, geom=bad, context="VERTS")
-    bm.to_mesh(suit.data)
-    bm.free()
-    suit.data.update()
-    solidify(suit, 0.006)
-    smooth(suit)
-    parts.append(suit)
-
-    # orange trim tubes (the 2D outline stroke). TrimHem now rides the NEW
-    # continuous ring — one clean loop following the peanut hem (with the
-    # tiny front notch). v3's separate SuitTab/TrimTab meshes are absorbed
-    # into the main suit; nothing hangs below the single watertight loft.
-    def surf_pt(a, z, pad=0.0095):
-        x, y, _ = suit_ring_pt(a, z, pad)
-        return (x, y, z + 0.001)
-
-    tr = [surf_pt(a, suit_top(a)) for a in
-          (i * 2 * math.pi / 40 for i in range(40))]
-    tr.append(tr[0])
-    parts.append(tube("TrimNeckline", tr, [0.0075] * len(tr), M["trim"],
-                      n=10, closed=True, cap_ends=False))
-    tb = [surf_pt(a, suit_bot(a)) for a in
-          (i * 2 * math.pi / 40 for i in range(40))]
-    tb.append(tb[0])
-    parts.append(tube("TrimHem", tb, [0.0075] * len(tb), M["trim"],
-                      n=10, closed=True, cap_ends=False))
+        rx, ry = interp(z, 1) + .006 + pad, interp(z, 2) + .006 + pad
+        if z < .278:
+            cx, cy, radius = thigh_wrap(z)
+            radius += pad
+            # An envelope must enclose BOTH the pelvis and each thigh, not
+            # interpolate between them (which cuts through their overlap).
+            rx, ry = max(rx, cx+radius), max(ry, .94*radius)
+            ux, uy = math.sin(a), -math.cos(a)
+            r = 1/math.sqrt((ux/rx)**2+(uy/ry)**2)
+            for sign in (-1, 1):
+                dx, dy = -sign*cx, TORSO_CY-cy
+                A = ux*ux + (uy/.94)**2
+                B = ux*dx + uy*dy/.94**2
+                C = dx*dx + (dy/.94)**2-radius**2
+                disc = B*B-A*C
+                if disc > 0:
+                    r = max(r, (-B+math.sqrt(disc))/A)
+            return (r*ux, TORSO_CY+r*uy, z)
+        return (rx*math.sin(a), TORSO_CY-ry*math.cos(a), z)
 
     # daisy on the chest (2D center y190 -> z 0.478), v4 (P2): the 2D
     # flower is four SOLID overlapping circles r3.2px (~12mm each) around
@@ -641,7 +621,7 @@ def main():
     dz = 0.478
 
     def daisy_seat(dx, zz, embed):
-        rxp, ryp = interp(zz, 1) + 0.008, interp(zz, 2) + 0.008
+        rxp, ryp = interp(zz, 1) + 0.006, interp(zz, 2) + 0.006
         a = math.asin(max(-0.99, min(0.99, dx / rxp)))
         return (dx, TORSO_CY - ryp * math.cos(a) + embed, zz)
 
@@ -652,24 +632,27 @@ def main():
         parts.append(ellipsoid("DaisyP%d" % k, (0.0115, 0.0080, 0.0115),
                                daisy_seat(ox, dz + oz, 0.0020), M["daisy"]))
 
-    # B5: closed fabric shells using the SAME body/thigh wrap, with trim
-    # integrated into the surface rather than overlapping tubes. The tank
-    # halves meet at the natural waist; the crop leaves a midriff band.
-    def suit_variant(name, variant, bottom, top, shorts=False):
+    from mathutils.bvhtree import BVHTree
+    shoulder_surface = BVHTree.FromObject(body, bpy.context.evaluated_depsgraph_get())
+
+    def suit_variant(name, variant, bottom, top, shorts=False, straps=False, pad=0):
         angles = [i * 2 * math.pi / N for i in range(N)]
         # Shorts branch at the crotch: a shared waist ring becomes two leg
         # rings joined along ONE gusset edge, not a skirt or intersecting tubes.
-        base = (lambda a: 0.278) if shorts else bottom
+        base = (lambda a: CROTCH_Z) if shorts else bottom
         levels = max(3, math.ceil(max(top(a) - base(a) for a in angles) / 0.0088))
         rows = []
         for j in range(levels + 1):
-            rows.append([suit_ring_pt(a, base(a) + (top(a) - base(a)) * j / levels)
+            rows.append([suit_ring_pt(a, base(a) + (top(a) - base(a)) * j / levels, pad)
                          for a in angles])
-        ob = loft(name, rows, M[variant + ("Bottom" if shorts else "Main")])
-        ob.data.materials.append(M[variant + "Trim"])
+        ob = loft(name, rows, M[variant + ("Bottom" if shorts else "Main")] if variant else M["suit"])
+        ob.data.materials.append(M[variant + "Trim"] if variant else M["trim"])
         for poly in ob.data.polygons:
             row = poly.index // N
             poly.material_index = int((row == 0 and not shorts) or row == levels - 1)
+            if variant == "Crop" and not shorts and 1 < row < levels-2:
+                # Citrus catalog's three simple front stripes, same trim slot.
+                poly.material_index = int(poly.index % N in (0, 4, N-5))
         if shorts:
             verts = [tuple(v.co) for v in ob.data.vertices]
             faces = [tuple(p.vertices) for p in ob.data.polygons]
@@ -680,8 +663,8 @@ def main():
                 gusset.append(len(verts))
                 verts.append(tuple(front.lerp(back, j / 8)))
             gusset.append(N // 2)
-            hem = 0.213 if variant == "Tank" else 0.244
-            steps = max(3, math.ceil((0.278 - hem) / 0.0088))
+            hem = bottom(0)
+            steps = max(4, math.ceil((CROTCH_Z - hem) / 0.006))
             for sign in (1, -1):
                 outer = (list(range(N // 2 + 1)) if sign == 1 else
                          list(range(N // 2, N)) + [0])
@@ -690,16 +673,16 @@ def main():
                 prev = first
                 for j in range(1, steps + 1):
                     t = j / steps
-                    z = 0.278 + (hem - 0.278) * t
+                    z = CROTCH_Z + (hem - CROTCH_Z) * t
                     xc, cy, radius = thigh_wrap(z)
-                    start_x, start_y, _ = thigh_wrap(0.278)
+                    start_x, start_y, _ = thigh_wrap(CROTCH_Z)
                     row = []
                     for index in first:
                         p = Vector(verts[index])
                         dx, dy = p.x - sign * start_x, p.y - start_y
                         d = math.hypot(dx, dy)
                         target = Vector((sign * xc + dx / d * radius,
-                                         cy + dy / d * radius, z))
+                                         cy + dy / d * .94*radius, z))
                         p = p.lerp(target, t)
                         p.z = z
                         row.append(len(verts))
@@ -721,14 +704,14 @@ def main():
                 p.material_index = index
         bm = bmesh.new()
         bm.from_mesh(ob.data)
-        if variant == "Tank" and not shorts:
+        if straps:
             # Weld shoulder bridges into the top edge: three true openings
             # (neck and two armholes), not disconnected front/back tabs.
             for sign in (1, -1):
                 bm.verts.ensure_lookup_table()
-                front = [bm.verts[levels * N + (sign * j) % N] for j in range(4, 9)]
+                front = [bm.verts[levels * N + (sign * j) % N] for j in range(5, 9)]
                 back = [bm.verts[levels * N + (N // 2 - sign * j) % N]
-                        for j in range(4, 9)]
+                        for j in range(5, 9)]
                 previous = front
                 for step in range(1, 7):
                     t = step / 6
@@ -736,7 +719,9 @@ def main():
                     if step != 6:
                         for a, b in zip(front, back):
                             p = a.co.lerp(b.co, t)
-                            p.z += 0.010 * math.sin(math.pi * t)
+                            hit, _, _, _ = shoulder_surface.ray_cast(Vector((p.x, p.y, .70)), Vector((0, 0, -1)))
+                            if hit:
+                                p.z = max(p.z, hit.z + .006)
                             row.append(bm.verts.new(p))
                     for j in range(len(row) - 1):
                         face = bm.faces.new((previous[j], previous[j + 1], row[j + 1], row[j]))
@@ -745,26 +730,48 @@ def main():
         bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
         bm.to_mesh(ob.data)
         bm.free()
-        solidify(ob, 0.006)
+        solidify(ob, 0.0025)
         smooth(ob)
         bm = bmesh.new()
         bm.from_mesh(ob.data)
         assert all(e.is_manifold for e in bm.edges), f"{name}: open fabric edge"
         euler = len(bm.verts) - len(bm.edges) + len(bm.faces)
-        expected_euler = -2 if shorts else -4 if variant == "Tank" else 0
+        expected_euler = (-2 if shorts else 0) - (4 if straps else 0)
         assert euler == expected_euler, f"{name}: opening topology {euler}"
         bm.free()
         parts.append(ob)
         print(f"  variant {name}: watertight, Euler {euler}, {len(ob.data.vertices)} verts")
+        if shorts:
+            # Bounded neutral fit gate: cast inward from outside the garment
+            # onto covered pelvis/thigh samples. Negative clearance means skin
+            # protrudes; exclude the intended cuffs, armholes and inner thighs.
+            fabric = BVHTree.FromObject(ob, bpy.context.evaluated_depsgraph_get())
+            clearances = []
+            for skin in [body] + [p for p in parts if p.name in ("LegL", "LegR")]:
+                for v in skin.data.vertices:
+                    if skin == body:
+                        if not .240 < v.co.z < .375 or skin.data.attributes["_ARM"].data[v.index].value > .001:
+                            continue
+                    elif not .216 < v.co.z < .260 or abs(v.co.x) < .030:
+                        continue
+                    normal = v.normal.normalized()
+                    hit, _, _, _ = fabric.ray_cast(v.co+normal*.080, -normal, .160)
+                    if hit:
+                        clearances.append((hit-v.co).dot(normal))
+            assert len(clearances) > 200, f"{name}: insufficient coverage samples"
+            assert min(clearances) > -.0005, f"{name}: pelvis/thigh penetration {min(clearances):.6f}"
+            print(f"  fit {name}: {len(clearances)} samples, min clearance {min(clearances):.6f}")
 
     def tank_top(a):
         # Broad shoulder straps front-to-back, with lower armholes at sides.
-        return 0.514 + 0.050 * math.exp(-((abs(math.sin(a)) - 0.73) / 0.20) ** 2)
+        return (.514 + .050 * math.exp(-((abs(math.sin(a))-.73)/.20)**2)
+                - .022 * math.sin(a)**12)
 
-    suit_variant("Suit_Tank_Vest", "Tank", lambda a: 0.400, tank_top)
-    suit_variant("Suit_Tank_Short", "Tank", suit_bot, lambda a: 0.400, shorts=True)
-    suit_variant("Suit_Crop_Top", "Crop", lambda a: 0.465, lambda a: 0.532)
-    suit_variant("Suit_Crop_Short", "Crop", lambda a: 0.244, lambda a: 0.400, shorts=True)
+    suit_variant("Suit", "", lambda a: .197, lambda a: tank_top(a)+.009, shorts=True, straps=True)
+    suit_variant("Suit_Tank_Vest", "Tank", lambda a: .393, tank_top, straps=True, pad=.002)
+    suit_variant("Suit_Tank_Short", "Tank", lambda a: .197, lambda a: .408, shorts=True)
+    suit_variant("Suit_Crop_Top", "Crop", lambda a: .420, lambda a: tank_top(a)+.003, straps=True, pad=.002)
+    suit_variant("Suit_Crop_Short", "Crop", lambda a: .199, lambda a: .435, shorts=True)
 
     # ================= HAIR (S3 pass) =================
     # Family review fixes: cap SNUG to the skull (no shelf), hairline HIGH
@@ -977,14 +984,15 @@ def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     bpy.ops.export_scene.gltf(
         filepath=OUT, export_format="GLB",
-        use_selection=True, export_apply=True, export_yup=True,
+        use_selection=True, export_apply=True, export_yup=True, export_attributes=True,
     )
     print("EXPORTED", OUT, os.path.getsize(OUT), "bytes,", len(parts), "parts")
 
     for ob in parts:
         if ob.name.startswith(("Suit_Tank_", "Suit_Crop_")):
             ob.hide_render = True
-    debug_renders()
+    if not os.environ.get("LILY_SKIP_PREVIEWS"):
+        debug_renders()
 
 
 def remap_uv_position(ob, x0, x1, z0, z1, clamp=False):

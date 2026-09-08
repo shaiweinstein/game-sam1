@@ -19,12 +19,11 @@
      float→Swim at a slow crawl + gentle bob (face-down treading)
      ride→Sit · surf→SurfRide (pre-wired for B3/B4, clips cached)
 
-   Root-lift (B0 note): the Walk clip's deepest sole contact is
-   −0.144 m and Idle's −0.016 m — the model node is lifted per
-   stance so the deepest touch lands exactly on the sand surface
-   (she never clips through it). Land/water heights share ONE eased
-   root-y channel, so wade→swim sinks and swim→wade rises
-   continuously (no snapping) while the clip crossfades.
+   Land contact is measured AFTER animation blending, using a small
+   support set cached from the loaded foot skin and Idle/Walk clips.
+   The lowest sole follows sand at its own x/z, not a clip-wide lift
+   at the hips. Water transitions retain an eased root-y channel;
+   attached boat/surf heights bypass ground contact entirely.
 
    B2 sea reach: the B1 shore clamp is GONE — the sea is playable
    to the deep-edge margin SEA_DEEP_Z. In the sea she glides:
@@ -104,15 +103,16 @@ const GLIDE_RATE = 5.0, GLIDE_STOP_SPEED = 0.05;
 /* shared eased root-y + clip crossfade for the wade↔swim sink/rise
    (≈0.3 s to be visually seamless, spec 0.25–0.35 s). */
 const ROOT_Y_RATE = 9.0, CROSSFADE = 0.30;
+const SOLE_CLEARANCE = 0.003;
 /* the one 2D water talk line (js/beach-boat.js disembark — same
    event: dropping INTO the sea with a splash). */
 const SPLASH_TALK = "Splash! 🌊";
 
 /* stance → { clip, timeScale at full speed, root-lift m, water, bob } */
 const STANCES = {
-  stand: { clip: "Idle", ts: 1.00, lift: 0.017 },
-  walk:  { clip: "Walk", ts: 1.00, lift: 0.145 },
-  wade:  { clip: "Walk", ts: 0.80, lift: 0.145 },
+  stand: { clip: "Idle", ts: 1.00 },
+  walk:  { clip: "Walk", ts: 1.00 },
+  wade:  { clip: "Walk", ts: 0.80 },
   swim:  { clip: "Swim", ts: 1.00, water: true },
   float: { clip: "Swim", ts: FLOAT_TS, water: true, bob: true },
   /* pre-wired for B3/B4 — one line each, clips already cached: */
@@ -147,6 +147,59 @@ function foamBreakTexture() {
 }
 
 function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+
+/* Load-time only: find the actual skinned support vertices in 48 poses of
+   each land clip, against nine slope normals spanning the shore ramp at any
+   yaw. No archived indices, bone-origin soles, or per-tick mesh scan.
+   At most 2 clips * 48 poses * 9 normals * 2 feet survive, usually far fewer.
+   Keep their real skin weights: blended poses are evaluated live, not looked
+   up in a phase curve. The temporary mixer restores the untouched rest pose. */
+function cacheSoleSupport(root, clips) {
+  const feet = [[], []];
+  root.traverse(mesh => {
+    if (!mesh.isSkinnedMesh) return;
+    const { skinIndex, skinWeight } = mesh.geometry.attributes;
+    const sides = mesh.skeleton.bones.map(b =>
+      /Left(Foot|Toe)/.test(b.name) ? 0 : /Right(Foot|Toe)/.test(b.name) ? 1 : -1);
+    for (let i = 0; i < skinIndex.count; i++) {
+      const weights = [0, 0];
+      for (let j = 0; j < 4; j++) {
+        const side = sides[skinIndex.getComponent(i, j)];
+        if (side >= 0) weights[side] += skinWeight.getComponent(i, j);
+      }
+      for (let side = 0; side < 2; side++) {
+        if (weights[side] >= 0.5) feet[side].push({ mesh, index: i });
+      }
+    }
+  });
+  const sampler = new THREE.AnimationMixer(root);
+  const support = new Set(), p = new THREE.Vector3();
+  const slopes = [];
+  for (const x of [-0.35, 0, 0.35]) for (const z of [-0.35, 0, 0.35]) slopes.push([x, z]);
+  for (const clip of clips) {
+    if (clip.name !== "Idle" && clip.name !== "Walk") continue;
+    const action = sampler.clipAction(clip).play();
+    for (let frame = 0; frame < 48; frame++) {
+      action.time = clip.duration * frame / 48;
+      sampler.update(0);
+      root.updateMatrixWorld(true);
+      for (const candidates of feet) {
+        const heights = slopes.map(() => Infinity), lowest = [];
+        for (const candidate of candidates) {
+          candidate.mesh.getVertexPosition(candidate.index, p).applyMatrix4(candidate.mesh.matrixWorld);
+          for (let s = 0; s < slopes.length; s++) {
+            const h = p.y + p.x * slopes[s][0] + p.z * slopes[s][1];
+            if (h < heights[s]) { heights[s] = h; lowest[s] = candidate; }
+          }
+        }
+        for (const candidate of lowest) support.add(candidate);
+      }
+    }
+    action.stop();
+  }
+  sampler.uncacheRoot(root);
+  return [...support];
+}
 
 /* fx (optional): { splash(x, z), talk(text) } — waterline splash
    VFX + speech hook, wired by beach3d.js to world.splash and
@@ -196,13 +249,11 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
     moving: false,
     stance: "stand",
     zone: zoneAt(WORLD.rest.x, WORLD.rest.z),
-    lift: STANCES.stand.lift,
     speed01: 1,
-    /* B2: smoothed world velocity (sea glide) + the single eased
-       root height shared by land (sandY+lift) and water (surface−
-       sink) so every height change lerps, never snaps. */
+    /* B2 sea glide and shared root height. Ground contact follows the
+       blended pose; water entry/exit eases without lagging the land gait. */
     vx: 0, vz: 0,
-    rootY: sandY(WORLD.rest.x, WORLD.rest.z) + STANCES.stand.lift,
+    rootY: sandY(WORLD.rest.x, WORLD.rest.z),
     snapY: false,                           /* teleport → plant instantly */
     foam: 0                                 /* waterline break fade 0..1 */
   };
@@ -215,6 +266,9 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
   let rideDriven = false, ridePaddling = false;
   let rideStance = "ride", rideSurfaceY = null;
   let lastWaveT = 0;
+  let soleSupport = [];
+  const solePoint = new THREE.Vector3();
+  let groundOffset = 0; // only water/ride exits ease; never lag the land gait
   const materials = new Map();
   const suitMeshes = { one: [], tank: [], crop: [] };
   let bakedFace = null;
@@ -240,12 +294,6 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
       if (suitKey === key) return true;
       for (const [name, meshes] of Object.entries(suitMeshes)) {
         for (const mesh of meshes) mesh.visible = name === group;
-      }
-      // The original torso loft has inward faces, previously covered by the
-      // one-piece. Render both sides when the crop exposes that midriff.
-      for (const m of materials.get("skin") || []) {
-        const side = group === "crop" ? THREE.DoubleSide : THREE.FrontSide;
-        if (m.side !== side) { m.side = side; m.needsUpdate = true; }
       }
       const prefix = group === "one" ? "suit" : group === "tank" ? "suitTank" : "suitCrop";
       recolor(prefix + "Main", colors.main, true);
@@ -313,6 +361,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
           parent = parent.parent;
         }
       });
+      soleSupport = cacheSoleSupport(gltf.scene, gltf.animations);
       model.add(gltf.scene);
       mixer = new THREE.AnimationMixer(gltf.scene);
       for (const clip of gltf.animations) {
@@ -367,11 +416,9 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
   function applyTimeScale() {
     if (!ready || !current) return;
     if (reducedMotion()) {
-      /* A frozen mixer cannot finish crossfades into/out of a ride. */
-      if (rideDriven || loco.stance === "ride") {
-        for (const a of Object.values(actions)) if (a !== current.action) a.stop();
-        current.action.stopFading().setEffectiveWeight(1);
-      }
+      /* A frozen mixer cannot finish a crossfade, on land or on a ride. */
+      for (const a of Object.values(actions)) if (a !== current.action) a.stop();
+      current.action.stopFading().setEffectiveWeight(1);
       current.action.setEffectiveTimeScale(0);
       return;
     }
@@ -415,7 +462,10 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
     next.reset();
     next.setEffectiveWeight(1);
     next.play();
-    if (current) current.action.fadeOut(CROSSFADE);
+    if (current) {
+      current.action.fadeOut(CROSSFADE);
+      next.fadeIn(CROSSFADE);
+    }
     current = { clipName: cfg.clip, action: next };
     applyTimeScale();
     parkIfNeeded();
@@ -530,6 +580,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
     const t = tNow || 0;
     lastWaveT = t;
     if (rideDriven) {
+      groundOffset = null;
       loco.rootY = rideSurfaceY === null
         ? waterSurfaceY(loco.x, loco.z, t) + STANCES[rideStance].lift
           + Math.sin(t * Math.PI * 2 * 0.55 + 1.3) * 0.03
@@ -560,24 +611,42 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
       setStance(loco.zone === "sea" ? "float" : "stand");
     }
 
-    /* ONE eased root-height channel: land stances plant on the sand
-       (surface + eased lift), water stances ride the animated
-       surface at the SWIM_SINK mid-torso waterline, float adds the
-       gentle bob (frozen with the wave clock under reduced motion).
-       Crossings between the two therefore sink/rise smoothly —
-       wade→swim dives, swim→wade rises at the waterline, nothing
-       ever snaps or teleports. */
+    applyTimeScale();
+    mixer.update(reducedMotion() ? 0 : dt);
+    mixRoot.position.set(loco.x, 0, loco.z);
+    mixRoot.rotation.y = loco.yaw;
+
+    /* Resolve the blended skin, not either source clip. Translate only Y:
+       the swing foot retains its authored clearance, and support can pass
+       between heel/toe/feet without a planting latch or a yaw-dependent pop. */
     const cfg = stanceCfg();
-    loco.lift += ((cfg.lift || 0) - loco.lift) * (1 - Math.exp(-12 * dt));
     const gy = sandY(loco.x, loco.z);
     const surf = waterSurfaceY(loco.x, loco.z, t);
     const bob = (cfg.bob && !reducedMotion())
       ? BOB_AMP * Math.sin(t * 2 * Math.PI * BOB_HZ) : 0;
-    const targetY = cfg.water ? surf - SWIM_SINK + bob : gy + loco.lift;
-    if (loco.snapY) { loco.rootY = targetY; loco.snapY = false; }
-    else loco.rootY += (targetY - loco.rootY) * (1 - Math.exp(-ROOT_Y_RATE * dt));
-    mixRoot.position.set(loco.x, 0, loco.z);
-    mixRoot.rotation.y = loco.yaw;
+    let targetY = surf - SWIM_SINK + bob;
+    if (!cfg.water) {
+      targetY = -Infinity;
+      mixRoot.updateMatrixWorld(true);
+      for (const { mesh, index } of soleSupport) {
+        mesh.getVertexPosition(index, solePoint).applyMatrix4(mesh.matrixWorld);
+        targetY = Math.max(targetY, sandY(solePoint.x, solePoint.z) - solePoint.y);
+      }
+      targetY = Number.isFinite(targetY) ? targetY + model.position.y + SOLE_CLEARANCE : gy;
+    }
+    const ease = 1 - Math.exp(-ROOT_Y_RATE * dt);
+    if (loco.snapY) {
+      loco.rootY = targetY; loco.snapY = false; groundOffset = 0;
+    } else if (cfg.water) {
+      loco.rootY += (targetY - loco.rootY) * ease;
+      groundOffset = null;
+    } else {
+      // Ease only the entry mismatch, not the changing sole height: damping
+      // the latter reintroduces sinking/hover during each half of the stride.
+      if (groundOffset === null) groundOffset = loco.rootY - targetY;
+      groundOffset *= 1 - ease;
+      loco.rootY = targetY + groundOffset;
+    }
     model.position.y = loco.rootY;
     shadow.position.set(loco.x, gy + 0.008, loco.z);
 
@@ -592,9 +661,6 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
        seabed metres below; the water hides it anyway — fade it out
        early so nothing dark bleeds through the translucent plane) */
     shadow.visible = zoneAt(loco.x, loco.z) !== "sea";
-
-    applyTimeScale();
-    mixer.update(reducedMotion() ? 0 : dt);
   }
 
   /* ---------- locomotion public surface (mirrors BeachGame) ---------- */
@@ -620,6 +686,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
       if (!ready || ![x, z, yaw].every(Number.isFinite)) return false;
       if (!STANCES[stance] || (surfaceY !== null && !Number.isFinite(surfaceY))) return false;
       rideDriven = true;
+      groundOffset = null;
       rideStance = stance; rideSurfaceY = surfaceY;
       loco.x = x; loco.z = z; loco.yaw = loco.yawTarget = yaw;
       loco.zone = "sea";
@@ -740,6 +807,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
       disposed = true;
       ready = false;
       if (mixer) mixer.stopAllAction();
+      soleSupport = [];
       disposeMeshes(model);
       scene.remove(mixRoot);
       scene.remove(shadow);
@@ -755,7 +823,8 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
       loco.target = null; loco.targetSrc = null;
       loco.enabled = true; loco.moving = false;
       loco.vx = loco.vz = 0; loco.speed01 = 1;
-      loco.rootY = sandY(loco.x, loco.z) + STANCES.stand.lift;
+      loco.rootY = sandY(loco.x, loco.z);
+      groundOffset = 0;
       loco.snapY = true;
       loco.zone = zoneAt(loco.x, loco.z);
       if (ready) {
