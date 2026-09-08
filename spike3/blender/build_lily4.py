@@ -2,7 +2,8 @@
 """Lily v4: shared childlike body and full-coverage swimwear.
 Connected shoulder/neck/mitten topology, supported limb bends and continuous
 bare feet; garments have shoulder bridges and two real leg openings.
-Head, face UVs, hair and rig proportions are preserved. Historical notes:
+Head, face UVs and rig proportions are preserved. Six wardrobe hair variants
+use separate Hair_hair1..6 parts on the shared rig. Historical notes:
 
 Run:  blender --background --python spike3/blender/build_lily4.py
 Out:  spike3/assets/lily4.glb   (neutral A-pose, no animation)
@@ -388,6 +389,8 @@ def main():
         "skin":  mat("skin", PALETTE["skin"]),
         "hair":  mat("hairMain", PALETTE["hair"]),
         "hair2": mat("hairShade", PALETTE["hair2"]),
+        "tie": mat("hairTie", (0xFF, 0x8F, 0xB8)),
+        "tie2": mat("hairTieShade", (0xD9, 0x56, 0x8A)),
         "suit":  mat("suitMain", PALETTE["suit"]),
         "trim":  mat("suitTrim", PALETTE["trim"]),
         "daisy": mat("daisyPetal", PALETTE["daisy"]),
@@ -773,208 +776,135 @@ def main():
     suit_variant("Suit_Crop_Top", "Crop", lambda a: .420, lambda a: tank_top(a)+.003, straps=True, pad=.002)
     suit_variant("Suit_Crop_Short", "Crop", lambda a: .199, lambda a: .435, shorts=True)
 
-    # ================= HAIR (S3 pass) =================
-    # Family review fixes: cap SNUG to the skull (no shelf), hairline HIGH
-    # so the bangs band is its own visible fringe, locks FLUSH to the
-    # cheeks (no antler gaps), mantle LONG and following head->nape->back
-    # with a soft rounded-U hem and an integrated hairShade outline rim.
-    # Everything stays a parametric grid shell (smooth rims, no cut edges,
-    # no color changes: hairMain #8a5a3a + hairShade #5e3a22 only).
+    # ================= WARDROBE HAIR =================
+    # js/character.js is the silhouette reference. A complete scalp shell
+    # belongs to EVERY style, including the exposed nape of tied-up hair.
+    # Hair_ prefix/ID and the Curtain/Tail suffixes are binding contracts.
+    def hair_surface(name, fn, rows, cols, material, wrap=True):
+        ob = shell(name, fn, rows, cols, material, solid=0, wrap=wrap)
+        bm = bmesh.new(); bm.from_mesh(ob.data)
+        bmesh.ops.remove_doubles(bm, verts=list(bm.verts), dist=1e-6)
+        bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
+        # All scalp patches face away from the unchanged head center.
+        if sum(f.normal.dot(f.calc_center_median()-HEAD_C) for f in bm.faces) < 0:
+            bmesh.ops.reverse_faces(bm, faces=list(bm.faces))
+        bm.to_mesh(ob.data); bm.free()
+        solidify(ob, .004)
+        return ob
 
-    # --- skull cap: ~3mm over the skull, rim from a high front hairline
-    # (44deg polar, hidden behind the fringe) sweeping down the temples to
-    # just above/behind the ear (76deg at the side) to the nape (102).
-    # The old exponent-1.35 profile kept the side rim at 64deg -> a bald
-    # skin patch showed on the temple in side/3-4 views.
-    CAPR = (0.220, 0.210, 0.202)
-    CAPC = (0.0, 0.006, 0.797)
+    for style in range(1, 7):
+        prefix = f"Hair_hair{style}_"
+        hair = []
+        radii = (.227, .217, .205)
+        center = (0, 0, .796)
 
-    def cap_edge(phi):
-        # exponent 0.22: hairline stays HIGH over the forehead (44deg) but
-        # the rim dives to the equator/just past it at the SIDES (89-96deg)
-        # and nape (104). Ray-casts proved the 0.55/0.85 curves left a bare
-        # temple shelf between cap rim and fringe/locks in side views. The
-        # below-equator rim lip (azimuth 70-110) is overgrown by the mantle
-        # top edge (starts at cap radius +2mm), so no side shelf reads.
-        # B2-swim2: the head-up freestyle Swim turns the face up to grazing
-        # angles, so dip the SIDE rim ~5deg further below the equator
-        # (sin^2 peaks at the +/-X sides, zero at front/nape) for margin so
-        # no pale skin reads as a "bald crescent" from the follow-cam. The
-        # mantle top (cap_edge - 7deg) follows automatically.
-        bump = 5.0 * math.sin(phi) ** 2
-        return deg(44 + 60 * ((1 - math.cos(phi)) / 2) ** 0.22 + bump)
+        def edge(p):
+            a = abs(math.atan2(math.sin(p), math.cos(p)))
+            # Smooth, higher bob fringe; a gentle asymmetric sweep for ties.
+            front = 68 if style == 3 else 73
+            if style in (4, 5):
+                front = 70 + 6*math.sin(p)
+            if style == 6:
+                front = 72 + 4*(.5+.5*math.cos(14*p))
+            t = min(1, a/deg(72))
+            if a <= deg(72):
+                return deg(front + (103-front)*t**2.6)
+            return deg(103 + 62*((a-deg(72))/deg(108))**.6)
 
-    cap = shell("HairCap",
-                lambda s, p: head_pt(s * cap_edge(p), p, CAPR, CAPC),
-                [i / 39 for i in range(40)],
-                [i * 2 * math.pi / 72 for i in range(72)],
-                M["hair"], solid=0.013)
-    parts.append(cap)
+        def scalp(s, p):
+            return head_pt(s*edge(p), p, radii, center)
 
-    # --- bangs: the fringe, laid OVER the cap like real hair. The shell is
-    # slightly larger than the cap; its radial scale starts buried in the
-    # cap wall (crossing the cap outer face exactly AT the rim, t=44), so
-    # there is no shelf and no seam arc across the forehead — the fringe
-    # simply emerges from the skull hair and ends just above the brows.
-    # The edge carries a gentle 4-arc cosine ripple -> 5 soft points.
-    BR = (0.228, 0.220, 0.210)
-    BC = (0.0, 0.0, 0.796)
+        hair.append(hair_surface(prefix+"Scalp", scalp,
+            [i/24 for i in range(25)], [i*math.tau/64 for i in range(64)], M["hair"]))
+        # A narrow closed outline follows the fringe, never a second slab.
+        path = [head_pt(edge(p), p, (.228, .218, .206), center)
+                for p in [-deg(72)+i*deg(144)/48 for i in range(49)]]
+        hair.append(tube(prefix+"Fringe", path, [.0028]*len(path), M["hair2"], n=8))
 
-    # radial ramp tuned so the shell crosses the cap's OUTER surface at
-    # t ~= 42 deg = right at the front cap rim (44): no recessed seam band
-    # across the forehead, the fringe simply grows out of the skull hair.
-    def bangs_r(t):
-        return 0.925 + 0.00054 * math.degrees(t)
+        if style == 1:
+            path = [head_pt(deg(18+i*53/16), 0, (.228, .219, .207), center) for i in range(17)]
+            hair.append(tube(prefix+"Part", path, [.0022]*len(path), M["hair2"], n=8))
 
-    def bangs_edge(phi):
-        # ends JUST above the eyes (eye z ~0.813; edge center z ~0.84),
-        # 3-4 gentle scallops (S3 round-2: raised 2.4->3.2deg, so the fringe
-        # edge visibly undulates instead of reading as a flat wall);
-        # sweeps down along the hairline to the temple (phi 76) where it
-        # meets the cap rim / lock curtain seam-to-seam.
-        base = deg(76) + deg(6) * (abs(phi) / deg(76)) ** 1.5
-        return base + deg(3.2) * (1.0 + math.cos(8.2 * phi)) / 2.0
+        if style in (1, 3):
+            # Two broad side curtains, rather than the old waist-long back
+            # board. Their top follows the skull; below the jaw they fall
+            # outside the shoulders, with soft tucked, rounded tips.
+            for side in (-1, 1):
+                def curtain(u, v, side=side):
+                    phi = side*deg(55+100*v)
+                    ztop = .90
+                    bottom = (.35 if style == 1 else .53) + .055*(2*v-1)**2
+                    z = ztop+(bottom-ztop)*u
+                    skull = math.sqrt(max(.01, 1-((z-.796)/.210)**2))
+                    hang = max(0, (.70-z)/(.70-bottom))
+                    spread = min(1, max(0, (.89-z)/.19))
+                    radius = .242 if style == 1 else .195
+                    rx = max(.232*skull, spread*(radius+.010*math.sin(hang*math.pi)-.006*hang))
+                    ry = max(.222*skull, spread*(.155 if style == 1 else .130))
+                    return (side*abs(rx*math.sin(phi)), -ry*math.cos(phi), z)
+                hair.append(hair_surface(prefix+f"Curtain{side}", curtain,
+                    [i/24 for i in range(25)], [i/20 for i in range(21)], M["hair"], wrap=False))
+                path = [curtain(1, i/24) for i in range(25)]
+                hair.append(tube(prefix+f"CurtainHem{side}", path, [.003]*25, M["hair2"], n=8))
 
-    def bangs_pt(t, phi, extra=0.0):
-        k = bangs_r(t) + extra
-        return head_pt(t, phi, (BR[0] * k, BR[1] * k, BR[2] * k), BC)
+        def curl(tag, pos, radius, stretch=(1, 1, 1)):
+            hair.append(ellipsoid(prefix+tag, tuple(radius*k for k in stretch), pos,
+                                  M["hair"], seg_u=24, seg_v=16))
 
-    b_cols = [-deg(76) + i * (2 * deg(76)) / 60 for i in range(61)]
-    parts.append(shell("Bangs",
-                       lambda s, p: bangs_pt(deg(24) + s * (bangs_edge(p) - deg(24)), p),
-                       [i / 33 for i in range(34)], b_cols,
-                       M["hair"], solid=0.006, wrap=False))
+        if style == 2:
+            # Catalog circles at (62/238,140) and (70/230,178): low, lateral
+            # pigtails with distinctly smaller curls underneath, not buns.
+            for side in (-1, 1):
+                curl(f"Pigtail{side}", (side*.300, .018, .665), .108, (1, .85, 1.06))
+                curl(f"LowerCurl{side}", (side*.280, .012, .535), .065)
+                for j, (x, y, z) in enumerate(((.29,-.020,.716),(.354,.018,.675),(.30,.072,.631))):
+                    curl(f"Lobe{side}_{j}", (side*x,y,z), .058)
 
-    # hairShade stroke along the fringe edge (2D outline analogue) — hugging
-    # the very bottom of the fringe (+2.5mm proud); a wider/higher band read
-    # as a stray seam line across the bangs instead of an outline
-    def bangs_shade_pt(t, phi):
-        return bangs_pt(t, phi, extra=0.0025)
+        if style == 4:
+            # One high pony on the viewer's right, sweeping outward before
+            # tapering back toward the shoulder; fixed catalog-pink tie.
+            rings = []
+            for j in range(33):
+                u = j/32
+                x = .174 + .151*math.sin(u*math.pi*.83)
+                y = .058 + .023*math.sin(u*math.pi)
+                z = .950 - .525*u
+                r = .012 + .056*math.sin(math.pi*u)**.65
+                rings.append(ring(x,y,z,r,.80*r,24))
+            hair.append(loft(prefix+"Tail", rings, M["hair"], cap_top=True, cap_bot=True, reverse=True))
 
-    parts.append(shell("BangsShade",
-                       lambda s, p: bangs_shade_pt(
-                           bangs_edge(p) - 0.013 + s * 0.014, p),
-                       [0.0, 0.5, 1.0], b_cols,
-                       M["hair2"], solid=0.002, wrap=False))
+        if style == 5:
+            for side in (-1, 1):
+                curl(f"Bun{side}", (side*.203, .005, .992), .094, (1, .90, 1))
 
-    # --- side locks (S3): FLUSH CHEEK CURTAINS, not ropes. A thin solid
-    # shell strip riding the skull surface (top row buried under the cap),
-    # its azimuth following the face outline temple(63deg) -> jaw(101deg),
-    # its half-width tapering 10deg -> 3deg, ending at chin-to-neck level.
-    # Never crosses in front of the face -> cannot occlude it in 3/4 views,
-    # and with zero sky-gap off the cheek it reads like the 2D curtains.
-    for side, sx in (("L", 1), ("R", -1)):
-        # Ray-cast audit drove this shape: the curtain's INNER edge and
-        # OUTER edge sweep back at different rates (inner lags), so the
-        # strip stays on the face rim (2D hair boundary x~0.155+ => azimuth
-        # >=34 rising slowly) all the way to the jaw, then tucks behind it.
-        # inner(u) 34->70 deg, outer(u) 66->96 deg, polar 40->166 deg.
-        # Inner edge never passes azimuth 34 at the top -> eyes/blush free.
-        # S3 round-2: 2D curtains extend well PAST the jaw, hanging to the
-        # waist beside the torso. Compress the on-skull sweep (40->166deg)
-        # into the first 78% of u, then drape the rest straight down: out
-        # beside the ribcage, slightly forward, tips near z 0.44.
-        def lock_pt(u, v, sx=sx):
-            tt = min(u, 0.78) / 0.78
-            t = deg(40) + deg(126) * tt            # polar: under-cap -> jaw
-            inn = deg(34) + deg(36) * tt ** 1.3
-            out = deg(66) + deg(30) * tt ** 1.2
-            phi = sx * (inn + (out - inn) * (1.0 + v) / 2.0)
-            # ride the skull within ~2mm — a mid bulge left the curtain
-            # floating off the cheek with a visible sky gap in side view
-            k = 1.0 + 0.010 * math.sin(math.pi * min(tt, 0.92))
-            pt = Vector(head_pt(t, phi, (0.2235 * k, 0.2155 * k, 0.2045 * k), BC))
-            hang = max(0.0, (u - 0.78) / 0.22)
-            pt.x *= 1.0 + 1.25 * hang              # flare beside the torso
-            pt.y -= 0.018 * hang                   # lie in front of shoulder
-            pt.z -= 0.16 * hang ** 1.1             # tip at waist level
-            return pt
-        parts.append(shell("HairLock" + side, lock_pt,
-                           [i / 23 for i in range(24)],
-                           [-1.0 + 2.0 * j / 9 for j in range(10)],
-                           M["hair"], solid=0.0045, wrap=False))
+        if style in (4, 5):
+            positions = [(.177,-.006,.943)] if style == 4 else [(-.157,-.057,.940),(.157,-.057,.940)]
+            for j,pos in enumerate(positions):
+                hair.append(ellipsoid(prefix+f"TieRim{j}", (.032,.019,.029), pos,
+                    M["tie2"], seg_u=20, seg_v=12))
+                hair.append(ellipsoid(prefix+f"Tie{j}", (.026,.017,.023),
+                    (pos[0],pos[1]-.008,pos[2]), M["tie"], seg_u=20, seg_v=12))
 
-    # --- back mantle: one surface defined by head/back cross-sections
-    # Xp(z)/Yp(z) (snug on the skull, then hugging nape/neck/upper back -
-    # no board protrusion, no nape gap). Hem zb(az) is a wide soft U:
-    # z 0.315 at center (to the seat line, like the 2D), z 0.49 at the
-    # sides (near the jaw) - no chevron point. Hem tucks slightly toward
-    # the body.
-    def pwi(pts, z):
-        if z >= pts[0][0]:
-            return pts[0][1]
-        if z <= pts[-1][0]:
-            return pts[-1][1]
-        for (z1, v1), (z2, v2) in zip(pts, pts[1:]):
-            if z2 <= z <= z1:
-                return v1 + (v2 - v1) * (z1 - z) / (z1 - z2)
-        return pts[-1][1]
+        if style == 6:
+            # Rounded cloud perimeter from the nine catalog curls. Rear
+            # volume stays behind the face rather than piling balls on eyes.
+            for j,(x,z,r) in enumerate(((0,1.015,.082),(-.178,.977,.079),(.178,.977,.079),
+                    (-.270,.812,.078),(.270,.812,.078),(-.254,.649,.073),(.254,.649,.073),
+                    (-.178,.551,.065),(.178,.551,.065))):
+                curl(f"Cloud{j}", (x,.065,z), r, (1,1.40,1))
+            for j,(x,z,r) in enumerate(((-.13,.884,.12),(.13,.884,.12),
+                    (-.13,.697,.11),(.13,.697,.11),(0,.797,.14))):
+                curl(f"BackCurl{j}", (x,.176,z), r, (1,.72,1))
 
-    def _head_st(z):   # same ellipsoid family as the skull, +7mm
-        u = (z - 0.795) / 0.206
-        return math.sqrt(max(0.02, 1.0 - min(1.0, u * u)))
-
-    # X/Y half-extents: max of the skull ellipsoid (so the mantle is flush
-    # with the back of the head/cap above the nape — no nape gap) and a
-    # drape profile (so it does NOT keep collapsing inward with the skull:
-    # hair bridges the nape and hangs ~2-3cm off the upper back — no board).
-    # The two branches cross near z 0.64 with similar slopes -> smooth fold.
-    def mant_Xp(z):
-        return max(0.221 * _head_st(z),
-                   pwi(((0.645, 0.150), (0.58, 0.148), (0.50, 0.149),
-                        (0.42, 0.151), (0.28, 0.153)), z))
-
-    def mant_Yp(z):
-        return max(0.006 + 0.212 * _head_st(z),
-                   pwi(((0.645, 0.149), (0.61, 0.126), (0.56, 0.112),
-                        (0.48, 0.104), (0.40, 0.100), (0.28, 0.097)), z))
-
-    AZM = 121.0                      # mantle spans +/-121deg from back center
-                                     # (= azimuth 59 from front): wraps past
-                                     # the locks to the temple like the 2D
-                                     # curtains -> no skin wedge in side view
-
-    def mant_zt(az):                 # starts 7deg INSIDE the cap rim
-        A = math.radians(180.0 - abs(az))
-        tr = max(deg(16), cap_edge(A) - deg(7))
-        return CAPC[2] + CAPR[2] * math.cos(tr)
-
-    def mant_zb(az):                 # soft wide U hem (no chevron)
-        return 0.315 + 0.175 * (abs(az) / AZM) ** 1.6
-
-    def mantle_pt(az, s, off=0.0):   # az in degrees, signed; off = outward mm
-        A = math.radians(180.0 - az)
-        zt, zb = mant_zt(az), mant_zb(az)
-        z = zt + (zb - zt) * s ** 0.92
-        # NOTE: a z>0.70 "tuck" here pulled the surface INSIDE the skull
-        # around the ears (bare skin band showed through in side views).
-        # The mantle must stay on/above the cap radius everywhere; only the
-        # hem (z<0.44) tucks toward the back.
-        x = (mant_Xp(z) + off) * math.sin(A)
-        y = 0.004 - (mant_Yp(z) + off) * math.cos(A)
-        y -= 0.020 * max(0.0, (0.44 - z) / 0.16) * (1.0 - 0.4 * abs(math.sin(A)))
-        return (x, y, z)
-
-    az_cols = [-AZM + i * 2 * AZM / 46 for i in range(47)]
-    p_cols = [math.radians(180.0 - a) for a in az_cols]
-    parts.append(shell("HairBack",
-                       lambda s, p: mantle_pt(math.degrees(math.pi - p), s),
-                       [i / 27 for i in range(28)], p_cols,
-                       M["hair"], solid=0.013, wrap=False))
-
-    # hairShade hem band: the LAST slice of the same surface (rows from
-    # s=0.92 to ~1.01, only 2mm proud) -> a thin dark stroke exactly on the
-    # hem like the 2D outline. It must not extend past the mantle anywhere
-    # (v1/v2 dark notches), so it shares every profile function.
-    def shade_pt(az, s):
-        # never crosses s=1.0 (the mantle hem itself) — going past it made
-        # a dark lip hang below the hem in side view
-        return mantle_pt(az, 0.885 + 0.115 * s, off=0.002)
-
-    parts.append(shell("HairBackShade",
-                       lambda s, p: shade_pt(math.degrees(math.pi - p), s),
-                       [0.0, 0.5, 1.0], p_cols[2:-2],
-                       M["hair2"], solid=0.002, wrap=False))
+        # Closed outward components, finite geometry; no DoubleSide shortcut.
+        for ob in hair:
+            bm = bmesh.new(); bm.from_mesh(ob.data)
+            bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
+            assert all(e.is_manifold for e in bm.edges), f"open hair: {ob.name}"
+            assert bm.calc_volume(signed=True) > 0, f"inward hair: {ob.name}"
+            bm.to_mesh(ob.data); bm.free()
+            smooth(ob)
+        parts.extend(hair)
 
     # ================= export =================
     bpy.ops.object.select_all(action="DESELECT")
@@ -989,7 +919,8 @@ def main():
     print("EXPORTED", OUT, os.path.getsize(OUT), "bytes,", len(parts), "parts")
 
     for ob in parts:
-        if ob.name.startswith(("Suit_Tank_", "Suit_Crop_")):
+        if ob.name.startswith(("Suit_Tank_", "Suit_Crop_")) or (
+                ob.name.startswith("Hair_") and not ob.name.startswith("Hair_hair1_")):
             ob.hide_render = True
     if not os.environ.get("LILY_SKIP_PREVIEWS"):
         debug_renders()

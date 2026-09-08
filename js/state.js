@@ -33,6 +33,7 @@
   const DEFAULTS = {
     energy: 50,
     characterId: "lily",
+    swimStyle: "head-up",
     outfit: {
       hair: "hair1",
       top: "top1",
@@ -59,6 +60,7 @@
     return {
       energy: DEFAULTS.energy,
       characterId: DEFAULTS.characterId,
+      swimStyle: DEFAULTS.swimStyle,
       outfit: Object.assign({}, DEFAULTS.outfit),
       location: Object.assign({}, DEFAULTS.location)
     };
@@ -80,6 +82,7 @@
           version: 1,
           energy: state.energy,
           characterId: state.characterId,
+          swimStyle: state.swimStyle,
           outfit: Object.assign({}, state.outfit),
           location: Object.assign({}, state.location)
         })
@@ -102,6 +105,9 @@
       // default 'lily' stays. Unknown ids fall back at getCharacter().
       if (typeof data.characterId === "string" && data.characterId) {
         state.characterId = data.characterId;
+      }
+      if (data.swimStyle === "head-up" || data.swimStyle === "freestyle") {
+        state.swimStyle = data.swimStyle;
       }
       if (data.outfit && typeof data.outfit === "object") {
         OUTFIT_SLOTS.forEach(function (slot) {
@@ -151,6 +157,7 @@
     return {
       energy: state.energy,
       characterId: state.characterId,
+      swimStyle: state.swimStyle,
       outfit: Object.assign({}, state.outfit),
       location: Object.assign({}, state.location)
     };
@@ -203,6 +210,18 @@
 
   function getOutfit() {
     return Object.assign({}, state.outfit);
+  }
+
+  function getSwimStyle() {
+    return state.swimStyle;
+  }
+
+  function setSwimStyle(style) {
+    if (style !== "head-up" && style !== "freestyle") return;
+    if (state.swimStyle === style) return;
+    state.swimStyle = style;
+    save();
+    notify("swimStyle");
   }
 
   /* Which girl the player is playing as. Resolved lazily against
@@ -301,6 +320,8 @@
     canAfford: canAfford,
     spend: spend,
     getOutfit: getOutfit,
+    getSwimStyle: getSwimStyle,
+    setSwimStyle: setSwimStyle,
     setOutfitSlot: setOutfitSlot,
     getCharacter: getCharacter,
     setCharacterId: setCharacterId,

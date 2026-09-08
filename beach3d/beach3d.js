@@ -72,12 +72,16 @@ function syncAppearance() {
   try {
     if (!opened || !character) return Promise.resolve(false);
     const gs = window.GameState;
-    const suit = gs?.getOutfit?.().swimsuit;
+    character.setSwimStyle(gs?.getSwimStyle?.() || "head-up");
+    window.BeachScene?.syncSwimStatus?.();
+    const outfit = gs?.getOutfit?.();
+    const suit = outfit?.swimsuit;
     const id = gs?.getCharacter?.().id;
     const suitOK = character.setSuit(
       window.CharacterRenderer?.catalog?.swimsuit?.[suit]?.colors ? suit : "suit1"
     );
-    return character.setFriend(id || "lily").then(friendOK => suitOK && friendOK);
+    const hairOK = character.setHair(outfit?.hair);
+    return character.setFriend(id || "lily").then(friendOK => suitOK && hairOK && friendOK);
   } catch (e) { return Promise.resolve(false); }
 }
 
@@ -194,6 +198,7 @@ function startLoop() {
       world.stepZoom(raw);
       world.updateCamera(raw);
       world.animate(waveT, raw, rm);
+      window.BeachScene?.syncSwimStatus?.();
       world.render();
     }
     /* Frame reporting uses wall time; the physics clamp must not hide stalls. */
@@ -213,6 +218,8 @@ let trackedPointer = null;      /* first-down pointerId (one-pointer) */
 let pointerWasRide = false;     /* auto-hop never hands an old hold to swimming */
 
 function wireInput(canvas) {
+  canvas.tabIndex = 0;
+  canvas.setAttribute("aria-label", "Beach play area. Hold Space to catch a wave; plus and minus to zoom.");
   const events = new AbortController();
   const on = (type, handler, options = {}) =>
     canvas.addEventListener(type, handler, { ...options, signal: events.signal });
@@ -225,6 +232,7 @@ function wireInput(canvas) {
   };
   on("pointerdown", (ev) => {
     if (!character || document.hidden || trackedPointer !== null) return;   /* first wins */
+    canvas.focus({ preventScroll: true });
     trackedPointer = ev.pointerId;
     try { canvas.setPointerCapture(ev.pointerId); } catch (e) { /* ok */ }
     const p = toWorld(ev);
@@ -341,6 +349,7 @@ function wireInput(canvas) {
 
 window.Beach3D = {
   open, close, syncAppearance,
+  swimStatus: () => character?.swimStatus() || null,
   isOpen: () => opened,
   supported,
   reducedMotion,
@@ -363,6 +372,7 @@ window.__beach3d = {
   syncAppearance,
   appearance: () => character?.appearance() || null,
   setSuit: id => character?.setSuit(id) || false,
+  setHair: id => character?.setHair(id) || false,
   setFriend: id => character?.setFriend(id) || Promise.resolve(false),
   state: () => {
     if (!character) return null;
@@ -370,6 +380,8 @@ window.__beach3d = {
     return {
       x: +a.x.toFixed(3), z: +a.z.toFixed(3), zone: a.zone,
       stance: character.stanceName(), moving: character.isMoving(),
+      swimStyle: character.actionInfo().swimStyle,
+      clip: character.actionInfo().clip,
       boat: boat.state(),
       surf: surf.state(),
       /* Ride anchor is diagnostic only; it never controls the camera. */

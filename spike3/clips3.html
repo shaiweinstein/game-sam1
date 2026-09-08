@@ -45,6 +45,14 @@
   <header>
     <h1>Lily4 &mdash; animation pack</h1>
     <div id="btns"></div>
+    <label>Hair <select id="hair">
+      <option value="hair1">Long Hair</option>
+      <option value="hair2">Curly Pigtails</option>
+      <option value="hair3">Bouncy Bob</option>
+      <option value="hair4">Ponytail</option>
+      <option value="hair5">Space Buns</option>
+      <option value="hair6">Big Curly</option>
+    </select></label>
     <span id="status">loading&hellip;</span>
   </header>
   <main id="viewport">
@@ -149,9 +157,9 @@ function toonify(root) {
 
 /* GLB lives at repo root /beach3d/assets (serve.py roots at the repo). */
 const GLB = "../beach3d/assets/lily4_full.glb";
-const LOOPERS = ["Walk", "Idle", "Swim", "Sit", "Paddle", "SurfRide"];
+const LOOPERS = ["Walk", "Idle", "Swim", "SwimFreestyle", "Sit", "Paddle", "SurfRide"];
 const ONE_SHOTS = ["Cheer", "Greet"];
-const CLIP_ORDER = ["Walk", "Idle", "Swim", "Sit", "Paddle", "SurfRide", "Cheer", "Greet"];
+const CLIP_ORDER = ["Walk", "Idle", "Swim", "SwimFreestyle", "Sit", "Paddle", "SurfRide", "Cheer", "Greet"];
 
 /* camera preset per clip: ctr is three.js space (y=UP, +Z is the direction
    Lily FACES — Blender export maps Blender -Y to three +Z, verified with
@@ -171,6 +179,8 @@ const CAMS = {
      front cam at a prone body sees nothing but the hair silhouette */
   Paddle:   { ctr: [0, 0.20, -0.05], dist: 2.10, fdir: [0, 0.60, 1.0] },
   Swim:     { ctr: [0, 0.12, 0.20],  dist: 2.35, fdir: [0, 0.85, 0.72],
+              sdir: [1, 0.35, 0] },
+  SwimFreestyle: { ctr: [0, 0.12, 0.20], dist: 2.35, fdir: [0, 0.85, 0.72],
               sdir: [1, 0.35, 0] }
 };
 
@@ -187,6 +197,10 @@ const ready = new Promise((res) => { resolveReady = res; });
 loader.load(GLB, (gltf) => {
   model = gltf.scene;
   toonify(model);
+  model.traverse(o => {
+    if (/^Suit_(Tank|Crop)_/.test(o.name)) o.visible = false;
+  });
+  setHair(document.getElementById("hair").value);
   scene.add(model);
   mixer = new THREE.AnimationMixer(model);
   for (const clip of gltf.animations) {
@@ -208,6 +222,15 @@ loader.load(GLB, (gltf) => {
   document.getElementById("status").textContent = "LOAD FAILED: " + err;
   console.error("glb load failed", err);
 });
+
+function setHair(id) {
+  if (!model) return;
+  model.traverse(o => {
+    if (/^Hair_hair[1-6]$/.test(o.name)) o.visible = o.name === "Hair_" + id;
+  });
+  renderer.render(scene, camera);
+}
+document.getElementById("hair").addEventListener("change", ev => setHair(ev.target.value));
 
 function play(name) {
   if (!mixer) return;
@@ -290,6 +313,7 @@ window.__clips3 = {
   play,
   seek,
   setView,
+  setHair,
   freeze: (v) => { frozen = !!v; },
   get current() { return current; },
   fps: () => fpsNow,

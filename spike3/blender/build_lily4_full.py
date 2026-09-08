@@ -1,4 +1,4 @@
-"""Build beach3d/assets/lily4_full.glb — Lily v4 skinned to EIGHT Mixamo
+"""Build beach3d/assets/lily4_full.glb — Lily v4 skinned to NINE clips
 clips in one GLB (Walk / Idle / Swim / Sit / Paddle / SurfRide / Cheer /
 Greet), all retargeted through the EXACT build_lily4_walk.py pipeline:
 
@@ -582,7 +582,13 @@ bpy.ops.import_scene.gltf(filepath=LILY)
 meshes = [o for o in bpy.data.objects if o.type == "MESH"]
 print("lily4 mesh parts:", len(meshes))
 variants = [o for o in meshes if o.name.startswith(("Suit_Tank_", "Suit_Crop_"))]
-assert len(meshes) == 21 and len(variants) == 4, "expected 17 connected base + 4 variant parts"
+hair_parts = [o for o in meshes if o.name.startswith("Hair_hair")]
+hair_ids = {f"hair{i}" for i in range(1, 7)}
+assert {o.name.split("_")[1] for o in hair_parts} == hair_ids
+assert len(meshes) == 68 and len(hair_parts) == 54 and len(variants) == 4, \
+    "expected 10 unchanged body/suit parts + 4 suit variants + 54 hairstyle parts"
+assert all(any(o.name == f"Hair_{id}_Scalp" for o in hair_parts) for id in hair_ids), \
+    "every hairstyle requires its own complete scalp"
 
 # ---------- Walk: conform + damp through the reference pipeline -----------
 FR_W = range(1, 33)
@@ -610,7 +616,7 @@ damp_walk_arms(main, walk_act, curves_w, FR_W)
 walk_act.name = "Walk"
 assert walk_act.name == "Walk"
 
-# ---------- 6. local body/garment binding; original head/hair rules -----
+# ---------- 6. local body/garment binding; shared-rig hairstyle rules ---
 def zblend(b_top, b_bot, z_top, z_bot):
     span = max(z_top - z_bot, 1e-6)
     def bot(c):
@@ -621,8 +627,6 @@ def zblend(b_top, b_bot, z_top, z_bot):
         return (z_top - c.z) / span
     return [(b_top, lambda c: 1.0 - bot(c)), (b_bot, bot)]
 
-HAIR = ["HairCap", "Bangs", "BangsShade", "HairLockL", "HairLockR"]
-CAPE = ["HairBack", "HairBackShade"]
 BODY_BLEND = zblend("mixamorig:Spine", "mixamorig:Hips", 0.50, 0.36)
 
 def _ss(x):
@@ -643,9 +647,6 @@ def suit_bind(co):
     return [("mixamorig:Spine", (1.0 - t) * w_sp),
             ("mixamorig:Hips", (1.0 - t) * w_hp),
             (leg, t)]
-
-CAPE_BLEND = zblend("mixamorig:Head", "mixamorig:Spine", 0.740, 0.560)
-
 
 def body_bind(co, arm=0.0):
     # Topological ownership crosses welded sockets smoothly; adjacent shafts
@@ -710,12 +711,14 @@ def garment_bind(co):
     return body_bind(co, .25*arm)
 
 BINDINGS = {"Head": [("mixamorig:Head", None)]}
-for h in HAIR:
-    BINDINGS[h] = [("mixamorig:Head", None)]
-for c in CAPE:
-    BINDINGS[c] = CAPE_BLEND
-LOCK_BLEND = zblend("mixamorig:Head", "mixamorig:Spine", 0.66, 0.50)
-BINDINGS.update({"HairLockL": LOCK_BLEND, "HairLockR": LOCK_BLEND})
+for h in hair_parts:
+    BINDINGS[h.name] = [("mixamorig:Head", None)]
+    if "Curtain" in h.name:
+        # Keep roots rigid on the scalp; drape below the jaw follows the
+        # upper body, never arms/hips. No extra bones or simulated strands.
+        BINDINGS[h.name] = zblend("mixamorig:Head", "mixamorig:Spine", .68, .46)
+    elif h.name.endswith("_Tail"):
+        BINDINGS[h.name] = zblend("mixamorig:Head", "mixamorig:Spine", .90, .40)
 BINDINGS.update({
     "Torso":      body_bind,
     "LegL":       leg_bind,
@@ -775,19 +778,37 @@ for m in meshes:
 bpy.context.view_layer.objects.active = meshes[0]
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
-# Consolidate connected base parts; head-up markers are selected geometrically.
-# Variant nodes retain their names and share this rig and its binding rules.
+# Join each hairstyle AFTER binding so it costs only its material primitives.
+# These six nodes, like the suit variants, never merge into the body.
+hair_meshes = []
+base_meshes = [m for m in meshes if m not in hair_parts and m not in variants]
+hair_groups = {id: [m for m in hair_parts if m.name.startswith(f"Hair_{id}_")]
+               for id in sorted(hair_ids)}
+for id, group in hair_groups.items():
+    bpy.ops.object.select_all(action="DESELECT")
+    for m in group:
+        m.select_set(True)
+    bpy.context.view_layer.objects.active = group[0]
+    bpy.ops.object.join()
+    hair = bpy.context.view_layer.objects.active
+    hair.name = f"Hair_{id}"
+    hair_meshes.append(hair)
+
+# Consolidate only the unchanged body. Face markers below are restricted to
+# its faceTexture primitive, never nearest vertices on a selectable hairstyle.
+bpy.ops.object.select_all(action="DESELECT")
+for m in base_meshes:
+    m.select_set(True)
 for m in variants:
     m.select_set(False)
-bpy.context.view_layer.objects.active = max((m for m in meshes if m not in variants),
-                                          key=lambda m: len(m.data.vertices))
+bpy.context.view_layer.objects.active = max(base_meshes, key=lambda m: len(m.data.vertices))
 bpy.ops.object.join()
 lily = bpy.context.view_layer.objects.active
 lily.name = "Lily4"
 
 bpy.ops.object.select_all(action="DESELECT")
 lily.select_set(True)
-for m in variants:
+for m in variants + hair_meshes:
     m.select_set(True)
 main.select_set(True)
 bpy.context.view_layer.objects.active = main
@@ -846,6 +867,12 @@ for name, fbx, loops, hzero in CLIPS:
     sc.frame_set(1)
     bpy.context.view_layer.update()
 print("actions:", [(a.name, tuple(a.frame_range)) for a in bpy.data.actions])
+
+# Preserve the conformed, in-place crawl BEFORE the accepted head-up solve.
+# The two actions own separate F-Curves; refinements must touch only this copy.
+freestyle_act = clip_acts["Swim"].copy()
+freestyle_act.name = "SwimFreestyle"
+clip_acts["SwimFreestyle"] = freestyle_act
 
 # ---------- 6c. head-up freestyle conversion of the Swim clip --------------
 # The authored Swim-FrontCrawl is a face-PRONE crawl: the head's face points
@@ -977,11 +1004,15 @@ def su_head_axes_now():
 # face feature indices from the STATIC mesh (A-pose build coordinates; meters)
 SU_HC = Vector((0.0, 0.0, 0.795))
 _su_static = [lily.data.vertices[i].co for i in range(len(lily.data.vertices))]
+_su_head_vertices = {i for p in lily.data.polygons
+                     if lily.data.materials[p.material_index].name == "faceTexture"
+                     for i in p.vertices}
 
 
 def su_nearest_band(target, lo=0.165, hi=0.250):
     t = Vector(target); best, bi = 1e9, -1
-    for i, p in enumerate(_su_static):
+    for i in sorted(_su_head_vertices):
+        p = _su_static[i]
         if lo <= (p - SU_HC).length <= hi and (p - t).length < best:
             best, bi = (p - t).length, i
     return bi
@@ -1090,9 +1121,155 @@ print(f"  Swim head-up applied ({sf1 - sf0 + 1} frames; worst face err "
       f"{math.degrees(_worst):.4f} deg, crown err {math.degrees(_crown_worst):.4f} "
       f"deg; roll deg min {_rmin:.2f} max {_rmax:.2f} std {_rstd:.3f})")
 
+# ---------- 6d. distinct crawl, isolated from all eight accepted actions ---
+# The retargeted source sweeps both arms together. Author an alternating
+# crawl on its in-place body instead; keep the rig, geometry and scale keys.
+print("== SwimFreestyle: alternating crawl and periodic side breath ==")
+main.animation_data.action = freestyle_act
+ff0, ff1 = clip_frame_range(freestyle_act)
+_free_prev = {}
+_free_forearms = {"Left": [], "Right": []}
+
+
+def free_orient(pb, direction, pole):
+    """Solve a full bone frame through the rig's nonuniform parent scale."""
+    pb.rotation_quaternion = SU_IDQ
+    bpy.context.view_layer.update()
+    # Solve the two axes directly in the pre-rotation frame. Iterating a
+    # world-space roll angle under nonuniform scale can oscillate near a pull.
+    inv = (Arm_lin @ pb.matrix.to_3x3() @
+           Matrix.Diagonal(Vector(tuple(1/s for s in pb.scale)))).inverted()
+    y = (inv @ direction).normalized()
+    z = inv @ pole
+    z = (z-z.dot(y)*y).normalized()
+    return Matrix((y.cross(z), y, z)).transposed().to_quaternion()
+
+
+def free_key(pb, q, frame):
+    if pb.name in _free_prev and q.dot(_free_prev[pb.name]) < 0:
+        q = -q
+    _free_prev[pb.name] = q.copy()
+    pb.rotation_quaternion = q
+    pb.keyframe_insert("rotation_quaternion", frame=frame)
+    bpy.context.view_layer.update()
+
+
+# Uniform phase knots, cyclic Catmull-Rom: entry, catch, pull, exit,
+# high elbow recovery, forward reach. Left and right are half a cycle apart.
+FREE_ARMS = [
+    ((.70, -.70, .03), (.15, -.98, -.12)),
+    ((.65, -.62, -.44), (.10, -.50, -.86)),
+    ((.42, .05, -.91), (.06, .86, -.50)),
+    ((.38, .90, -.20), (.12, .87, .48)),
+    ((.80, .15, .60), (.12, -.78, -.62)),
+    ((.72, -.53, .45), (.23, -.94, .25)),
+]
+
+
+def free_arm_dir(phase, segment, side):
+    t = (phase % 1)*len(FREE_ARMS)
+    i, t = int(t), t % 1
+    a, b, c, d = [Vector(FREE_ARMS[(i+j) % len(FREE_ARMS)][segment])
+                  for j in (-1, 0, 1, 2)]
+    v = .5*((2*b) + (-a+c)*t + (2*a-5*b+4*c-d)*t*t + (-a+3*b-3*c+d)*t*t*t)
+    v.x *= side
+    return v.normalized()
+
+
+_free_targets = {}
+for fr in range(ff0, ff1+1):
+    sc.frame_set(fr)
+    bpy.context.view_layer.update()
+    u = (fr-ff0)/(ff1-ff0)
+    # Add a modest axial roll to the source torso, not the runtime root.
+    hips = main.pose.bones["mixamorig:Hips"]
+    body = Arm_lin @ hips.matrix.to_3x3()
+    roll = Quaternion(Vector((0, 1, 0)), math.radians(12)*math.sin(2*math.tau*u))
+    free_key(hips, free_orient(hips, roll @ (body @ Vector((0, 1, 0))),
+                              roll @ (body @ Vector((0, 0, 1)))), fr)
+    # Arms clear either side of Lily's
+    # deliberately oversized head, rather than reaching through its center.
+    for side, sign in (("Left", 1), ("Right", -1)):
+        phase = 2*u + (0 if sign == 1 else .5)
+        upper = free_arm_dir(phase, 0, sign)
+        fore = free_arm_dir(phase, 1, sign)
+        elbow_normal = upper.cross(fore).normalized()
+        for segment, name in enumerate(("Arm", "ForeArm")):
+            pb = main.pose.bones[f"mixamorig:{side}{name}"]
+            direction = fore if segment else upper
+            # The elbow bend plane defines wrist roll without a singular
+            # world-up/world-side pole during the recovery arc.
+            pole = elbow_normal if segment else Vector((0, 0, 1))
+            free_key(pb, free_orient(pb, direction, pole), fr)
+            if segment:
+                _free_forearms[side].append(pb.rotation_quaternion.copy())
+        # Six-beat flutter per arm cycle, with small knee flexion.
+        kick = math.sin(6*math.tau*u + (0 if sign == 1 else math.pi))
+        angle = math.radians(12)*kick
+        for name, pitch in (("UpLeg", angle), ("Leg", angle+math.radians(12+8*kick))):
+            pb = main.pose.bones[f"mixamorig:{side}{name}"]
+            direction = Vector((sign*.045, math.cos(pitch), math.sin(pitch)))
+            free_key(pb, free_orient(pb, direction, Vector((0, 0, 1))), fr)
+        for name in ("Foot", "ToeBase"):
+            pb = main.pose.bones[f"mixamorig:{side}{name}"]
+            free_key(pb, free_orient(pb, Vector((sign*.025, 1, -.06)), Vector((0, 0, 1))), fr)
+    # One right-side breath, centered on right-arm recovery at phase 2/3.
+    # Compact raised-cosine window has zero slope at both ends and wrap.
+    dist = abs((u-7/12+.5) % 1-.5)
+    breath = .5+.5*math.cos(math.pi*dist/.18) if dist < .18 else 0
+    pitch = math.radians(15)
+    turn = Quaternion(Vector((0, 1, 0)), math.radians(105)*breath)
+    _SU_TARGET = turn @ Vector((0, -math.sin(pitch), -math.cos(pitch)))
+    _SU_CROWN_TGT = turn @ Vector((0, -math.cos(pitch), math.sin(pitch)))
+    neck_dir = Vector((0, -1, .16+.24*breath)).normalized()
+    free_key(su_pb_n, free_orient(su_pb_n, neck_dir, Vector((0, 0, 1))), fr)
+    su_pb_h.rotation_quaternion = SU_IDQ
+    bpy.context.view_layer.update()
+    A_h = Arm_lin @ su_pb_h.matrix.to_3x3()
+    q = su_rot_between(su_f_loc, A_h.inverted() @ _SU_TARGET)
+    q, _ = su_correct_roll(q)
+    free_key(su_pb_h, q, fr)
+    _free_targets[fr] = (_SU_TARGET.copy(), _SU_CROWN_TGT.copy())
+# Interpolate elbow orientations between stroke landmarks in joint space.
+# Nearly opposing exit/recovery direction vectors otherwise whip the wrist
+# through a singular bend plane. Quaternion arcs keep this bounded and cyclic.
+for side in _free_forearms:
+    _free_prev.pop(f"mixamorig:{side}ForeArm", None)
+for fr in range(ff0, ff1+1):
+    sc.frame_set(fr)
+    for side, samples in _free_forearms.items():
+        phase = (fr-ff0)/(ff1-ff0)*12
+        index, t = int(phase) % 12, phase % 1
+        a = samples[round(index*(ff1-ff0)/12)]
+        b = samples[round(((index+1) % 12)*(ff1-ff0)/12)]
+        q = a.slerp(b, t*t*(3-2*t))
+        free_key(main.pose.bones[f"mixamorig:{side}ForeArm"], q, fr)
+for fc in collect_fcs(freestyle_act):
+    for kp in fc.keyframe_points:
+        kp.interpolation = "LINEAR"
+    fc.update()
+_free_error = [0.0, 0.0]
+_free_seam = []
+for fr, targets in _free_targets.items():
+    sc.frame_set(fr)
+    bpy.context.view_layer.update()
+    for i, (actual_axis, target_axis) in enumerate(zip(su_head_axes_now(), targets)):
+        if i == 1:
+            actual_axis = (actual_axis-actual_axis.dot(targets[0])*targets[0]).normalized()
+        _free_error[i] = max(_free_error[i], math.degrees(actual_axis.angle(target_axis)))
+    if fr in (ff0, ff1):
+        _free_seam.append({pb.name: main.matrix_world @ pb.matrix for pb in main.pose.bones})
+free_seam = max(abs(_free_seam[0][bn][i][j]-_free_seam[1][bn][i][j])
+                for bn in _free_seam[0] for i in range(4) for j in range(4))
+assert _free_error[0] < .5 and _free_error[1] < 1, _free_error
+assert free_seam < 1e-4, f"SwimFreestyle world-pose seam: {free_seam}"
+print(f"  SwimFreestyle face/crown errors {_free_error}; world seam {free_seam:.9g}")
+
 # ---------- 7. workbench previews (per clip, 4 phases, front+side) --------
 for m in variants:
     m.hide_render = True
+for m in hair_meshes:
+    m.hide_render = m.name != "Hair_hair1"
 sc.frame_start = 1
 sc.frame_end = 32
 sc.render.fps = 30
@@ -1135,7 +1312,7 @@ def clip_world_bbox(frs):
     return mn, mx
 
 DIRS = {"side": Vector((1, 0, 0.25)), "front": Vector((0, -1, 0.15))}
-for name, fbx, loops, hzero in ([] if os.environ.get("LILY_SKIP_PREVIEWS") else CLIPS):
+for name in ([] if os.environ.get("LILY_SKIP_PREVIEWS") else clip_acts):
     main.animation_data.action = clip_acts[name]
     f0, f1 = clip_frame_range(clip_acts[name])
     # frame each clip's own bbox: prone/low poses (Swim, Paddle) were cropped
@@ -1165,7 +1342,7 @@ print("previews written:", len(os.listdir("/tmp/kilo/prev5")))
 # world-z bbox of the skinned mesh per clip (~12 sampled frames): tells the
 # game where each clip's body sits relative to the node origin (ground z=0).
 metrics = {}
-for name, fbx, loops, hzero in CLIPS:
+for name in clip_acts:
     main.animation_data.action = clip_acts[name]
     f0, f1 = clip_frame_range(clip_acts[name])
     step = max(1, (f1 - f0) // 11)
@@ -1184,14 +1361,14 @@ for name, fbx, loops, hzero in CLIPS:
 print("MESH Z RANGE per clip (min,max over ~12 frames):", metrics)
 
 # ---------- 8. export (walk-script settings + ACTIONS single-armature) ----
-for m in variants:
+for m in variants + hair_meshes:
     m.hide_render = False
 main.animation_data.action = walk_act
 sc.frame_set(1)
 bpy.context.view_layer.update()
 bpy.ops.object.select_all(action="DESELECT")
 lily.select_set(True)
-for m in variants:
+for m in variants + hair_meshes:
     m.select_set(True)
 main.select_set(True)
 bpy.context.view_layer.objects.active = main
@@ -1205,6 +1382,52 @@ print("EXPORTED:", OUT, os.path.getsize(OUT), "bytes")
 import json
 import struct
 import numpy as np
+
+# Matrix decomposition in the exporter can reintroduce q/-q sign jumps.
+# Canonicalize only the new action, cloning any shared output accessor so
+# the eight accepted clips remain bit-identical even with exporter deduping.
+with open(OUT, "rb") as f:
+    raw = f.read()
+size = struct.unpack_from("<I", raw, 12)[0]
+doc = json.loads(raw[20:20+size])
+binary = bytearray(raw[28+size:])
+free_anim = next(a for a in doc["animations"] if a["name"] == "SwimFreestyle")
+shared_outputs = {s["output"] for a in doc["animations"] if a is not free_anim
+                  for s in a["samplers"]}
+for channel in free_anim["channels"]:
+    if channel["target"]["path"] != "rotation":
+        continue
+    sampler = free_anim["samplers"][channel["sampler"]]
+    index = sampler["output"]
+    acc = doc["accessors"][index]
+    view = doc["bufferViews"][acc["bufferView"]]
+    offset = view.get("byteOffset", 0) + acc.get("byteOffset", 0)
+    stride = view.get("byteStride", 16)
+    values = [struct.unpack_from("<4f", binary, offset+i*stride) for i in range(acc["count"])]
+    changed = False
+    for i in range(1, len(values)):
+        if sum(x*y for x, y in zip(values[i-1], values[i])) < 0:
+            values[i] = tuple(-x for x in values[i])
+            changed = True
+    if not changed:
+        continue
+    if index in shared_outputs:
+        offset, stride = len(binary), 16
+        doc["bufferViews"].append({"buffer": 0, "byteOffset": offset, "byteLength": len(values)*16})
+        doc["accessors"].append({**acc, "bufferView": len(doc["bufferViews"])-1, "byteOffset": 0})
+        sampler["output"] = len(doc["accessors"])-1
+        binary.extend(b"\0" * (len(values)*16))
+    for i, q in enumerate(values):
+        struct.pack_into("<4f", binary, offset+i*stride, *q)
+doc["buffers"][0]["byteLength"] = len(binary)
+payload = json.dumps(doc, separators=(",", ":")).encode("utf-8")
+payload += b" " * (-len(payload) % 4)
+raw = (struct.pack("<III", 0x46546c67, 2, 28+len(payload)+len(binary)) +
+       struct.pack("<II", len(payload), 0x4e4f534a) + payload +
+       struct.pack("<II", len(binary), 0x004e4942) + binary)
+with open(OUT, "wb") as f:
+    f.write(raw)
+print("  SwimFreestyle quaternion hemispheres normalized; final bytes:", len(raw))
 
 
 def glb_tracks(path, clip):
@@ -1240,6 +1463,17 @@ assert actual.keys() == reference.keys(), "Walk channel set changed"
 worst = max(float(np.max(np.abs(a - b))) for key in actual
             for a, b in zip(actual[key], reference[key]))
 assert worst < 1e-4, f"Walk regression: {worst}"
-assert len(doc["animations"]) == 8
+assert len(doc["animations"]) == 9
 assert all(len(s["joints"]) == 65 for s in doc["skins"])
-print(f"GLB GATES: 8 clips / 65 bones; Walk regression worst-diff {worst:.9g} < 1e-4")
+print(f"GLB GATES: 9 clips / 65 bones; Walk regression worst-diff {worst:.9g} < 1e-4")
+
+# Optional immutable baseline for geometry-only changes. Compare named tracks,
+# not node/accessor indices, which legitimately change when adding variants.
+if os.environ.get("LILY_REFERENCE_GLB"):
+    for name, _, _, _ in CLIPS:
+        _, actual = glb_tracks(OUT, name)
+        _, reference = glb_tracks(os.environ["LILY_REFERENCE_GLB"], name)
+        assert actual.keys() == reference.keys(), f"{name} channel set changed"
+        assert all(np.array_equal(a, b) for key in actual
+                   for a, b in zip(actual[key], reference[key])), f"{name} tracks changed"
+    print("GLB GATES: all eight clips exactly equal to LILY_REFERENCE_GLB")

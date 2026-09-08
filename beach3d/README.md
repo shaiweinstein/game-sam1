@@ -1,7 +1,8 @@
 # beach3d — 3D Lily animation pack (B0)
 
 `assets/lily4_full.glb` contains the shared Lily/friend body, three swimsuit
-geometry groups, and **eight** retargeted Mixamo clips on the 65-joint
+geometry groups, and **nine** clips (eight accepted Mixamo-based clips plus
+the isolated stylized `SwimFreestyle`) on the 65-joint
 `LilyRig`. The body-quality pass corrects outward skin surfaces, connects
 the upper body and hands, and replaces overlapping foot pieces with continuous
 leg/foot surfaces. Garments retain the material and variant names used by
@@ -24,15 +25,16 @@ when changing ground contact, garment fit, or ride attachment heights.
 | Walk | loop | 32 | 1.033 | −0.144 … 0.992 | 2.8e-5 / 4.7e-5 |
 | Idle | loop | 299 | 9.933 | −0.016 … 0.990 | 2.9e-5 / 2.7e-6 |
 | Swim | loop | 137 | 4.533 | −0.163 … 0.406 | 2.2e-5 / 9.6e-5 |
+| SwimFreestyle | loop | 137 | 4.533 | measured against live water below | world-pose seam 5.9e-5 |
 | Sit | loop | 64 | 2.100 | −0.110 … 0.810 | 2.3e-5 / 2.7e-4 |
 | Paddle | loop | 218 | 7.233 | −0.333 … 0.562 | 1.9e-5 / 4.1e-4 |
 | SurfRide | loop | 31 | 1.000 | −0.170 … 0.800 | 3.2e-5 / 5.4e-7 |
 | Cheer | one-shot | 88 | 2.900 | −0.037 … 0.959 | n/a |
 | Greet | one-shot | 17 | 0.533 | −0.006 … 1.005 | n/a |
 
-30 fps throughout. Every looper's last frame duplicates frame 1 (authored by
-Mixamo, kept on purpose): three.js `LoopRepeat` then plays a seamless
-C1-continuous cycle, and `AnimationClip.duration` reads one frame longer than
+30 fps throughout. Loop endpoints match within the clip's measured tolerance.
+The new action also canonicalizes exported quaternion signs without modifying
+the original tracks. `AnimationClip.duration` reads one frame longer than
 the table (sampling starts at t = 1/30 s, e.g. Walk = 1.067).
 
 ## Notes for the game side
@@ -46,7 +48,7 @@ the table (sampling starts at t = 1/30 s, e.g. Walk = 1.067).
   standing clips hips ≈ 0.30–0.34, head-top ≈ 1.0. **Sit**: hip/seat ≈ 0.32
   above origin and toes −0.11 **below** it — the clip is a chair-sit: place the
   node so the seat lands on a ~0.35 m bench, or lift the origin by 0.11 m.
-  **Swim**: head-up freestyle (converted from a face-down crawl in
+  **Swim**: the accepted head-up swim (converted from a face-down source in
   `build_lily4_full.py` §6c); with the node origin `SWIM_SINK = 0.065` m
   below the surface the waterline sits at the chin/upper-chest — face just
    clear and facing forward, back + shoulders at the surface, hips/legs
@@ -74,6 +76,173 @@ Rebuild the base model first after geometry changes; the full-pack builder
 imports `spike3/assets/lily4.glb`. Runtime skin uses outward-facing surfaces
 with `FrontSide`, including when two-piece swimsuits expose the torso.
 
+## Wardrobe hairstyles
+
+The pack contains `Hair_hair1` through `Hair_hair6`: center-part long curtains,
+curly pigtails, a shorter bob, swept ponytail, space buns, and big curly hair,
+following the six existing 2D catalog silhouettes. Each has its own closed
+scalp and shares the 65-bone rig. Compact parts follow Head; long curtains
+and the ponytail blend toward Spine. This is skinned hair, not hair physics.
+Long curtains still briefly intersect the recovery arm in enlarged Swim side
+views (frames 35/103); the ponytail's prone bend is stylized rather than physical.
+
+`setHair(id)` selects mesh primitives, never shared material visibility.
+`syncAppearance()` reads the existing saved `outfit.hair`; hair adds no new
+preference or migration. Invalid/unavailable hairstyles render `hair1` without
+changing the save. All hidden hair materials follow friend palette changes;
+pink ties stay fixed. The clips workbench also defaults to just `hair1` and
+has a hairstyle selector.
+
+Head/face geometry, UVs and texture are unchanged. The eight original clips,
+including the approved head-up `Swim`, remain unchanged. For geometry-only
+rebuilds, set `LILY_REFERENCE_GLB` to an accepted full-pack GLB to additionally
+require exact equality of every named animation track. `LILY_SKIP_PREVIEWS=1`
+skips Blender still rendering; use the workbench and live beach for art review.
+
+## Swim Style
+
+The 3D beach action bar has a native, labeled `Head-up` / `Freestyle` selector.
+It is available on shore and during rides, has a 44 px touch target, and does
+not resize when its value changes. Space retains native UI behavior on focused
+controls; focus/click the beach canvas for the existing hold-to-catch behavior.
+
+Movement is **press and hold**, not click-to-swim. Releasing to choose a style
+rests in the original, face-visible Head-up float; selecting a style never
+starts movement. Press and hold water again to use the chosen stroke. Freestyle
+needs deeper water: from shore, hold farther toward the horizon until the
+visible status says **Swimming Freestyle**. Drag while holding to change direction.
+The fixed-height status below the selector always distinguishes the saved
+selection from resting, shallow Head-up, active swimming, and a boat/surf ride's
+next-swim preference. It also explains deliberately parked reduced-motion poses.
+This is visible on touch screens and associated with the native selector, not
+only a tooltip. Neither changing style nor changing status resizes the stage.
+
+`GameState.getSwimStyle()` / `setSwimStyle()` persist a single top-level behavior
+preference in the existing `lily-game-save-v1` save, not in the outfit or per
+friend. Missing/invalid saves and reset default to `head-up`; changes notify
+with reason `swimStyle`, cost no energy and leave location/outfit unchanged.
+The existing reset reason and wardrobe Undo metadata remain intact.
+
+| Selection | Moving Clip | Sink | Released/Idle | Reduced-Motion Moving Pose |
+|---|---|---|---|---|
+| Head-up (default) | Swim | 0.065 m | Original Swim float, 0.25x | Original 1.13 s park |
+| Freestyle | SwimFreestyle in safe depth; otherwise Swim | 0.090 m freestyle / original 0.065 m Head-up | Crossfade to original head-up float, preference retained | Side breath at 2.678 s, or original Head-up park in shallows |
+
+Both use the unchanged speed-following 0.5-1.4x gait range, movement speeds,
+0.30 s pose crossfade and root-height damping rate 9/s. Freestyle returns to
+float as soon as movement is released, while the existing glide finishes.
+Interrupted style fades start from normalized live weights, preserve a running
+contributor's phase, and settle to one of the nine cached actions. Style changes
+do not reset anchors/targets, tilt the runtime root, interrupt land/ride clips,
+reload the GLB, or alter the camera.
+
+Freestyle has a small, hysteretic depth guard: enter at **0.405 m** effective
+depth, and return to Head-up below **0.380 m** (2.5 cm hysteresis). This is a
+conservative clearance depth, not just the instantaneous water depth at the
+hips. It checks the seabed 0.41 m shoreward of the anchor and of the predicted
+anchor after the existing 0.30 s crossfade, using current velocity. The reach
+covers the measured 0.385 m foot envelope at any yaw and the curved shoreline's
+lateral slope. The reference surface is `WORLD.water.y - 0.061`, below the
+analytic waves' maximum 0.0604 m downward excursion, so a crest cannot enable
+an unsafe stroke and passing waves cannot flap the guard.
+
+The depth requirement was measured from 2,594 skinned foot/ankle vertices:
+273 half-frame samples need 0.194279 m for the freestyle kick itself. Sampling
+32 starting phases in each fade direction found a larger 0.364145 m requirement
+during blends; the exit threshold reserves over 1 cm beyond that envelope.
+The policy changes only effective clip/profile selection. It does not lift the
+root to hide contact, modify sink values, add IK, or alter the seabed. The saved
+preference stays `freestyle` while shallow water uses the approved Head-up
+stroke. Physical depth readiness is tracked during both styles' swim/float
+states, independently of the preference. Float remains Head-up; release,
+Head-up selection/swimming, and Freestyle re-selection inside the hysteresis
+band all retain that history. Unsafe depth (including lookahead), land, rides,
+and reset clear readiness. Fresh entry into the band cannot gain readiness
+until reaching the proper enter depth. The on-screen status tells
+the player when Head-up is being used and how to reach Freestyle water without
+changing the saved selection or moving the character automatically.
+`__beach3d.action().swimDepthGuard` exposes `active`, conservative `depth`,
+`enter`, and `exit`; the existing `clip` field remains the effective clip.
+
+The builder copies the processed crawl before section 6c. Its source arm sweep
+was too symmetric for freestyle, so section 6d authors alternating overarm
+recovery/catch/pull, a flutter kick, and modest axial torso roll only on that
+copy. The face normally points down; one smooth right-side breath coincides
+with recovery. Both face and projected crown orientation are solved throughout,
+with unit quaternions and matching loop endpoints. Elbow orientations interpolate
+between stroke landmarks in joint space to avoid a rapid wrist twist during
+recovery; the exported minimum adjacent quaternion dot is 0.9844. The original head-up solver
+and all eight accepted tracks stay unchanged.
+
+At the fixed QA anchor/wave phase, a 137-pose scan against `waterSurfaceY` gave
+these signed skin clearances (metres, negative means immersed): freestyle mouth
+-0.126 to +0.145, nose -0.119 to +0.146, chest -0.092 to -0.070, back +0.042 to
++0.064, hip -0.087 to -0.070. Head-up mouth stayed +0.259 to +0.290. These are
+landmarks on the actual skin, not hair bounds or bone-origin proxies; moving
+waves vary the exact values. The intentional side-breath tilt is not a fixed
+upright crown constraint. The large stylized head can obscure the far recovery
+arm, and long hair still bends/overlaps stylistically rather than physically.
+The depth guard removes the extra shallow-entry overlap without changing the
+accepted Head-up contact limitation. The original 360-step shallow out/back
+audit now matches Head-up exactly (positive numbers below are overlap metres):
+
+| Contact Sample | Head-up | Unguarded Freestyle | Guarded Freestyle |
+|---|---:|---:|---:|
+| Worst shallow out/back | 0.150867 | 0.199566 | 0.150867 |
+| Worst wet-sand exit | 0.087445 | 0.073777 | 0.087445 |
+| Exit after pose fade | 0.002860 | 0.002160 | 0.002860 |
+
+Eight additional paired entry/exit paths at x=-2 and x=+2, with short/shallow
+and full deep round trips, matched Head-up's worst entry/exit bounds in both
+animated water and reduced motion. Anchor deltas were zero. Every sampled
+pose with a freestyle contribution, including fades, cleared the seabed:
+minimum 0.197468 m in animated deep trips and 0.358546 m in RM deep trips.
+Both hysteresis histories stayed on their respective clips during 12-second
+along-threshold traversals in each motion mode; animated water varied by over
+0.10 m without a guard transition. A direct pre-guard runtime comparison also
+confirmed identical Head-up entry/exit, anchor paths and fade weights.
+
+Run the bounded style regression, including exact original tracks, rig and
+images, unchanged deep loop/face/crown/water gates, guarded entry/exit and
+threshold paths, fades, RM, persistence and layout:
+
+```sh
+python3 beach3d/swim_style_test.py
+python3 beach3d/swim_style_test.py --reference /path/to/accepted-hair-full.glb
+python3 beach3d/swim_style_test.py --out /tmp/kilo/swim-style/guard
+python3 beach3d/swim_switch_test.py --out /tmp/kilo/swim-switch-fix/native
+python3 beach3d/ground_contact_test.py --swim-style freestyle --label freestyle --out /tmp/kilo/swim-style
+```
+
+`swim_switch_test.py` exercises the real native selector and mouse/touch
+press-hold, release and repress from shore at 1280x800 and 420x720. It records
+near/mid/deep Head-up -> Freestyle -> Head-up flows, pointer capture/focus,
+selected/requested/effective style, live action times/weights and actual skinned
+mesh poses. Its filmstrips are advancing gameplay, not injected clip times or
+programmatic locomotion targets. `--baseline` records the pre-fix missing-feedback
+behavior without requiring the visible status regression to pass.
+The same test covers rapid/repeated selections, live appearance notifications,
+native RM movement, delayed character loading, Wardrobe/Continue followed by a
+shore-to-Freestyle hold, reset, and next-swim selection during boat/surf rides.
+`--extras-only` runs these lifecycle checks without recapturing the matrix.
+`swim_style_test.py` additionally checks the formerly broken float/reselect/
+restart sequence inside the guard's hysteresis band in both motion modes.
+`swim_switch_test.py --hysteresis-only` focuses on native deep-to-band travel,
+Head-up/Freestyle detours with holds/releases and rapid selections, followed by
+unsafe exit and re-entry. The deterministic guard checks pin the same histories
+at 0.389 m and immediately either side of the enter/exit thresholds.
+
+`--reference` additionally requires exact equality of every mesh attribute,
+index and embedded image, including the six accepted hairstyles. Reports and
+style screenshots default to `/tmp/kilo/swim-style/`. Existing appearance,
+ground and scene tests accept `--out` to keep this mission's evidence separate.
+The guard follow-up evidence is under `/tmp/kilo/swim-style/guard/`, including
+`guard-paths.json`, `head-up-unchanged.json`, `ground-guarded.json`, native UI/ride
+results and shallow/deep control screenshots. Asset/builder SHA-256 checks
+confirm that this runtime-only follow-up changed no GLBs, tracks or hairstyles.
+The asset grows by 151,772 bytes from the accepted hair pack to 5,544,456 bytes;
+style switching adds no meshes, draw calls or texture allocations.
+
 ## Ground contact and validation
 
 `character3d.js` resolves land height from the current blended skin pose,
@@ -89,11 +258,17 @@ and its Chromium browser installed:
 
 ```sh
 python3 beach3d/ground_contact_test.py --shots --label local
+python3 beach3d/appearance_test.py
+python3 beach3d/scene_test.py
 ```
 
 The test independently scans skinned foot/ankle vertices, records the loaded
 GLB hash, and checks cycles, slopes, interrupted fades, and shore transitions.
 Reports and optional screenshots go to `/tmp/kilo/lily-improvements/`.
+The bounded appearance test covers all six styles/four palettes, pre-load and
+fallback selection, the real wardrobe return/reload flow, offline switching,
+and warmed context cleanup. Its report and screenshots go to
+`/tmp/kilo/beach-hair/`.
 
 Limits: this is vertical grounding, not horizontal foot locking or IK.
 Swim-to-wade feet can briefly remain below wet sand during the 0.30 s pose

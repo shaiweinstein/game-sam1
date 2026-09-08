@@ -2,7 +2,7 @@
    beach3d/character3d.js — Lily 4 + locomotion (B1 walk/wade,
    B2 swim/float)
 
-   Loads beach3d/assets/lily4_full.glb (8 Mixamo clips, 65 bones),
+   Loads beach3d/assets/lily4_full.glb (9 clips, 65 bones),
    toonifies exactly like spike3 and drives the AnimationMixer from
    a stance map. Movement uses the 2D press-hold RULES ported from
    js/beach-game.js stepLocomotion/driveRig (zone speeds, ease-out
@@ -16,7 +16,7 @@
      swim→Swim  (prone crawl, root y rides the water surface:
                  node origin SWIM_SINK below it → mid-torso
                  waterline per the B0 clip data)
-     float→Swim at a slow crawl + gentle bob (face-down treading)
+     float→approved head-up Swim at a slow crawl + gentle bob
      ride→Sit · surf→SurfRide (pre-wired for B3/B4, clips cached)
 
    Land contact is measured AFTER animation blending, using a small
@@ -74,20 +74,18 @@ const LOCO_STOP_DIST = 0.12;
 /* Shared with pointer picking, surf spawns, and boat bounds. */
 export const SEA_DEEP_Z = WORLD.box.zMin;
 
-/* Swim/float root sink — node origin this far BELOW the animated
-   water surface. MEASURED on the shipped head-up clip (boneY audit,
-   node-relative world-Y over the stroke cycle): hips −0.07…−0.04,
-   mid-spine −0.05…−0.03, upper-chest (Spine2) −0.01…+0.02, neck
-   +0.03…+0.06, head bone +0.02…+0.05. 0.065 puts the waterline at
-   the chin/upper-chest of the head-up freestyle stroke: face just
-   clear (breathing side only — no crescent), back + shoulders at
-   the surface, hips/thighs/legs submerged and visible through the
-   0.9-alpha toon water. (B2-swim2: the clip was converted from
-   face-down crawl to head-up in build_lily4_full.py §6c, which
-   changed this measurement; the value itself is unchanged.) */
+/* Accepted head-up swim/float origin depth below the animated surface.
+   Keep this profile unchanged; the separate freestyle skin audit is in README. */
 export const SWIM_SINK = 0.065;
-/* swim gait rate = actual speed ÷ full-speed ref, clamped to the
-   spec band; float idles the SAME clip at a slow crawl. */
+/* Measured using face/chest/back skin against waterSurfaceY, never hair bounds. */
+const FREESTYLE = { clip: "SwimFreestyle", ts: 1, water: true, sink: 0.09 };
+/* Foot skin reaches 0.385 m from the anchor; 0.41 also covers the curved
+   shore's lateral slope. The blend needs 0.365 m, more than the 0.194 m kick.
+   Reserve clearance at low water, not a passing crest (wave bound 0.0604 m). */
+const FREESTYLE_REACH = 0.41, FREESTYLE_LOW_WATER = WORLD.water.y - 0.061;
+const FREESTYLE_ENTER_DEPTH = 0.405, FREESTYLE_EXIT_DEPTH = 0.38;
+/* Swim gait rate = actual speed / full-speed ref, clamped to the
+   spec band; float always idles the accepted head-up clip. */
 const SWIM_TS_MIN = 0.5, SWIM_TS_MAX = 1.4;
 const FLOAT_TS = 0.25;
 /* float bob: head-up treading, ±2 cm at 0.4 Hz on the wave clock
@@ -257,6 +255,8 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
   let mixer = null;
   const actions = {};          /* clipName -> AnimationAction */
   let current = null;          /* { clipName, action } */
+  let swimStyle = "head-up", swimFade = null;
+  let freestyleDepthReady = false, swimDepth = null;
   let ready = false;
   let disposed = false;
   let rideDriven = false, ridePaddling = false;
@@ -267,8 +267,10 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
   let groundOffset = 0; // only water/ride exits ease; never lag the land gait
   const materials = new Map();
   const suitMeshes = { one: [], tank: [], crop: [] };
+  const hairMeshes = { hair1: [], hair2: [], hair3: [], hair4: [], hair5: [], hair6: [] };
   let bakedFace = null;
   let requestedSuit = "suit1", requestedFriend = "lily";
+  let requestedHair = "hair1", appliedHair = null;
   let appliedSuit = null, appliedFriend = null, suitKey = null;
   let pendingFriend = null;
 
@@ -301,6 +303,21 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
       suitKey = key;
       return true;
     } catch (e) { return false; }
+  }
+
+  function setHair(id) {
+    if (disposed) return false;
+    requestedHair = typeof id === "string" && Object.hasOwn(hairMeshes, id) &&
+      window.CharacterRenderer?.catalog?.hair?.[id] ? id : "hair1";
+    if (!ready) return false;
+    const selected = hairMeshes[requestedHair].length ? requestedHair : "hair1";
+    if (!hairMeshes[selected].length) return false;
+    if (appliedHair === selected) return true;
+    for (const [name, meshes] of Object.entries(hairMeshes)) {
+      for (const mesh of meshes) mesh.visible = name === selected;
+    }
+    appliedHair = selected;
+    return true;
   }
 
   function setFriend(id) {
@@ -352,6 +369,12 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
         if (/^suitMain$|^suitTrim$|^daisyPetal$/.test(name)) suitMeshes.one.push(o);
         let parent = o;
         while (parent && parent !== gltf.scene) {
+          const hair = /^Hair_(hair[1-6])(?:_|$)/.exec(parent.name);
+          if (hair) {
+            hairMeshes[hair[1]].push(o);
+            o.visible = false; // no stacked styles on the first rendered frame
+            break;
+          }
           if (parent.name.startsWith("Suit_Tank_")) { suitMeshes.tank.push(o); break; }
           if (parent.name.startsWith("Suit_Crop_")) { suitMeshes.crop.push(o); break; }
           parent = parent.parent;
@@ -385,11 +408,14 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
       ready = true;
       parkIfNeeded();
       setSuit(requestedSuit);
+      setHair(requestedHair);
       setFriend(requestedFriend).then(() => resolve(!disposed));
     }, undefined, () => resolve(false));
   });
 
-  const stanceCfg = () => STANCES[loco.stance] || STANCES.stand;
+  const stanceCfg = (name = loco.stance) =>
+    name === "swim" && swimStyle === "freestyle" && freestyleDepthReady
+      ? FREESTYLE : STANCES[name] || STANCES.stand;
   const gliding = () => loco.zone === "sea" && (loco.vx !== 0 || loco.vz !== 0);
 
   function disposeMeshes(root) {
@@ -412,6 +438,10 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
   function applyTimeScale() {
     if (!ready || !current) return;
     if (reducedMotion()) {
+      swimFade = null;
+      if (current.clipName === "SwimFreestyle" && current.action.getEffectiveTimeScale() !== 0) {
+        parkIfNeeded();
+      }
       /* A frozen mixer cannot finish a crossfade, on land or on a ride. */
       for (const a of Object.values(actions)) if (a !== current.action) a.stop();
       current.action.stopFading().setEffectiveWeight(1);
@@ -437,32 +467,90 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
      the prone Swim clip parks mid-recovery (head+arm up — frame 0 is
      the catch with the face in the water, which reads as drowning
      when frozen). */
-  const PARK_TIME = { Swim: 1.13 };
+  const PARK_TIME = { Swim: 1.13, SwimFreestyle: (1 + 136 * 7 / 12) / 30 };
   function parkIfNeeded() {
     if (ready && reducedMotion() && current) {
       current.action.time = PARK_TIME[current.clipName] || 0;
     }
   }
 
+  function setSwimStyle(style) {
+    if (disposed || (style !== "head-up" && style !== "freestyle")) return false;
+    if (swimStyle === style) return true;
+    swimStyle = style;
+    if (ready && !rideDriven) setStance(loco.stance);
+    return true;
+  }
+
+  function changeAction(clip) {
+    const next = actions[clip];
+    if (swimFade || clip === "SwimFreestyle" || current?.clipName === "SwimFreestyle") {
+      // Snapshot the actual blended pose weights, including interrupted fades.
+      // Reuse the nine cached actions; reversing never resets a contributing one.
+      const starts = Object.values(actions).filter(a => a.isScheduled() && a.enabled)
+        .map(a => [a, a.getEffectiveWeight()]);
+      const total = starts.reduce((sum, [, w]) => sum + w, 0) || 1;
+      for (const entry of starts) {
+        entry[1] /= total;
+        entry[0].stopFading().setEffectiveWeight(entry[1]);
+      }
+      if (!starts.some(([a]) => a === next)) {
+        const phase = current && /^Swim/.test(current.clipName)
+          ? current.action.time / current.action.getClip().duration : 0;
+        next.reset().setEffectiveWeight(0).play();
+        if (/^Swim/.test(clip)) next.time = phase * next.getClip().duration;
+        starts.push([next, 0]);
+      }
+      swimFade = { starts, elapsed: 0, next };
+    } else {
+      next.reset().setEffectiveWeight(1).play();
+      if (current) {
+        current.action.fadeOut(CROSSFADE);
+        next.fadeIn(CROSSFADE);
+      }
+    }
+    current = { clipName: clip, action: next };
+  }
+
+  function advanceSwimFade(dt) {
+    if (!swimFade) return;
+    const f = swimFade;
+    const progress = Math.min(1, (f.elapsed += dt) / CROSSFADE);
+    for (const [a, start] of f.starts) {
+      a.setEffectiveWeight(start * (1 - progress) + (a === f.next ? progress : 0));
+      if (progress === 1 && a !== f.next) a.stop();
+    }
+    if (progress === 1) swimFade = null;
+  }
+
   function setStance(name) {
-    if (!STANCES[name] || name === loco.stance || !ready) return;
-    const cfg = STANCES[name];
+    if (!STANCES[name] || !ready) return;
+    if (name === "swim" || name === "float") {
+      // Check the whole foot reach now and after the existing fade's travel,
+      // so the return to Head-up finishes BEFORE the kick reaches shallows.
+      const bed = Math.max(
+        sandY(loco.x, loco.z + FREESTYLE_REACH),
+        sandY(loco.x + loco.vx * CROSSFADE, loco.z + loco.vz * CROSSFADE + FREESTYLE_REACH)
+      );
+      swimDepth = FREESTYLE_LOW_WATER - bed;
+      // Physical readiness belongs to the water, not the selected stroke.
+      // Head-up swimming and resting retain/recheck the same depth history.
+      freestyleDepthReady = swimDepth >= (freestyleDepthReady ? FREESTYLE_EXIT_DEPTH : FREESTYLE_ENTER_DEPTH);
+    } else {
+      freestyleDepthReady = false;
+      swimDepth = null;
+    }
+    const cfg = stanceCfg(name);
     const next = actions[cfg.clip];
     if (!next) return;
+    if (name === loco.stance && current?.action === next) return;
     const sameAction = current && current.action === next;
     loco.stance = name;
     if (sameAction) {                      /* walk→wade: same clip */
       applyTimeScale();
       return;
     }
-    next.reset();
-    next.setEffectiveWeight(1);
-    next.play();
-    if (current) {
-      current.action.fadeOut(CROSSFADE);
-      next.fadeIn(CROSSFADE);
-    }
-    current = { clipName: cfg.clip, action: next };
+    changeAction(cfg.clip);
     applyTimeScale();
     parkIfNeeded();
   }
@@ -587,6 +675,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
       shadow.visible = foamRing.visible = false;
       loco.foam = 0;
       applyTimeScale();
+      advanceSwimFade(dt);
       mixer.update(reducedMotion() ? 0 : dt);
       return;
     }
@@ -603,11 +692,15 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
 
     /* stopped → the 2D idle half of the table: sea → float,
        foam/sand → stand */
-    if (!loco.moving && !gliding()) {
+    if (!loco.moving && (!gliding() || (swimStyle === "freestyle" && loco.zone === "sea"))) {
       setStance(loco.zone === "sea" ? "float" : "stand");
+    } else if (!loco.moving) {
+      // Head-up keeps its existing glide stance, but still rechecks depth.
+      setStance(loco.stance);
     }
 
     applyTimeScale();
+    advanceSwimFade(dt);
     mixer.update(reducedMotion() ? 0 : dt);
     mixRoot.position.set(loco.x, 0, loco.z);
     mixRoot.rotation.y = loco.yaw;
@@ -620,7 +713,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
     const surf = waterSurfaceY(loco.x, loco.z, t);
     const bob = (cfg.bob && !reducedMotion())
       ? BOB_AMP * Math.sin(t * 2 * Math.PI * BOB_HZ) : 0;
-    let targetY = surf - SWIM_SINK + bob;
+    let targetY = surf - (cfg.sink ?? SWIM_SINK) + bob;
     if (!cfg.water) {
       targetY = -Infinity;
       mixRoot.updateMatrixWorld(true);
@@ -665,11 +758,25 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
     root: mixRoot,
     loco,
     setStance,
+    setSwimStyle,
+    swimStatus() {
+      return {
+        selected: swimStyle,
+        mode: !ready ? "loading" : rideDriven ? rideStance === "surf" ? "surf" : "boat"
+          : loco.zone !== "sea" ? "shore" : loco.stance === "swim" && loco.moving ? "swim" : "rest",
+        effective: current?.clipName === "SwimFreestyle" ? "freestyle" : "head-up",
+        ready: freestyleDepthReady,
+        reducedMotion: reducedMotion()
+      };
+    },
     setSuit,
+    setHair,
     setFriend,
     appearance() {
       return {
-        suit: appliedSuit, friend: appliedFriend,
+        suit: appliedSuit, friend: appliedFriend, hair: appliedHair,
+        visibleHair: Object.fromEntries(Object.entries(hairMeshes).map(([k, v]) =>
+          [k, v.filter(m => m.visible).length])),
         visible: Object.fromEntries(Object.entries(suitMeshes).map(([k, v]) =>
           [k, v.filter(m => m.visible).length])),
         materials: Object.fromEntries([...materials].map(([k, v]) =>
@@ -711,10 +818,13 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
       loco.speed01 = clamp(speed01, 0, 1);
       const clipName = held ? "Paddle" : "Sit";
       if (current.clipName !== clipName) {
-        const next = actions[clipName];
-        next.reset().setEffectiveWeight(1).play();
-        current.action.fadeOut(CROSSFADE);
-        current = { clipName, action: next };
+        if (swimFade) changeAction(clipName);
+        else {
+          const next = actions[clipName];
+          next.reset().setEffectiveWeight(1).play();
+          current.action.fadeOut(CROSSFADE);
+          current = { clipName, action: next };
+        }
         parkIfNeeded();
       }
       applyTimeScale();
@@ -776,6 +886,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
         const a = actions[name];
         all[name] = {
           run: a.isRunning(),
+          active: a.isScheduled() && a.enabled,
           w: +a.getEffectiveWeight().toFixed(3)
         };
       }
@@ -783,6 +894,12 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
       const a = current.action;
       return {
         stance: loco.stance,
+        swimStyle,
+        swimDepthGuard: {
+          active: swimStyle === "freestyle" && loco.stance === "swim" && !freestyleDepthReady,
+          depth: swimDepth, enter: FREESTYLE_ENTER_DEPTH, exit: FREESTYLE_EXIT_DEPTH
+        },
+        sink: stanceCfg().water ? stanceCfg().sink ?? SWIM_SINK : null,
         clip: current.clipName,
         playing: a.isRunning(),
         weight: +a.getEffectiveWeight().toFixed(3),
