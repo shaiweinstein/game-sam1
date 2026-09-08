@@ -42,9 +42,10 @@ copied verbatim (keys, handles, interpolation) into a fresh action bound
 to LilyRig; the temp armature/action are deleted. Walk keeps its original
 action object untouched.
 
-NOTE on GLB inspection: the 32 original parts are JOINED into one skinned mesh
-(node "Lily4", 7 primitives = 7 materials), so a mesh-name listing shows
-the leftover datablock name "HairCap" — identical layout to lily4_walk.glb.
+NOTE on GLB inspection: the 17 base parts are JOINED into one skinned mesh
+(node "Lily4", 7 primitives = 7 materials). Runtime mesh names may reflect
+material-primitive splitting, not the original parts. The revised topology differs
+from lily4_walk.glb; the shared rig and animation contract is preserved.
 B5 adds four separately named, skinned suit variants on that same armature.
 
 Run (reproducible end-to-end, from a clean file):
@@ -581,13 +582,16 @@ bpy.ops.import_scene.gltf(filepath=LILY)
 meshes = [o for o in bpy.data.objects if o.type == "MESH"]
 print("lily4 mesh parts:", len(meshes))
 variants = [o for o in meshes if o.name.startswith(("Suit_Tank_", "Suit_Crop_"))]
-assert len(meshes) == 36 and len(variants) == 4, "expected 32 original + 4 variant parts"
+assert len(meshes) == 21 and len(variants) == 4, "expected 17 connected base + 4 variant parts"
 
 # ---------- Walk: conform + damp through the reference pipeline -----------
 FR_W = range(1, 33)
 print("== conform Walk ==")
 info = conform_rig(main, walk_act, FR_W)
 knee_z = info["knee_z"]
+# The conformed rest pivot is higher than the historical ELBOW_Z mesh hint.
+# Bind at the measured joint; neither the rest rig nor any keys are changed.
+arm_bend_z = (main.matrix_world @ main.data.bones["mixamorig:LeftForeArm"].head_local).z
 fcs_w = collect_fcs(walk_act)
 curves_w = {}
 for fc in fcs_w:
@@ -606,7 +610,7 @@ damp_walk_arms(main, walk_act, curves_w, FR_W)
 walk_act.name = "Walk"
 assert walk_act.name == "Walk"
 
-# ---------- 6. bind parts by rule (verbatim from build_lily4_walk.py) -----
+# ---------- 6. local body/garment binding; original head/hair rules -----
 def zblend(b_top, b_bot, z_top, z_bot):
     span = max(z_top - z_bot, 1e-6)
     def bot(c):
@@ -620,10 +624,6 @@ def zblend(b_top, b_bot, z_top, z_bot):
 HAIR = ["HairCap", "Bangs", "BangsShade", "HairLockL", "HairLockR"]
 CAPE = ["HairBack", "HairBackShade"]
 BODY_BLEND = zblend("mixamorig:Spine", "mixamorig:Hips", 0.50, 0.36)
-LEG_BLEND = zblend("mixamorig:LeftUpLeg", "mixamorig:LeftLeg",
-                   knee_z + 0.030, knee_z - 0.030)
-LEG_BLEND_R = zblend("mixamorig:RightUpLeg", "mixamorig:RightLeg",
-                     knee_z + 0.030, knee_z - 0.030)
 
 def _ss(x):
     x = min(1.0, max(0.0, x))
@@ -631,7 +631,7 @@ def _ss(x):
 
 def suit_bind(co):
     ax = abs(co.x)
-    t = _ss((ax - 0.016) / 0.016) * _ss((0.300 - co.z) / 0.058)
+    t = _ss((ax - 0.012) / 0.026) * _ss((0.310 - co.z) / 0.070)
     if co.z >= 0.50:
         w_sp, w_hp = 1.0, 0.0
     elif co.z <= 0.36:
@@ -644,19 +644,70 @@ def suit_bind(co):
             ("mixamorig:Hips", (1.0 - t) * w_hp),
             (leg, t)]
 
-def hem_trim_bind(co):
-    t = _ss((abs(co.x) - 0.016) / 0.016)
-    leg = "mixamorig:LeftUpLeg" if co.x >= 0 else "mixamorig:RightUpLeg"
-    return [("mixamorig:Hips", 1.0 - t), (leg, t)]
-
-CAP_BLEND_L = zblend("mixamorig:Spine", "mixamorig:LeftArm", 0.558, 0.492)
-CAP_BLEND_R = zblend("mixamorig:Spine", "mixamorig:RightArm", 0.558, 0.492)
-NECK_BLEND = zblend("mixamorig:Head", "mixamorig:Spine", 0.645, 0.556)
 CAPE_BLEND = zblend("mixamorig:Head", "mixamorig:Spine", 0.740, 0.560)
-ARM_BLEND_L = zblend("mixamorig:LeftArm", "mixamorig:LeftForeArm",
-                     ELBOW_Z + 0.018, ELBOW_Z - 0.015)
-ARM_BLEND_R = zblend("mixamorig:RightArm", "mixamorig:RightForeArm",
-                     ELBOW_Z + 0.018, ELBOW_Z - 0.015)
+
+
+def body_bind(co, arm=0.0):
+    # Topological ownership crosses welded sockets smoothly; adjacent shafts
+    # must not pick up torso weights just because their X coordinates overlap.
+    if co.z < .490 and arm == 0:
+        return suit_bind(co)
+    side = "Left" if co.x >= 0 else "Right"
+    # Keep elbow rotation out of the shoulder socket. Its lower boundary is
+    # near the conformed elbow height, but is still torso/shoulder topology.
+    fore = _ss((arm_bend_z+.026-co.z)/.052) * _ss((arm-.70)/.30)
+    head = _ss((co.z-.556)/(.645-.556))
+    return [("mixamorig:Spine", (1-arm)*(1-head)),
+            ("mixamorig:Head", (1-arm)*head),
+            (f"mixamorig:{side}Arm", arm*(1-fore)),
+            (f"mixamorig:{side}ForeArm", arm*fore)]
+
+
+def leg_bind(co):
+    side = "Left" if co.x >= 0 else "Right"
+    # Match the garment field through the cuffs, then blend across supported
+    # .192/.165/.154 rings. A hard switch sheared the Hips-bound inner thigh.
+    if co.z >= .192:
+        return suit_bind(co)
+    blend = _ss((.192-co.z)/(.192-.154))
+    hips = (1-blend) * dict(suit_bind(co))["mixamorig:Hips"]
+    knee = blend * _ss((knee_z+.030-co.z)/.060)
+    foot = _ss((.082-co.z)/.039)
+    return [("mixamorig:Hips", hips),
+            (f"mixamorig:{side}UpLeg", 1-hips-knee),
+            (f"mixamorig:{side}Leg", knee*(1-foot)),
+            (f"mixamorig:{side}Foot", knee*foot)]
+
+
+# Guard both blend endpoints and the former cutoff on each inner/outer leg.
+leg_weight_jump = 0.0
+for x in (-.058, -.034, -.020, .020, .034, .058):
+    for z in (.192, .190, .154):
+        below, above = [dict(leg_bind(Vector((x, 0, z+dz)))) for dz in (-1e-7, 1e-7)]
+        leg_weight_jump = max(leg_weight_jump,
+                             max(abs(below.get(b, 0)-above.get(b, 0)) for b in below.keys() | above.keys()))
+assert leg_weight_jump < 1e-4, f"discontinuous leg weights: {leg_weight_jump}"
+print(f"  leg weight continuity: max jump {leg_weight_jump:.8f}")
+
+
+from mathutils.kdtree import KDTree
+body_mesh = next(m for m in meshes if m.name == "Torso")
+arm_attribute = body_mesh.data.attributes["_ARM"]
+body_tree = KDTree(len(body_mesh.data.vertices))
+for v in body_mesh.data.vertices:
+    body_tree.insert(v.co, v.index)
+body_tree.balance()
+
+
+def garment_bind(co):
+    if co.z <= .490:
+        return suit_bind(co)
+    nearest = body_tree.find_n(co, 4)
+    weights = [1/max(d, .001)**2 for _, _, d in nearest]
+    arm = sum(w*arm_attribute.data[i].value for w, (_, i, _) in zip(weights, nearest))/sum(weights)
+    # A sleeveless strap follows the shoulder root, not the upper-arm shaft.
+    # Full shaft influence pulled the armhole into a pennant in raised poses.
+    return body_bind(co, .25*arm)
 
 BINDINGS = {"Head": [("mixamorig:Head", None)]}
 for h in HAIR:
@@ -666,31 +717,16 @@ for c in CAPE:
 LOCK_BLEND = zblend("mixamorig:Head", "mixamorig:Spine", 0.66, 0.50)
 BINDINGS.update({"HairLockL": LOCK_BLEND, "HairLockR": LOCK_BLEND})
 BINDINGS.update({
-    "Neck":       NECK_BLEND,
-    "Torso":      BODY_BLEND,
-    "ShoulderCapL": CAP_BLEND_L,
-    "ShoulderCapR": CAP_BLEND_R,
-    "ArmL":       ARM_BLEND_L,
-    "ArmR":       ARM_BLEND_R,
-    "HandL":      [("mixamorig:LeftForeArm", None)],
-    "HandR":      [("mixamorig:RightForeArm", None)],
-    "LegL":       LEG_BLEND,
-    "LegR":       LEG_BLEND_R,
-    "FootL":      [("mixamorig:LeftFoot", None)],
-    "FootHeelL":  [("mixamorig:LeftFoot", None)],
-    "FootToeL":   [("mixamorig:LeftFoot", None)],
-    "FootR":      [("mixamorig:RightFoot", None)],
-    "FootHeelR":  [("mixamorig:RightFoot", None)],
-    "FootToeR":   [("mixamorig:RightFoot", None)],
-    "Suit":       suit_bind,
-    "TrimNeckline": [("mixamorig:Spine", None)],
-    "TrimHem":    hem_trim_bind,
+    "Torso":      body_bind,
+    "LegL":       leg_bind,
+    "LegR":       leg_bind,
+    "Suit":       garment_bind,
     "DaisyC":     BODY_BLEND,
 })
 for k in range(4):
     BINDINGS["DaisyP%d" % k] = BODY_BLEND
 for m in variants:
-    BINDINGS[m.name] = suit_bind
+    BINDINGS[m.name] = garment_bind
 
 unbound = [m.name for m in meshes if m.name not in BINDINGS]
 assert not unbound, f"parts missing bindings: {unbound}"
@@ -698,15 +734,17 @@ assert not unbound, f"parts missing bindings: {unbound}"
 for m in meshes:
     spec = BINDINGS[m.name]
     if callable(spec):
+        samples = [(v, spec(v.co, arm_attribute.data[v.index].value)
+                    if m == body_mesh else spec(v.co)) for v in m.data.vertices]
         bones = []
         seen = set()
-        for v in m.data.vertices:
-            for bn, _w in spec(v.co):
+        for v, sample in samples:
+            for bn, _w in sample:
                 if bn not in seen:
                     seen.add(bn); bones.append(bn)
         grp = {bn: m.vertex_groups.new(name=bn) for bn in bones}
-        for v in m.data.vertices:
-            for bn, w in spec(v.co):
+        for v, sample in samples:
+            for bn, w in sample:
                 if w > 0:
                     grp[bn].add([v.index], w, "ADD")
     elif spec[0][1] is None:
@@ -725,12 +763,11 @@ for m in meshes:
                 g2.add([v.index], w2, "REPLACE")
 
 for m in meshes:
-    if m.name in ("Suit", "TrimHem", "TrimNeckline") or m in variants:
-        bad = [v.index for v in m.data.vertices
-               if sum(g.weight for g in v.groups) < 0.999]
-        print(f"  bind check {m.name}: {len(m.data.vertices)} verts, "
-              f"unbound {len(bad)}")
-        assert not bad, f"{m.name} unweighted verts: {bad[:10]}"
+    bad = [v.index for v in m.data.vertices
+           if abs(sum(g.weight for g in v.groups)-1) > 1e-5 or
+           len(v.groups) > 4 or any(not math.isfinite(g.weight) for g in v.groups)]
+    print(f"  bind check {m.name}: {len(m.data.vertices)} verts, invalid {len(bad)}")
+    assert not bad, f"{m.name} invalid weights: {bad[:10]}"
 
 bpy.ops.object.select_all(action="DESELECT")
 for m in meshes:
@@ -738,7 +775,7 @@ for m in meshes:
 bpy.context.view_layer.objects.active = meshes[0]
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
-# Keep the original join/order unchanged (including the head-up mesh markers).
+# Consolidate connected base parts; head-up markers are selected geometrically.
 # Variant nodes retain their names and share this rig and its binding rules.
 for m in variants:
     m.select_set(False)
@@ -1098,7 +1135,7 @@ def clip_world_bbox(frs):
     return mn, mx
 
 DIRS = {"side": Vector((1, 0, 0.25)), "front": Vector((0, -1, 0.15))}
-for name, fbx, loops, hzero in CLIPS:
+for name, fbx, loops, hzero in ([] if os.environ.get("LILY_SKIP_PREVIEWS") else CLIPS):
     main.animation_data.action = clip_acts[name]
     f0, f1 = clip_frame_range(clip_acts[name])
     # frame each clip's own bbox: prone/low poses (Swim, Paddle) were cropped

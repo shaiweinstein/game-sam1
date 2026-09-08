@@ -1,13 +1,23 @@
 # beach3d — 3D Lily animation pack (B0)
 
-`assets/lily4_full.glb` is the final Lily v4 skinned mesh (40,001 verts, one
-7-material joined mesh, 65-joint `LilyRig` skin — byte-compatible layout with
-`spike3/assets/lily4_walk.glb`) carrying **eight** retargeted Mixamo clips in
-one file, all built through the exact conform/inverseBind pipeline of
-`spike3/blender/build_lily4_full.py` (single shared rest, per-clip action
-copies, copy-fidelity < 1e-4 asserted per clip).
+`assets/lily4_full.glb` contains the shared Lily/friend body, three swimsuit
+geometry groups, and **eight** retargeted Mixamo clips on the 65-joint
+`LilyRig`. The body-quality pass corrects outward skin surfaces, connects
+the upper body and hands, and replaces overlapping foot pieces with continuous
+leg/foot surfaces. Garments retain the material and variant names used by
+the runtime appearance setters.
+
+The mesh layout is not byte-compatible with the original Walk reference.
+The shared skeleton/rest transforms and animation tracks remain compatible;
+`spike3/blender/build_lily4_full.py` checks Walk against
+`spike3/assets/lily4_walk.glb` with a tolerance of 1e-4. The accepted head,
+face UVs, and head-up Swim orientation are preserved.
 
 ## Clips
+
+The mesh ranges below are historical B0 measurements, not clearance guarantees
+for the revised body. Check the current skinned surfaces in their posed state
+when changing ground contact, garment fit, or ride attachment heights.
 
 | name | mode | frames | duration (s) | mesh z-range (m) | loop seam (trans / rot, first vs last sample) |
 |---|---|---|---|---|---|
@@ -39,7 +49,7 @@ the table (sampling starts at t = 1/30 s, e.g. Walk = 1.067).
   **Swim**: head-up freestyle (converted from a face-down crawl in
   `build_lily4_full.py` §6c); with the node origin `SWIM_SINK = 0.065` m
   below the surface the waterline sits at the chin/upper-chest — face just
-  clear on the breathing side, back + shoulders at the surface, hips/legs
+   clear and facing forward, back + shoulders at the surface, hips/legs
   submerged and visible through the 0.9-alpha toon water.
   **Paddle**: low kneel on the board, head
   ≈ 0.21, hands sweep down to ≈ −0.26 (below the deck). **SurfRide**: deep
@@ -55,9 +65,41 @@ the table (sampling starts at t = 1/30 s, e.g. Walk = 1.067).
 
 ## Rebuild
 
-```
+```sh
+/usr/bin/blender --background --python spike3/blender/build_lily4.py
 /usr/bin/blender --background --python spike3/blender/build_lily4_full.py
 ```
+
+Rebuild the base model first after geometry changes; the full-pack builder
+imports `spike3/assets/lily4.glb`. Runtime skin uses outward-facing surfaces
+with `FrontSide`, including when two-piece swimsuits expose the torso.
+
+## Ground contact and validation
+
+`character3d.js` resolves land height from the current blended skin pose,
+using a bounded support set sampled from the loaded feet and Idle/Walk clips.
+It targets 3 mm of sole clearance against `sandY` at each support point.
+This replaces the historical clip-wide Walk/Idle lifts; the old mesh minimum
+alone is not a suitable root-height correction for every frame of a stride.
+Water transitions remain eased, and boat/surf attachment heights bypass this
+land correction.
+
+With the game served on port 8123, run in a Python environment with Playwright
+and its Chromium browser installed:
+
+```sh
+python3 beach3d/ground_contact_test.py --shots --label local
+```
+
+The test independently scans skinned foot/ankle vertices, records the loaded
+GLB hash, and checks cycles, slopes, interrupted fades, and shore transitions.
+Reports and optional screenshots go to `/tmp/kilo/lily-improvements/`.
+
+Limits: this is vertical grounding, not horizontal foot locking or IK.
+Swim-to-wade feet can briefly remain below wet sand during the 0.30 s pose
+transition before settling. Extreme raised-arm Cheer poses also retain some
+underarm compression; successful clip-copy and rest-topology checks do not
+constitute an exhaustive posed collision audit.
 
 ## Blender 5.0 gotchas (both hit, both solved in the script)
 
