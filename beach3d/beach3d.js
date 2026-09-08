@@ -19,8 +19,7 @@
    boot — js/beach.js then keeps the 2D Phaser beach (silent
    fallback until B6). Input is the 2D press-hold contract:
    first pointer down wins, drag re-targets, release stops —
-   raycast onto the water/sand plane, clamped to the playable box
-   (+ the B2 deep-edge margin inside character3d.js).
+   raycast onto the water/sand plane, clamped to the shared playable box.
 
    Reduced motion (cached matchMedia + change listener, 2D
    pattern): the water/foam keep their resting frame, the gait
@@ -67,6 +66,7 @@ let loopId = null;
 let supportChecked = false;
 let supportedFlag = false;
 let unsubscribeAppearance = null;
+let unwireInput = null;
 
 function syncAppearance() {
   try {
@@ -123,7 +123,7 @@ function open(stageEl) {
     }
   });
   trackedPointer = null;
-  wireInput(world.canvas);
+  unwireInput = wireInput(world.canvas);
   opened = true;
   const loadingCharacter = character;
   character.ready.then((ok) => {
@@ -139,10 +139,10 @@ function open(stageEl) {
 function close() {
   if (!opened) return;
   opened = false;
+  if (unwireInput) { unwireInput(); unwireInput = null; }
   if (unsubscribeAppearance) { unsubscribeAppearance(); unsubscribeAppearance = null; }
   if (loopId !== null) { cancelAnimationFrame(loopId); loopId = null; }
-  /* full teardown per visit — one WebGL context per beach session,
-     never a leak across open/close cycles (2D parity) */
+  /* Full teardown, including permanent renderer context loss. */
   surf.dispose();
   boat.dispose();
   trackedPointer = null;
@@ -159,13 +159,24 @@ let frames = 0, fpsWindow = 0, fps = 0;
 let lastT = 0, waveT = 0;
 
 function startLoop() {
+  if (!opened || document.hidden || loopId !== null) return;
   lastT = performance.now();
+  frames = fpsWindow = fps = 0;
+  const interval = 1000 / world.frameCap;
+  let nextFrameT = lastT + interval;
   const tick = (now) => {
-    if (!opened) return;
+    loopId = null;
+    if (!opened || document.hidden) return;
     loopId = requestAnimationFrame(tick);
+    if (now + 0.5 < nextFrameT) return;
+    /* Preserve the deadline phase at 90/120/144 Hz instead of locking to
+       every Nth refresh. Skip missed deadlines, but integrate ALL elapsed
+       time since the last rendered frame through the existing substeps. */
+    nextFrameT += Math.max(1, Math.floor((now + 0.5 - nextFrameT) / interval) + 1) * interval;
     /* real-time locomotion even on long frames: substep ≤1/60,
        capped so a tab-out never teleports her (2D LOCO slices) */
-    const raw = Math.min((now - lastT) / 1000, 0.5);
+    const elapsed = (now - lastT) / 1000;
+    const raw = Math.min(elapsed, 0.5);
     lastT = now;
     const rm = reducedMotion();
     if (!rm) waveT += raw;
@@ -181,17 +192,12 @@ function startLoop() {
         if (character) character.update(dt, waveT);
       }
       world.stepZoom(raw);
-      if (character) {
-        /* B2-cam: the zone-driven two-framing camera (world.js
-           camera block) — LAND = the exact B1 shot, SEA = the gentle
-           follow rig on her eased root */
-        const a = surf.getCameraAnchor() || boat.getCameraAnchor() || character.getAnchor();
-        world.updateCamera(raw, rm, a.x, a.y ?? character.getRootY(), a.z, a.zone);
-      }
+      world.updateCamera(raw);
       world.animate(waveT, raw, rm);
       world.render();
     }
-    frames++; fpsWindow += raw;
+    /* Frame reporting uses wall time; the physics clamp must not hide stalls. */
+    frames++; fpsWindow += elapsed;
     if (fpsWindow >= 0.5) {
       fps = Math.round(frames / fpsWindow);
       frames = 0; fpsWindow = 0;
@@ -207,6 +213,9 @@ let trackedPointer = null;      /* first-down pointerId (one-pointer) */
 let pointerWasRide = false;     /* auto-hop never hands an old hold to swimming */
 
 function wireInput(canvas) {
+  const events = new AbortController();
+  const on = (type, handler, options = {}) =>
+    canvas.addEventListener(type, handler, { ...options, signal: events.signal });
   const toWorld = (ev) => {
     const r = canvas.getBoundingClientRect();
     if (!r.width || !r.height) return null;
@@ -214,8 +223,8 @@ function wireInput(canvas) {
     const ny = -(((ev.clientY - r.top) / r.height) * 2 - 1);
     return world.pickGround(nx, ny);
   };
-  canvas.addEventListener("pointerdown", (ev) => {
-    if (!character || trackedPointer !== null) return;   /* first wins */
+  on("pointerdown", (ev) => {
+    if (!character || document.hidden || trackedPointer !== null) return;   /* first wins */
     trackedPointer = ev.pointerId;
     try { canvas.setPointerCapture(ev.pointerId); } catch (e) { /* ok */ }
     const p = toWorld(ev);
@@ -223,7 +232,7 @@ function wireInput(canvas) {
     pointerWasRide = surf.active() || boat.active();
     ev.preventDefault();
   });
-  canvas.addEventListener("pointermove", (ev) => {
+  on("pointermove", (ev) => {
     if (!character || ev.pointerId !== trackedPointer) return;
     if (pointerWasRide && !surf.active() && !boat.active()) return;
     if (surf.active() || boat.active()) pointerWasRide = true;
@@ -238,42 +247,94 @@ function wireInput(canvas) {
     surf.onPointerUp(ev);
     if (character) character.clearTarget("pointer");    /* release stops */
   };
-  canvas.addEventListener("pointerup", up);
-  canvas.addEventListener("pointercancel", up);
-  canvas.addEventListener("lostpointercapture", up);
-  /* gentle wheel zoom 0.8×–1.6× */
-  canvas.addEventListener("wheel", (ev) => {
+  on("pointerup", up);
+  on("pointercancel", up);
+  on("lostpointercapture", up);
+  /* Accumulate on the requested zoom, not its still-easing current value. */
+  on("wheel", (ev) => {
+    if (document.hidden || ev.ctrlKey || ev.metaKey || ev.altKey) return;
     ev.preventDefault();
-    world.setZoom(world.zoom() * Math.exp(ev.deltaY * 0.0012));
+    const unit = ev.deltaMode === 1 ? 16 : ev.deltaMode === 2 ? canvas.clientHeight : 1;
+    world.setZoom(world.zoomTarget() * Math.exp(Math.max(-600, Math.min(600, ev.deltaY * unit)) * 0.0012));
   }, { passive: false });
+
+  let ignoreZoomRepeat = false;
+  const zoomKey = (ev) => {
+    if (!opened || !world || document.hidden || (ev.repeat && ignoreZoomRepeat) ||
+        ev.ctrlKey || ev.metaKey || ev.altKey ||
+        ev.target?.isContentEditable || ev.target?.closest?.("input, textarea, select")) return;
+    let direction;
+    if (ev.key === "+" || ev.key === "=" || ev.code === "NumpadAdd") direction = -1;
+    else if (ev.key === "-" || ev.code === "NumpadSubtract") direction = 1;
+    else return;
+    ignoreZoomRepeat = false;
+    ev.preventDefault();
+    /* OS key repeat is useful and remains bounded by setZoom's limits. */
+    world.setZoom(world.zoomTarget() * Math.exp(direction * 0.08));
+  };
+  document.addEventListener("keydown", zoomKey);
 
   /* two-finger pinch = the same gentle zoom (the first finger keeps
      owning locomotion — the one-pointer contract is untouched) */
   const live = new Map();     /* pointerId -> {x,y} client coords */
   let pinchD0 = 0, pinchZ0 = 1;
-  canvas.addEventListener("pointerdown", (ev) => {
+  on("pointerdown", (ev) => {
+    if (document.hidden) return;
     live.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
     if (live.size === 2) {
       const [a, b] = [...live.values()];
       pinchD0 = Math.hypot(a.x - b.x, a.y - b.y);
-      pinchZ0 = world.zoom();
+      pinchZ0 = world.zoomTarget();
     }
   });
-  canvas.addEventListener("pointermove", (ev) => {
+  on("pointermove", (ev) => {
     if (!live.has(ev.pointerId)) return;
     live.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
     if (live.size === 2 && pinchD0 > 8) {
       const [a, b] = [...live.values()];
       const d = Math.hypot(a.x - b.x, a.y - b.y);
-      world.setZoom(pinchZ0 * (d / pinchD0));
+      if (d > 8) world.setZoom(pinchZ0 * (pinchD0 / d));
     }
   });
   const liveUp = (ev) => {
     live.delete(ev.pointerId);
     if (live.size < 2) pinchD0 = 0;
   };
-  canvas.addEventListener("pointerup", liveUp);
-  canvas.addEventListener("pointercancel", liveUp);
+  on("pointerup", liveUp);
+  on("pointercancel", liveUp);
+  on("lostpointercapture", liveUp);
+  const releaseInput = () => {
+    boat.releaseInput();
+    surf.releaseKeys();
+    character?.clearTarget("pointer");
+    trackedPointer = null;
+    pointerWasRide = false;
+    ignoreZoomRepeat = true;
+    for (const id of live.keys()) {
+      if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
+    }
+    live.clear();
+    pinchD0 = 0;
+  };
+  const visibility = () => {
+    if (!opened) return;
+    if (document.hidden) {
+      if (loopId !== null) cancelAnimationFrame(loopId);
+      loopId = null;
+      frames = fpsWindow = fps = 0;
+      releaseInput();
+    } else startLoop();  // new time origin; no hidden-time catch-up
+  };
+  document.addEventListener("visibilitychange", visibility);
+  window.addEventListener("blur", releaseInput);
+  /* Retired context wrappers can outlive close; detach canvas handlers too. */
+  return () => {
+    releaseInput();
+    events.abort();
+    document.removeEventListener("keydown", zoomKey);
+    document.removeEventListener("visibilitychange", visibility);
+    window.removeEventListener("blur", releaseInput);
+  };
 }
 
 /* ---------- public surface (mirrors window.BeachGame) ---------- */
@@ -294,6 +355,11 @@ window.Beach3D = {
 /* ---------- test hook (Playwright) ---------- */
 
 window.__beach3d = {
+  /* Detached, local-only diagnostics: mutating the result changes no policy. */
+  performance: () => world ? {
+    ...world.stats(), fps, paused: document.hidden,
+    effectiveFrameCap: loopId === null ? 0 : world.frameCap
+  } : null,
   syncAppearance,
   appearance: () => character?.appearance() || null,
   setSuit: id => character?.setSuit(id) || false,
@@ -306,38 +372,33 @@ window.__beach3d = {
       stance: character.stanceName(), moving: character.isMoving(),
       boat: boat.state(),
       surf: surf.state(),
-      cameraAnchor: surf.getCameraAnchor() || boat.getCameraAnchor(),
+      /* Ride anchor is diagnostic only; it never controls the camera. */
+      rideAnchor: surf.getCameraAnchor() || boat.getCameraAnchor(),
       shoreZ: +shorelineZ(a.x).toFixed(3),
       rootY: +character.getRootY().toFixed(3),
       waterY: +waterSurfaceY(a.x, a.z, waveT).toFixed(3),
       splashes: world ? world.splashCount() : 0,
       waveT: +waveT.toFixed(3),
       fps, zoom: +world.zoom().toFixed(2),
-      /* B2-cam QA: the actual camera position + which framing owns
-         it ("land" = exact B1 shot, "sea" = follow rig/glide) */
+      zoomTarget: world.zoomTarget(),
+      /* The same manual overview in every zone and stance. */
       cam: world ? [
         +world.camera.position.x.toFixed(3),
         +world.camera.position.y.toFixed(3),
         +world.camera.position.z.toFixed(3)
       ] : null,
       camMode: world ? world.camMode() : null,
-      /* full-precision camera position (debug: 3-decimal cam can
-         alias a mid-glide frame into a settled-looking value) */
+      /* Full precision distinguishes manual zoom easing from its settle. */
       camFull: world ? [
         world.camera.position.x,
         world.camera.position.y,
         world.camera.position.z
       ] : null,
-      /* no-pop audit (get-and-clear): max per-frame camera travel
+      /* manual zoom audit (get-and-clear): max per-frame camera travel
          (m) and max real-time speed (m/s) since the last state() */
       camStep: world ? world.camStep() : 0,
       camSpeed: world ? world.camSpeed() : 0,
-      renderer: world.renderer ? {
-        calls: world.renderer.info.render.calls,
-        tris: world.renderer.info.render.triangles,
-        geometries: world.renderer.info.memory.geometries,
-        textures: world.renderer.info.memory.textures
-      } : null,
+      renderer: world.stats(),
       rm: reducedMotion()
     };
   },

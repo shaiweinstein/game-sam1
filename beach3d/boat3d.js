@@ -9,7 +9,8 @@ const GLB_URL = new URL("./assets/duck_boat.glb", import.meta.url).href;
 const BOAT = {
   x: 4.7, z: -3.5, speed: 3, minFactor: 0.4, acceleration: 6,
   drag: 2.5, coastStop: 0.05, easeRange: 0.84, stopDist: 0.08,
-  xMin: -6.6, xMax: 6.6, zMin: -6.1, shorePad: 0.5, hopDist: 0.7,
+  xMin: WORLD.box.xMin + 0.2, xMax: WORLD.box.xMax - 0.2,
+  zMin: WORLD.box.zMin + 0.4, shorePad: 0.5, hopDist: 0.7,
   boardDist: 0.5, tapRadius: 1.2, inviteTimeout: 20,
   seat: -0.16, wakeEvery: 0.5, wakeCap: 12, wakeLife: 0.9
 };
@@ -163,6 +164,11 @@ export function onPointerMove(ev, rawRay) {
 export function onPointerUp(ev = {}) {
   if (!st) return;
   if (st.pointerId !== (ev.pointerId ?? "program")) return;
+  st.held = false; st.pointerId = null;
+}
+
+export function releaseInput() {
+  if (!st) return;
   st.held = false; st.pointerId = null;
 }
 

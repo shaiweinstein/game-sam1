@@ -71,12 +71,8 @@ const LOCO_EASE_RANGE = 0.45;
 const LOCO_MIN_SPEED = 0.45;
 const LOCO_STOP_DIST = 0.12;
 
-/* B2 replaces the B1 shore clamp with a DEEP-EDGE margin: she swims
-   all the way to the far water but stays this side of z −6.5 —
-   past it come the wave crest sheets (z −6.8…−3.4) and the styled
-   horizon band, and the seabed keeps falling (bedTo −7.0). The
-   foam band is untouched: it stays the wade zone. */
-export const SEA_DEEP_Z = -6.5;
+/* Shared with pointer picking, surf spawns, and boat bounds. */
+export const SEA_DEEP_Z = WORLD.box.zMin;
 
 /* Swim/float root sink — node origin this far BELOW the animated
    water surface. MEASURED on the shipped head-up clip (boneY audit,

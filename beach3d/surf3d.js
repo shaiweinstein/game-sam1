@@ -6,10 +6,10 @@ import { toonify, shorelineZ, sandY, waterSurfaceY, WORLD } from "./world.js";
 
 const GLB_URL = new URL("./assets/surfboard.glb", import.meta.url).href;
 const SURF = {
-  waveSpeed: 1.1, spawnZ: -7.3, spawnFirst: 1.8, spawnMin: 2.2, spawnMax: 4.8,
+  waveSpeed: 1.1, spawnZ: WORLD.box.zMin - 0.8, spawnFirst: 1.8, spawnMin: 2.2, spawnMax: 4.8,
   catchRadius: 1.1, seaGuard: 0.8, shorePad: 0.7, pocket: 0.3,
   carveSpeed: 2, carveFloor: 0.4, carveEase: 0.36, carveStop: 0.03,
-  xMin: -6.6, xMax: 6.6, leanEase: 3, tilt: 7*Math.PI/180,
+  xMin: WORLD.box.xMin, xMax: WORLD.box.xMax, leanEase: 3, tilt: 7*Math.PI/180,
   bob: 0.04, crestHz: 0.45, splashEvery: 1.26, splashLife: 0.8, splashCap: 16,
   rollTime: 0.5, breakTime: 1.2
 };
@@ -80,7 +80,10 @@ function canCatch() {
   if (!st?.ready || st.mode !== "traveling" || bus?.rideActive?.() ||
       !window.Beach3D?.isOpen() || !character.actionInfo().clip) return false;
   const a = character.getAnchor();
-  return a.z < shorelineZ(a.x)-SURF.seaGuard && Math.abs(st.crestZ-a.z) <= SURF.catchRadius;
+  /* The entire ride starts inside the playable box, even when Space is
+     held at the deepest edge before the new swell has arrived. */
+  return st.crestZ+SURF.pocket >= WORLD.box.zMin &&
+    a.z < shorelineZ(a.x)-SURF.seaGuard && Math.abs(st.crestZ-a.z) <= SURF.catchRadius;
 }
 
 export function catchWave() {
@@ -98,7 +101,7 @@ export function catchWave() {
 
 function isSpace(ev) { return ev.code === "Space" || ev.key === " " || ev.key === "Spacebar"; }
 export function onKeyDown(ev) {
-  if (!st || !window.Beach3D?.isOpen() || !isSpace(ev) ||
+  if (!st || document.hidden || !window.Beach3D?.isOpen() || !isSpace(ev) ||
       ev.target?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
   ev.preventDefault();
   if (ev.repeat || active() || bus?.rideActive?.()) return;
@@ -110,7 +113,7 @@ export function onKeyUp(ev) {
   if (window.Beach3D?.isOpen()) ev.preventDefault();
   st.armed = false;
 }
-function releaseKeys() {
+export function releaseKeys() {
   if (!st) return;
   st.armed = st.held = false; st.pointerId = null;
 }
@@ -120,7 +123,7 @@ function releaseKeys() {
 export function spawnWave(x) {
   if (!st?.ready || st.crestZ !== null || active()) return false;
   if (Number.isFinite(x) && bus?.rideActive?.()) return false;
-  if (Number.isFinite(x)) character.teleport(clamp(x,SURF.xMin,SURF.xMax), -5.7);
+  if (Number.isFinite(x)) character.teleport(clamp(x,SURF.xMin,SURF.xMax), WORLD.box.zMin + 0.8);
   st.crestZ = SURF.spawnZ; st.mode = "traveling"; st.spawnT = null;
   st.breakT = 0; st.age = 0; st.spawnCount++;
   return true;
@@ -185,7 +188,7 @@ function makeWave() {
   wave = new THREE.Group(); world.scene.add(wave); wave.visible = false;
   const geometry = new THREE.PlaneGeometry(15,1,NX,PROFILE.length-1);
   const colors = new Float32Array(geometry.attributes.position.count*3);
-  const deep = new THREE.Color(0x25809a), pale = new THREE.Color(0x4fc3d9), color = new THREE.Color();
+  const deep = new THREE.Color(WORLD.water.colDeep), pale = new THREE.Color(0x65b0ed), color = new THREE.Color();
   for (let j=0; j<PROFILE.length; j++) for (let i=0; i<=NX; i++) {
     color.copy(deep).lerp(pale,PROFILE[j][1]); color.toArray(colors,(j*(NX+1)+i)*3);
   }
@@ -281,7 +284,7 @@ export function update(dt,waveT,rm) {
       character.attachRide(st.x,st.z,st.yaw,"surf",st.y);
       character.detachRide(); character.setEnabled(true); character.setStance("stand");
       st.landing = false; st.parked = true; st.vx = 0;
-      st.parkX = clamp(st.x+(st.x > 6 ? -.55 : .55),-7,7);
+      st.parkX = clamp(st.x+(st.x > SURF.xMax-.55 ? -.55 : .55),SURF.xMin,SURF.xMax);
     }
   }
   if (st.parked) {
@@ -295,8 +298,8 @@ export function update(dt,waveT,rm) {
     const yaw = character.loco.yaw;
     // Clear a sideways swimmer's head even though the long board faces sea.
     const offset = .45+.55*Math.abs(Math.sin(yaw));
-    const x = clamp(a.x+Math.cos(yaw)*offset,-7,7);
-    const z = Math.max(-7.2,a.z-Math.sin(yaw)*offset);
+    const x = clamp(a.x+Math.cos(yaw)*offset,SURF.xMin,SURF.xMax);
+    const z = clamp(a.z-Math.sin(yaw)*offset,WORLD.box.zMin,WORLD.box.zMax);
     const k = 1-Math.exp(-8*dt);
     st.x += (x-st.x)*k; st.z += (z-st.z)*k;
     st.yaw = Math.PI; st.lean = 0;
