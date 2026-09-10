@@ -47,7 +47,9 @@ OBSERVE = """async () => {
             feedback:(()=>{const n=document.querySelector('#beach-swim-status');
                 return n && {box:n.getBoundingClientRect().toJSON(),height:n.clientHeight,
                     scroll:n.scrollHeight,display:getComputedStyle(n).display};})(),
-            camera:[__qaWorld.camera.position.toArray(),__qaWorld.camera.quaternion.toArray(),__qaWorld.zoomTarget()]};
+            camera:[__qaWorld.camera.position.toArray(),__qaWorld.camera.quaternion.toArray(),__qaWorld.zoomTarget()],
+            camMode:__qaWorld.camMode(),camFocus:__qaWorld.camFocus(),
+            camStep:__qaWorld.camStep(),camSpeed:__qaWorld.camSpeed()};
     }};
     for(const type of ['pointerdown','pointerup','pointercancel','lostpointercapture'])
         __qaWorld.canvas.addEventListener(type,e=>nativeQA.events.push({type,id:e.pointerId,pointer:e.pointerType}));
@@ -60,7 +62,19 @@ class NativeInput:
         self.cdp = page.context.new_cdp_session(page) if touch else None
 
     def point(self, x, z):
-        p = self.page.evaluate('([x,z])=>__beach3d.project(x,.12,z)', [x,z])
+        # Follow can move the requested destination offscreen. Aim at the
+        # farthest visible waypoint along the same world path, then re-aim.
+        p = self.page.evaluate('''([x,z])=>{
+            const w=__qaWorld,a=__qaChar.getAnchor(),r=w.canvas.getBoundingClientRect();
+            const visible=p=>p.x>r.left+12 && p.x<r.right-12 && p.y>r.top+12 && p.y<r.bottom-12 && !p.behind;
+            let p=w.project(x,.12,z);if(visible(p))return p;
+            let lo=0,hi=1;
+            for(let i=0;i<30;i++){const t=(lo+hi)/2;
+                p=w.project(a.x+(x-a.x)*t,.12,a.z+(z-a.z)*t);
+                if(visible(p))lo=t;else hi=t;
+            }
+            return w.project(a.x+(x-a.x)*lo,.12,a.z+(z-a.z)*lo);
+        }''', [x,z])
         hit = self.page.evaluate('p=>document.elementFromPoint(p.x,p.y)?.tagName', p)
         assert hit == 'CANVAS', ('target not reachable through viewport', p, hit)
         return p
@@ -88,10 +102,14 @@ class NativeInput:
             self.page.mouse.up()
 
     def travel(self, x, z):
-        self.hold(x,z)
-        self.page.wait_for_function('!__qaChar.loco.target', timeout=18000)
-        self.release()
-        self.page.wait_for_timeout(700)
+        for _ in range(16):
+            self.hold(x,z)
+            self.page.wait_for_function('!__qaChar.loco.target', timeout=18000)
+            self.release()
+            self.page.wait_for_timeout(700)
+            if self.page.evaluate('([x,z])=>Math.hypot(__qaChar.loco.x-x,__qaChar.loco.z-z)<.12',[x,z]):
+                return
+        raise AssertionError(('native waypoints did not reach destination',x,z))
 
 
 def choose(page, style):
@@ -331,7 +349,7 @@ def main():
                 page.on('pageerror',lambda e:errors.append(str(e)))
                 enter(page); page.evaluate(OBSERVE)
                 native = NativeInput(page,touch)
-                span = 1.8 if touch else 3
+                span = 1.2 if touch else 3
                 cases = results[str(width)] = {}
                 try:
                     for zone,z in (() if args.extras_only or args.hysteresis_only else (('near',-1),('mid',-3.5),('deep',-6.5))):
@@ -369,7 +387,10 @@ def main():
                                 for row in rows:
                                     feedback(row,'Freestyle selected; swimming Head-up in shallows'
                                              if style=='freestyle' and zone!='deep' else 'Swimming '+('Freestyle' if style=='freestyle' else 'Head-up'))
-                                    assert row['camera']==idle['camera'] and row['stage']==idle['stage']
+                                    assert row['camera'][1:]==idle['camera'][1:] and row['stage']==idle['stage']
+                                    assert row['camMode']=='swimmer'
+                                    assert abs(row['camFocus'][0]-row['x'])<.3 and abs(row['camFocus'][2]-row['z'])<.3
+                                    assert row['camSpeed']<2 and row['camStep']<.65
                                     assert row['focus']=='CANVAS'
                                     active={k:v for k,v in row['action']['all'].items() if v['active']}
                                     assert set(active)=={expected} and abs(sum(v['w'] for v in active.values())-1)<.003

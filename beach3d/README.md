@@ -286,17 +286,32 @@ constitute an exhaustive posed collision audit.
    goes through `action.layers[*].strips[*].channelbags[*].fcurves`
    (`collect_fcs()` in the script).
 
-## Manual overview camera
+## Swimmer camera and manual zoom
 
-`world.js` owns one fixed beach overview for walking, swimming, duck boating,
-and surfing. There is **no zone-driven follow, recentering, or automatic zoom**.
+`world.js` smoothly follows the swimmer during both swimming and resting floats.
+Walking, duck boating, and surfing smoothly return to the original overview.
+There is **no automatic zoom**, including on entry, release, style selection,
+boarding, landing, or resize. The user's chosen distance factor is retained.
 The original default pose is preserved: position `(0, 3.6, 10.4)`, target
 `(0, 1.66, 2.64)`, FOV `38`. The larger sea moves the visible horizon slightly
 upward without moving the camera.
 
-- Manual distance factor: **0.55 to 1.6**, default `1`; smaller is closer.
-  Position is always `target + (base - target) * zoom`. Orientation and FOV
-  remain fixed; only a resize changes the aspect projection.
+- Manual distance factor: **0.37 to 1.6**, default `1`; smaller is closer.
+  The fixed floor keeps large hair and prone freestyle readable in portrait;
+  0.30 clipped those bounds. There is no aspect-dependent or automatic zoom.
+  Compared at the same focused pose, 0.37 is 32.7% less camera distance than
+  the old 0.55 floor (2.96 m versus 4.40 m), with 1.51x projected body height.
+  Position is `smoothedFocus + (originalBase - originalTarget) * zoom`.
+  The fixed offset gives the same distance at every swim depth/direction.
+  Orientation and FOV remain fixed; only a resize changes the aspect projection.
+- Swim focus uses anchor x/z and static waterline + **0.05 m** (y = 0.17),
+  independent of heading, style, hair, breath, root height and animated waves.
+  A critically damped spring at **24/s** retains velocity across entry/exit,
+  with about 0.1 m following lag at full swim speed. Spring displacement limits
+  long transitions to at most **8 m/s**, well above the 1.32 m/s swim speed.
+  Integration slices of at most 1/120 s keep that bound consistent across frame
+  rates; the camera matrices and sky placement update only once per frame.
+  Reduced motion retains the same functional, non-bobbing tracking.
 - Wheel up, `+`, `=`, and `NumpadAdd` zoom in. Wheel down, `-`, and
   `NumpadSubtract` zoom out. Two-finger spread zooms in; squeeze zooms out.
 - Wheel/key deltas accumulate on `world.zoomTarget()`, not the eased
@@ -306,13 +321,24 @@ upward without moving the camera.
   exactly to the requested value on settle and persists across stance changes.
 - Press-hold locomotion, boat steering/coasting, surf carving, and Space-hold
   wave catching retain their existing input contracts. No free camera panning
-  is added. Distant swimmers remain small, and lateral edges can be offscreen
-  in portrait or close zoom; zoom out for the wider overview.
+  is added. Dragging re-aims through the current camera; a stationary hold keeps
+  its world target. Land/ride subjects can be outside a tightly zoomed overview;
+  zoom out for the wider scene.
 
-`__beach3d.state()` exposes `cam`, full-precision `camFull`, `camMode` (always
-`overview`), `zoomTarget`, and diagnostic-only `rideAnchor`. `camStep` and
-`camSpeed` are get-and-clear maxima of manual zoom travel; without zoom input
-both remain zero across zone/ride changes. `renderer` now includes `prScale`.
+`__beach3d.state()` exposes `cam`, full-precision `camFull`, `camMode`
+(`overview` or `swimmer`), smoothed `camFocus`, `zoomTarget`, and diagnostic-only
+`rideAnchor`. The mode identifies the requested focus even while transitioning.
+`camStep` and `camSpeed` are get-and-clear maxima of camera travel, including
+follow and transitions. Settled overview without zoom has zero travel.
+`renderer` includes `prScale`.
+
+Run `python3 -B beach3d/camera_test.py` for native controls, deterministic follow
+and smoothing checks, posed skin bounds, and full-viewport screenshots under
+`/tmp/kilo/swimmer-camera/`. Posed checks are labeled separately from native
+camera/input screenshots; no visual helper overrides the camera.
+The bounds matrix covers 1280x800, 420x720 and 320x568, including steady
+movement lag. The short 320px viewport checks camera fit only: its existing
+page controls overflow vertically, and this camera change does not reflow them.
 
 ## Sea, sky, and range
 

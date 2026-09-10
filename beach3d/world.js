@@ -16,10 +16,10 @@
    the DEEP edge instead (SEA_DEEP_Z margin short of the far
    water line). The foam band stays the wade zone.
 
-   Camera: FIXED 3/4 high angle (not a follow cam), gentle
-   wheel/pinch/keyboard zoom 0.55×–1.6× — tuned via stills so the sea/sky
-   boundary (the far water edge = the "horizon") reads near the
-   2D --sea-top proportion.
+   Camera: fixed 3/4 view direction, with a smoothly translating
+   focus while swimming/floating. Manual wheel/pinch/keyboard distance
+   zoom 0.37x-1.6x is independent of follow, stance, and appearance.
+   Land and rides retain the original overview at default zoom.
 
    Everything toon: MeshToonMaterial + the spike3 gradient ramps
    (4-step general, 3-step bright suit with 0.34 emissive lift),
@@ -53,10 +53,10 @@ export const WORLD = {
            opacity: 0.9 },
   /* playable box (raycast targets + step clamps) */
   box: { xMin: -6.2, xMax: 6.2, zMin: -9.5, zMax: 5.0 },
-  /* Original overview pose and ~14-degree down-tilt. The extended sea
-     moves the styled horizon up slightly; the camera itself stays put. */
+  /* Original overview pose and ~14-degree down-tilt. Follow translates
+     this whole view, never yawing with the swimmer or changing FOV. */
   cam: { fov: 38, pos: [0, 3.6, 10.4], target: [0, 1.66, 2.64],
-         zoomMin: 0.55, zoomMax: 1.6 },
+         zoomMin: 0.37, zoomMax: 1.6, swimFocusHeight: 0.05, followRate: 24, followMaxSpeed: 8 },
   rest: { x: 0, z: 2.6 }      /* where she stands on open (2D parity) */
 };
 
@@ -436,20 +436,47 @@ export function createWorld(hostEl) {
   const camTarget = new THREE.Vector3(camCfg.target[0], camCfg.target[1], camCfg.target[2]);
   const camera = new THREE.PerspectiveCamera(camCfg.fov, 1, 0.1, 60);
 
-  /* One beach overview for ALL zones and ride modes. Only manual zoom
-     translates the camera: target + (base - target) * distance factor.
-     Orientation and FOV never follow the character, boat, or surfboard. */
+  /* Translate the whole view: focus + FIXED overview offset * manual zoom.
+     Anchor + static waterline avoids stroke, breath, hair and wave bob.
+     A critically damped spring preserves velocity through mode changes;
+     reduced motion keeps this functional tracking, not a per-frame snap. */
   let zoom = 1, zoomTarget = 1;
   const D0 = camBase.distanceTo(camTarget);
   const BASE_MINUS_TARGET = new THREE.Vector3().subVectors(camBase, camTarget);
+  const camFocus = camTarget.clone(), focusGoal = camTarget.clone();
+  const focusVelocity = new THREE.Vector3(), focusDelta = new THREE.Vector3();
+  const focusTerm = new THREE.Vector3();
+  let camMode = "overview";
   const _prevCam = new THREE.Vector3().copy(camBase);
   let appliedZoom = 1, camStepMax = 0, camSpeedMax = 0;
   camera.position.copy(camBase);
   camera.lookAt(camTarget);
-  function updateCamera(dt) {
-    if (zoom === appliedZoom) return;
+  function updateCamera(dt, anchor, mode) {
+    camMode = anchor && (mode === "swim" || mode === "rest") ? "swimmer" : "overview";
+    if (camMode === "swimmer") focusGoal.set(anchor.x, WORLD.water.y + camCfg.swimFocusHeight, anchor.z);
+    else focusGoal.copy(camTarget);
+    if (camFocus.distanceToSquared(focusGoal) < 1e-12 && focusVelocity.lengthSq() < 1e-12) {
+      camFocus.copy(focusGoal);
+      focusVelocity.set(0, 0, 0);
+    } else {
+      /* Small integration slices keep the displacement bound consistent at
+         30/60 FPS and irregular deltas; matrices/sky update only once. */
+      for (let remaining = dt; remaining > 1e-6;) {
+        const step = Math.min(remaining, 1 / 120), rate = camCfg.followRate;
+        const decay = Math.exp(-rate * step);
+        remaining -= step;
+        focusDelta.subVectors(camFocus, focusGoal);
+        /* Bound long returns from deep water, well above the 1.32 m/s swim
+           speed. Clamp spring displacement, not velocity, to avoid a jerk. */
+        focusDelta.clampLength(0, 2 * camCfg.followMaxSpeed / rate);
+        focusTerm.copy(focusVelocity).addScaledVector(focusDelta, rate);
+        camFocus.addScaledVector(focusDelta, decay - 1).addScaledVector(focusTerm, step * decay);
+        focusVelocity.addScaledVector(focusTerm, -rate * step).multiplyScalar(decay);
+      }
+    }
     _prevCam.copy(camera.position);
-    camera.position.copy(camTarget).addScaledVector(BASE_MINUS_TARGET, zoom);
+    camera.position.copy(camFocus).addScaledVector(BASE_MINUS_TARGET, zoom);
+    if (zoom === appliedZoom && camera.position.equals(_prevCam)) return;
     camera.updateMatrixWorld();
     appliedZoom = zoom;
     const step = camera.position.distanceTo(_prevCam);
@@ -988,7 +1015,7 @@ export function createWorld(hostEl) {
     canvas.style.height = h + "px";
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    /* Resize changes projection and sky layout, never the overview anchor. */
+    /* Resize changes projection and sky layout, never current focus or zoom. */
     camera.updateMatrixWorld();
     placeSunSprite();
     updateSky(skyT);
@@ -1024,8 +1051,7 @@ export function createWorld(hostEl) {
     zoom: () => zoom,
     zoomTarget: () => zoomTarget,
     setZoom,
-    /* Manual zoom easing only; updateCamera applies the same overview
-       formula on sand, in water, and on either ride. */
+    /* Manual zoom easing is independent of follow and all mode changes. */
     stepZoom(dt) {
       const k = 1 - Math.exp(-8 * dt);
       if (Math.abs(zoomTarget - zoom) > 1e-4) {
@@ -1035,11 +1061,10 @@ export function createWorld(hostEl) {
         zoom = zoomTarget;
       }
     },
-    /* No character/zone/ride input: only the manual zoom owns framing. */
     updateCamera,
-    camMode: () => "overview",
-    /* QA: get-and-clear maximum manual zoom travel (m/frame, m/s).
-       Without user zoom both remain zero, including zone transitions. */
+    camMode: () => camMode,
+    camFocus: () => camFocus.toArray(),
+    /* QA: get-and-clear maximum camera travel, including follow (m/frame, m/s). */
     camStep: () => { const m = camStepMax; camStepMax = 0; return m; },
     camSpeed: () => { const m = camSpeedMax; camSpeedMax = 0; return m; },
     /* frame pass; under reduced motion the caller simply never
