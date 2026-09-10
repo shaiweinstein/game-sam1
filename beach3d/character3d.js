@@ -33,6 +33,7 @@
 
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { moveAroundProps } from "./collision3d.js";
 import {
   toonify, blobShadowTexture, sandY, zoneAt, waterSurfaceY, WORLD
 } from "./world.js";
@@ -198,7 +199,7 @@ function cacheSoleSupport(root, clips) {
 /* fx (optional): { splash(x, z), talk(text) } — waterline splash
    VFX + speech hook, wired by beach3d.js to world.splash and
    BeachScene.say. */
-export function createCharacter(renderer, scene, reducedMotion, fx) {
+export function createCharacter(renderer, scene, reducedMotion, fx, movement = {}) {
   const mixRoot = new THREE.Group();      /* position + yaw */
   const model = new THREE.Group();        /* root lift lives here */
   mixRoot.add(model);
@@ -273,6 +274,61 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
   let requestedHair = "hair1", appliedHair = null;
   let appliedSuit = null, appliedFriend = null, suitKey = null;
   let pendingFriend = null;
+  let visible = true, ballPose = null;
+  const poseBones = [];
+  const shoulder = new THREE.Vector3(), elbow = new THREE.Vector3(), wrist = new THREE.Vector3();
+  const handTarget = new THREE.Vector3(), elbowTarget = new THREE.Vector3(), direction = new THREE.Vector3();
+  const bend = new THREE.Vector3(), before = new THREE.Vector3(), after = new THREE.Vector3();
+  const rotation = new THREE.Quaternion(), parentRotation = new THREE.Quaternion();
+
+  function restoreBallPose() {
+    for (const { bone, original } of poseBones) bone.quaternion.copy(original);
+    poseBones.length = 0;
+  }
+
+  function applyBallPose() {
+    if (!ballPose) return;
+    const { kind, amount } = ballPose;
+    mixRoot.updateMatrixWorld(true);
+    // Two short arm chains reach the back/sides of the large ball. This local
+    // overlay is restored before the mixer, so no clip or other actor changes.
+    const aim = (bone, joint, target) => {
+      bone.getWorldPosition(before);
+      joint.getWorldPosition(after).sub(before).normalize();
+      before.subVectors(target, before).normalize();
+      rotation.setFromUnitVectors(after, before);
+      bone.getWorldQuaternion(parentRotation);
+      rotation.multiply(parentRotation);
+      bone.parent.getWorldQuaternion(parentRotation).invert();
+      bone.quaternion.copy(parentRotation.multiply(rotation));
+      bone.updateWorldMatrix(false, true);
+    };
+    for (const side of ["Left", "Right"]) {
+      const arm = model.getObjectByName("mixamorig" + side + "Arm");
+      const forearm = model.getObjectByName("mixamorig" + side + "ForeArm");
+      const hand = model.getObjectByName("mixamorig" + side + "Hand");
+      if (!arm || !forearm || !hand) continue;
+      for (const bone of [arm, forearm]) poseBones.push({ bone, original: bone.quaternion.clone() });
+      arm.getWorldPosition(shoulder); forearm.getWorldPosition(elbow); hand.getWorldPosition(wrist);
+      const upper = shoulder.distanceTo(elbow), lower = elbow.distanceTo(wrist);
+      const sign = side === "Left" ? 1 : -1;
+      const height = kind === "pickup" ? 0.5 - 0.24 * Math.sin(amount * Math.PI)
+        : kind === "throw" ? 0.55 + 0.18 * Math.sin(amount * Math.PI) : 0.5;
+      handTarget.set(sign * 0.15, model.position.y + height, kind === "throw" ? 0.2 + amount * 0.1 : 0.27);
+      mixRoot.localToWorld(handTarget);
+      direction.subVectors(handTarget, shoulder);
+      const distance = Math.min(direction.length(), upper + lower - 0.001);
+      direction.normalize();
+      handTarget.copy(shoulder).addScaledVector(direction, distance);
+      const along = (upper * upper - lower * lower + distance * distance) / (2 * distance);
+      bend.set(sign * 0.5, -1, 0).transformDirection(mixRoot.matrixWorld);
+      bend.addScaledVector(direction, -bend.dot(direction)).normalize();
+      elbowTarget.copy(shoulder).addScaledVector(direction, along)
+        .addScaledVector(bend, Math.sqrt(Math.max(0, upper * upper - along * along)));
+      aim(arm, forearm, elbowTarget);
+      aim(forearm, hand, handTarget);
+    }
+  }
 
   function recolor(name, color, emissive = false) {
     for (const m of materials.get(name) || []) {
@@ -419,15 +475,17 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
   const gliding = () => loco.zone === "sea" && (loco.vx !== 0 || loco.vz !== 0);
 
   function disposeMeshes(root) {
-    const maps = new Set();
+    const maps = new Set(), skeletons = new Set();
     root.traverse(o => {
       if (!o.isMesh) return;
+      if (o.skeleton) skeletons.add(o.skeleton);
       o.geometry.dispose();
       if (o.material.map) maps.add(o.material.map);
       o.material.dispose();
     });
     if (bakedFace) maps.add(bakedFace); // may no longer be attached to the head
     for (const map of maps) if (!cachedFaceTextures.has(map)) map.dispose();
+    for (const skeleton of skeletons) skeleton.dispose();
   }
 
   /* gait rate: full ts when idle (breathing Idle), ease-following
@@ -559,11 +617,17 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
      B2: the old B1 shore clamp is gone — the sea is playable to
      the deep-edge margin; the x/z box keeps her on the strip. */
   function clampPoint(x, z) {
-    const b = WORLD.box;
+    const b = movement.bounds || WORLD.box;
     const tx = clamp(x, b.xMin, b.xMax);
     let tz = clamp(z, b.zMin, b.zMax);
     tz = Math.max(tz, SEA_DEEP_Z);
     return { x: tx, z: tz };
+  }
+
+  function moveTo(x, z) {
+    let p = clampPoint(x, z);
+    if (movement.obstacles) p = moveAroundProps(loco, p, movement.obstacles());
+    loco.x = p.x; loco.z = p.z;
   }
 
   /* ---------- sea-boundary crossing (2D locoFrame rule) ----------
@@ -599,10 +663,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
         if (Math.hypot(loco.vx, loco.vz) < GLIDE_STOP_SPEED) {
           loco.vx = loco.vz = 0;
         } else {
-          loco.x += loco.vx * dt;
-          loco.z += loco.vz * dt;
-          const c = clampPoint(loco.x, loco.z);
-          loco.x = c.x; loco.z = c.z;
+          moveTo(loco.x + loco.vx * dt, loco.z + loco.vz * dt);
           loco.speed01 = Math.hypot(loco.vx, loco.vz) / LOCO_SPEED.sea;
           refreshZone();          /* a glide out of the sea splashes too */
         }
@@ -614,7 +675,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
     const dx = t.x - loco.x, dz = t.z - loco.z;
     const dist = Math.hypot(dx, dz);
     if (dist < LOCO_STOP_DIST) {
-      loco.x = t.x; loco.z = t.z;                /* snap-arrive exactly */
+      moveTo(t.x, t.z);                         /* arrival also respects props */
       loco.vx = loco.vz = 0;
       loco.moving = false;
       loco.target = null; loco.targetSrc = null;
@@ -624,34 +685,32 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
     const factor = clamp(
       LOCO_MIN_SPEED + (1 - LOCO_MIN_SPEED) * Math.min(1, dist / LOCO_EASE_RANGE),
       LOCO_MIN_SPEED, 1);
-    const v = (LOCO_SPEED[loco.zone] || LOCO_SPEED.sand) * factor;
+    const v = (LOCO_SPEED[loco.zone] || LOCO_SPEED.sand) * factor * (movement.speedScale || 1);
     const dirx = dx / dist, dirz = dz / dist;
+    const oldX = loco.x, oldZ = loco.z;
     if (loco.zone === "sea") {
       const k = 1 - Math.exp(-6 * dt);
       loco.vx += (dirx * v - loco.vx) * k;
       loco.vz += (dirz * v - loco.vz) * k;
       let g = Math.hypot(loco.vx, loco.vz) * dt;
       if (g > dist) g = dist;                    /* no overshoot */
-      loco.x += (loco.vx / Math.max(1e-9, Math.hypot(loco.vx, loco.vz))) * g;
-      loco.z += (loco.vz / Math.max(1e-9, Math.hypot(loco.vx, loco.vz))) * g;
+      moveTo(loco.x + (loco.vx / Math.max(1e-9, Math.hypot(loco.vx, loco.vz))) * g,
+        loco.z + (loco.vz / Math.max(1e-9, Math.hypot(loco.vx, loco.vz))) * g);
       loco.speed01 = Math.hypot(loco.vx, loco.vz) / LOCO_SPEED.sea;
     } else {
       let stepLen = v * dt;
       if (stepLen > dist) stepLen = dist;        /* snap-arrive exactly */
-      loco.x += dirx * stepLen;
-      loco.z += dirz * stepLen;
+      moveTo(loco.x + dirx * stepLen, loco.z + dirz * stepLen);
       loco.vx = loco.vz = 0;
-      loco.speed01 = factor;   /* gait rate follows the ease (2D) */
+      loco.speed01 = factor * Math.min(1.6, movement.speedScale || 1);
     }
-    const clamped = clampPoint(loco.x, loco.z);
-    loco.x = clamped.x; loco.z = clamped.z;
-    loco.moving = true;
+    loco.moving = Math.hypot(loco.x - oldX, loco.z - oldZ) > 1e-6;
     /* zone from the NEW position (2D uses the returned anchor);
        sea-boundary crossings splash (+ the ported talk line) */
     const zn = refreshZone();
     /* stance table (2D driveRig): sea moving→swim, foam moving→
        wade, land moving→walk; the idle half lives in update(). */
-    setStance(zn === "sea" ? "swim" : zn === "foam" ? "wade" : "walk");
+    if (loco.moving) setStance(zn === "sea" ? "swim" : zn === "foam" ? "wade" : "walk");
     /* yaw toward the movement direction (smoothed in update) */
     loco.yawTarget = Math.atan2(dx, dz) + FWD_YAW;
   }
@@ -661,6 +720,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
      to sample the same animated water surface the mesh draws. */
   function update(dt, tNow) {
     if (!ready) return;
+    restoreBallPose();
     const t = tNow || 0;
     lastWaveT = t;
     if (rideDriven) {
@@ -737,6 +797,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
       loco.rootY = targetY + groundOffset;
     }
     model.position.y = loco.rootY;
+    applyBallPose();
     shadow.position.set(loco.x, gy + 0.008, loco.z);
 
     /* waterline break: fades in over the sink, rides the live
@@ -749,7 +810,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
     /* no puddle-shadow on her in deep water (it would sit on the
        seabed metres below; the water hides it anyway — fade it out
        early so nothing dark bleeds through the translucent plane) */
-    shadow.visible = zoneAt(loco.x, loco.z) !== "sea";
+    shadow.visible = visible && zoneAt(loco.x, loco.z) !== "sea";
   }
 
   /* ---------- locomotion public surface (mirrors BeachGame) ---------- */
@@ -772,6 +833,13 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
     setSuit,
     setHair,
     setFriend,
+    setVisible(on) {
+      visible = !!on;
+      mixRoot.visible = visible;
+      shadow.visible = visible && loco.zone !== "sea";
+    },
+    setBallPose(kind, amount = 0) { ballPose = kind ? { kind, amount } : null; },
+    facePoint(x, z) { loco.yawTarget = Math.atan2(x - loco.x, z - loco.z); },
     appearance() {
       return {
         suit: appliedSuit, friend: appliedFriend, hair: appliedHair,
@@ -917,9 +985,10 @@ export function createCharacter(renderer, scene, reducedMotion, fx) {
     },
     /* full teardown with the world (one context per beach visit) */
     dispose() {
+      if (disposed) return;
       disposed = true;
       ready = false;
-      if (mixer) mixer.stopAllAction();
+      if (mixer) { mixer.stopAllAction(); mixer.uncacheRoot(model.children[0]); }
       soleSupport = [];
       disposeMeshes(model);
       scene.remove(mixRoot);

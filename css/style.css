@@ -1560,6 +1560,12 @@ b[data-char-name] {
   transform: scale(0.95);
 }
 
+.beach-action-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+}
+
 .beach-swim-style {
   display: flex;
   align-items: center;

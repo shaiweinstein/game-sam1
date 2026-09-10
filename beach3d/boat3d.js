@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { toonify, blobShadowTexture, shorelineZ, waterSurfaceY, WORLD } from "./world.js";
+import { routeAroundProps } from "./collision3d.js";
 
 const GLB_URL = new URL("./assets/duck_boat.glb", import.meta.url).href;
 const BOAT = {
@@ -15,6 +16,7 @@ const BOAT = {
   seat: -0.16, wakeEvery: 0.5, wakeCap: 12, wakeLife: 0.9
 };
 let world = null, character = null, fx = null, say = null;
+let bus = null;
 let root = null, shadow = null, st = null;
 let wake = [], wakeGeometry = null, wakeCursor = 0;
 let generation = 0, foamTexture = null;
@@ -58,9 +60,10 @@ function syncRider() {
 export function active() { return !!st && st.mode === "riding"; }
 
 export function board() {
-  if (!st || !st.ready || active() || !character.actionInfo().clip) return false;
+  if (!st || !st.ready || active() || bus?.rideActive?.() || !character.actionInfo().clip) return false;
   st.prevMode = window.BeachScene?.getMode() || "sand";
   st.mode = "riding";
+  st.invitePath = [];
   st.vx = st.vz = st.speed = st.wakeAcc = 0;
   st.held = false; st.pointerId = null;
   st.driftX = st.driftZ = 0;
@@ -98,11 +101,12 @@ export function hop() {
   return true;
 }
 
-function cancelInvite() {
+export function cancelInvite() {
   if (!st || st.mode !== "invited") return;
   character.clearTarget("program");
   st.mode = "rest";
   st.inviteT = 0;
+  st.invitePath = [];
 }
 
 /* Accept browser events (raw ray, not the character's narrower ground box)
@@ -135,8 +139,11 @@ export function onPointerDown(ev, rawRay) {
     return true;
   }
   if (p && (p.hull || Math.hypot(p.x-st.x, p.z-st.z) <= BOAT.tapRadius)) {
+    cancelInvite();
     character.clearTarget();
-    if (character.setTarget(st.x, st.z, "program")) {
+    const path = routeAroundProps(character.getAnchor(), st, world.obstacles(), WORLD.box);
+    if (path?.length && character.setTarget(path[0].x, path[0].z, "program")) {
+      st.invitePath = path;
       st.mode = "invited"; st.inviteT = 0;
     }
     return true;
@@ -186,6 +193,11 @@ export function update(dt, waveT, rm) {
     const a = character.getAnchor();
     if (st.inviteT >= BOAT.inviteTimeout) cancelInvite();
     else if (a.zone === "sea" && Math.hypot(a.x-st.x, a.z-st.z) < BOAT.boardDist) board();
+    else {
+      const next = st.invitePath[0];
+      if (next && Math.hypot(a.x-next.x, a.z-next.z) < 0.025) st.invitePath.shift();
+      if (st.invitePath.length) character.setTarget(st.invitePath[0].x, st.invitePath[0].z, "program");
+    }
   }
   if (active()) {
     const oldX = st.x, oldZ = st.z;
@@ -256,6 +268,7 @@ export function state() {
   return { mode: st.mode, ready: st.ready, x: st.x, y: st.y, z: st.z,
     speed: st.speed, yaw: st.yaw, riding: active(), held: st.held,
     target: st.target && { ...st.target }, inviteT: st.inviteT,
+    invitePath: st.invitePath.map(p => ({ ...p })),
     bob: st.bob, roll: st.roll, wake: wake.filter(w=>w.mesh.visible).length };
 }
 
@@ -267,13 +280,14 @@ function disposeModel(model) {
   });
 }
 
-export async function attach(w, c, renderer, effects, speech) {
+export async function attach(w, c, renderer, effects, speech, rideBus) {
   dispose();
   const token = ++generation;
   world = w; character = c; fx = effects; say = speech;
+  bus = rideBus;
   st = { mode: "rest", ready: false, x: BOAT.x, z: BOAT.z, y: WORLD.water.y,
     yaw: -0.55, speed: 0, vx: 0, vz: 0, held: false, pointerId: null,
-    target: null, inviteT: 0, prevMode: null, bob: 0, roll: 0, wakeAcc: 0,
+    target: null, inviteT: 0, invitePath: [], prevMode: null, bob: 0, roll: 0, wakeAcc: 0,
     driftX: 0, driftZ: 0 };
   root = new THREE.Group();
   world.scene.add(root);
@@ -341,5 +355,5 @@ export function dispose() {
   for (const w of wake) { w.mesh.material.dispose(); w.mesh.removeFromParent(); }
   wakeGeometry?.dispose();
   wake = []; wakeCursor = 0; wakeGeometry = null;
-  world = character = root = shadow = fx = say = st = null;
+  world = character = root = shadow = fx = say = st = bus = null;
 }

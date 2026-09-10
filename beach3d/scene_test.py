@@ -28,7 +28,7 @@ SHIMS = """async () => {
         getParameter:k=>({v:'WebKit',r:'WebKit WebGL',version:'WebGL 2',uv:'',ur:name})[k]}).backend);
     const boot = new Function('world','surf','boat','character','performance','requestAnimationFrame', `
         let opened=true,loopId=null,lastT=0,waveT=0,frames=0,fpsWindow=0,fps=0;
-        const document={hidden:false}, reducedMotion=()=>false;
+        const document={hidden:false}, reducedMotion=()=>false, catchGame=null;
         ${loop}; startLoop(); startLoop(); return ()=>({fps,waveT});`);
     const pacing=[];
     for (const cap of [30,60]) for (const stall of [false,true]) {

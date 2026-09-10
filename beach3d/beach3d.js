@@ -34,6 +34,7 @@ import {
 import { createCharacter } from "./character3d.js";
 import * as boat from "./boat3d.js";
 import * as surf from "./surf3d.js";
+import { createCatch } from "./catch3d.js";
 
 /* Speech hook for the 3D side (B2 talk port): js/beach.js owns the
    #beach-talk bubble; BeachScene.say is the canvas-module line API
@@ -60,6 +61,7 @@ function reducedMotion() { return rmMatches; }
 
 let world = null;
 let character = null;
+let catchGame = null;
 let hostEl = null;
 let opened = false;
 let loopId = null;
@@ -77,6 +79,7 @@ function syncAppearance() {
     const outfit = gs?.getOutfit?.();
     const suit = outfit?.swimsuit;
     const id = gs?.getCharacter?.().id;
+    catchGame?.syncIdentity(id);
     const suitOK = character.setSuit(
       window.CharacterRenderer?.catalog?.swimsuit?.[suit]?.colors ? suit : "suit1"
     );
@@ -112,17 +115,25 @@ function open(stageEl) {
   character = createCharacter(world.renderer, world.scene, reducedMotion, {
     splash: (x, z) => world.splash(x, z),
     talk: sayLine
-  });
+  }, { obstacles: world.obstacles });
   boat.attach(world, character, world.renderer, {
     sound: (name) => window.GameSounds?.play(name)
-  }, sayLine);
+  }, sayLine, { rideActive: () => surf.active() || !!catchGame?.busy() });
   surf.attach(world, character, world.renderer, {
     sound: (name) => window.GameSounds?.play(name)
   }, sayLine, {
-    rideActive: boat.active,
+    rideActive: () => boat.active() || !!catchGame?.busy(),
     beforeCatch: () => {
       /* Cancel a pending auto-board without changing B3's invitation API. */
       if (boat.state()?.mode === "invited") boat.onPointerDown({});
+      if (trackedPointer !== null) pointerWasRide = true;
+    }
+  });
+  catchGame = createCatch(world, character, reducedMotion, {
+    say: sayLine, sound: name => window.GameSounds?.play(name),
+    canStart: () => opened && !document.hidden && !boat.active() && !surf.active(),
+    beforeStart: () => {
+      boat.cancelInvite(); boat.releaseInput(); surf.setSurfing(false); surf.releaseKeys();
       if (trackedPointer !== null) pointerWasRide = true;
     }
   });
@@ -147,6 +158,7 @@ function close() {
   if (unsubscribeAppearance) { unsubscribeAppearance(); unsubscribeAppearance = null; }
   if (loopId !== null) { cancelAnimationFrame(loopId); loopId = null; }
   /* Full teardown, including permanent renderer context loss. */
+  catchGame?.dispose(); catchGame = null;
   surf.dispose();
   boat.dispose();
   trackedPointer = null;
@@ -193,6 +205,7 @@ function startLoop() {
         const dt = Math.min(1 / 60, remaining);
         remaining -= dt;
         boat.update(dt, waveT, rm);
+        catchGame?.update(dt, waveT);
         if (character) character.update(dt, waveT);
       }
       world.stepZoom(raw);
@@ -219,7 +232,7 @@ let pointerWasRide = false;     /* auto-hop never hands an old hold to swimming 
 
 function wireInput(canvas) {
   canvas.tabIndex = 0;
-  canvas.setAttribute("aria-label", "Beach play area. Hold Space to catch a wave; plus and minus to zoom.");
+  canvas.setAttribute("aria-label", "Beach play area. Tap the ball to play catch. Hold Space to catch a wave; plus and minus to zoom.");
   const events = new AbortController();
   const on = (type, handler, options = {}) =>
     canvas.addEventListener(type, handler, { ...options, signal: events.signal });
@@ -236,12 +249,13 @@ function wireInput(canvas) {
     trackedPointer = ev.pointerId;
     try { canvas.setPointerCapture(ev.pointerId); } catch (e) { /* ok */ }
     const p = toWorld(ev);
-    if (!surf.onPointerDown(ev) && !boat.onPointerDown(ev) && p) character.setTarget(p.x, p.z, "pointer");
-    pointerWasRide = surf.active() || boat.active();
+    if (!catchGame?.onPointerDown(ev) && !surf.onPointerDown(ev) && !boat.onPointerDown(ev) && p) character.setTarget(p.x, p.z, "pointer");
+    pointerWasRide = surf.active() || boat.active() || !!catchGame?.busy();
     ev.preventDefault();
   });
   on("pointermove", (ev) => {
     if (!character || ev.pointerId !== trackedPointer) return;
+    if (catchGame?.busy()) return;
     if (pointerWasRide && !surf.active() && !boat.active()) return;
     if (surf.active() || boat.active()) pointerWasRide = true;
     const p = toWorld(ev);
@@ -349,7 +363,8 @@ function wireInput(canvas) {
 
 window.Beach3D = {
   open, close, syncAppearance,
-  swimStatus: () => character?.swimStatus() || null,
+  swimStatus: () => character ? { ...character.swimStatus(),
+    ...(catchGame?.busy() ? { mode: "catch" } : {}) } : null,
   isOpen: () => opened,
   supported,
   reducedMotion,
@@ -357,7 +372,7 @@ window.Beach3D = {
     getAnchor: () => (character ? character.getAnchor() : null),
     isMoving: () => !!(character && character.isMoving()),
     setEnabled: (b) => character && character.setEnabled(b),
-    setTarget: (x, z) => !!(character && character.setTarget(x, z, "program"))
+    setTarget: (x, z) => !!(character && !catchGame?.busy() && character.setTarget(x, z, "program"))
   }
 };
 
@@ -384,6 +399,7 @@ window.__beach3d = {
       clip: character.actionInfo().clip,
       boat: boat.state(),
       surf: surf.state(),
+      catch: catchGame?.state() || null,
       /* Ride anchor is diagnostic only; it never controls the camera. */
       rideAnchor: surf.getCameraAnchor() || boat.getCameraAnchor(),
       shoreZ: +shorelineZ(a.x).toFixed(3),
@@ -416,6 +432,12 @@ window.__beach3d = {
     };
   },
   setTarget: (x, z) => window.Beach3D.locomotion.setTarget(x, z),
+  catch: () => catchGame?.state() || null,
+  catchStart: () => catchGame?.start() || false,
+  catchThrow: () => catchGame?.throwBall() || false,
+  catchStop: () => catchGame?.stop() || false,
+  collisions: () => world?.obstacles().map(o => ({ ...o })) || null,
+  input: () => ({ pointer: trackedPointer, activityHold: pointerWasRide }),
   boat: boat.state,
   boatBoard: () => !surf.active() && boat.board(),
   boatHop: boat.hop,
