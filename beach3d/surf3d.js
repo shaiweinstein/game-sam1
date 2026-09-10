@@ -20,6 +20,15 @@ let world = null, character = null, fx = null, say = null, bus = null, st = null
 let root = null, wave = null, face = null, crest = null, wash = null, chip = null;
 let foam = [], foamGeometry = null, foamCursor = 0, foamTex = null, crestTex = null;
 let generation = 0;
+let spaceHeld = false, buttonHeld = false, releaseButtonHold = null;
+const waveActivity = {
+  id: "surfwave", label: "Catch wave", only3D: true, modes: ["sand"],
+  onClick: (_ctx, event) => {
+    // Pointer presses already catch on down. Keep native keyboard/AT clicks.
+    if (!event?.detail) requestCatch();
+  },
+  mount: mountCatchButton
+};
 const raycaster = new THREE.Raycaster();
 const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -WORLD.water.y);
 const hit = new THREE.Vector3();
@@ -56,6 +65,48 @@ function registerActivity() {
   window.BeachScene?.registerActivity({ id: "surfcatch", emoji: "\u{1f3c4}",
     label: st?.enabled ? "Stop surfing" : "Start surfing", modes: ["sand"],
     onClick: () => setSurfing(!st?.enabled) });
+  if (st?.enabled) window.BeachScene?.registerActivity(waveActivity);
+  else window.BeachScene?.unregisterActivity(waveActivity.id, waveActivity);
+}
+
+function syncArmed() {
+  if (st) st.armed = spaceHeld || buttonHeld;
+}
+
+function requestCatch() {
+  if (!st?.enabled || document.hidden || active() || bus?.rideActive?.()) return;
+  if (!catchWave()) say?.("Swim farther out, then tap Catch wave as a wave reaches you, or keep holding for the next one!");
+}
+
+function mountCatchButton(button) {
+  const events = new AbortController();
+  let pointer = null;
+  button.title = "Tap to catch a nearby wave. Hold to catch the next wave automatically.";
+  button.setAttribute("aria-description", button.title);
+  const release = (event) => {
+    if (event && event.pointerId !== pointer) return;
+    const id = pointer;
+    pointer = null; buttonHeld = false; syncArmed();
+    button.classList.remove("is-held");
+    if (id !== null && button.hasPointerCapture(id)) button.releasePointerCapture(id);
+  };
+  releaseButtonHold = release;
+  button.addEventListener("pointerdown", event => {
+    if (event.button !== 0 || pointer !== null || !st?.enabled || !st.ready ||
+        document.hidden || active() || bus?.rideActive?.()) return;
+    event.preventDefault();
+    pointer = event.pointerId; buttonHeld = true; syncArmed();
+    button.setPointerCapture(pointer);
+    button.classList.add("is-held");
+    requestCatch();
+  }, { signal: events.signal });
+  for (const type of ["pointerup", "pointercancel", "lostpointercapture"])
+    button.addEventListener(type, release, { signal: events.signal });
+  button.addEventListener("contextmenu", event => event.preventDefault(), { signal: events.signal });
+  return () => {
+    release(); events.abort();
+    if (releaseButtonHold === release) releaseButtonHold = null;
+  };
 }
 
 export function setSurfing(on) {
@@ -63,11 +114,11 @@ export function setSurfing(on) {
   on = !!on;
   if (on === st.enabled) return true;
   st.enabled = on;
-  if (!on) { st.armed = false; st.spawnT = null; }
+  if (!on) { releaseKeys(); st.spawnT = null; }
   else {
     st.parked = false;
     if (st.crestZ === null) { st.spawnT = SURF.spawnFirst; st.mode = "spawning"; }
-    say?.("Let's surf! \u{1f3c4}");
+    say?.("Let's surf! Swim out, then tap Catch wave or hold it for the next wave.");
   }
   if (!on && st.crestZ === null) st.mode = "off";
   registerActivity();
@@ -106,15 +157,18 @@ export function onKeyDown(ev) {
       ev.target?.closest?.('button, a[href], input, textarea, select, [role="button"]')) return;
   ev.preventDefault();
   if (ev.repeat || active() || bus?.rideActive?.()) return;
-  st.armed = true;
+  spaceHeld = true; syncArmed();
   catchWave();
 }
 export function onKeyUp(ev) {
   if (!st || !isSpace(ev)) return;
   if (st.armed && window.Beach3D?.isOpen()) ev.preventDefault();
-  st.armed = false;
+  spaceHeld = false; syncArmed();
 }
 export function releaseKeys() {
+  spaceHeld = false;
+  releaseButtonHold?.();
+  buttonHeld = false;
   if (!st) return;
   st.armed = st.held = false; st.pointerId = null;
 }
@@ -238,6 +292,14 @@ function drawWave(waveT) {
 
 export function update(dt,waveT,rm) {
   if (!st) return;
+  const button = document.querySelector('[data-activity-id="surfwave"]');
+  if (button) {
+    const unavailable = !st.ready || !!bus?.rideActive?.();
+    // Preserve an existing hold through the ride, just like holding Space.
+    button.disabled = unavailable || (active() && !buttonHeld);
+    button.classList.toggle("is-ready", canCatch());
+    if (unavailable) releaseButtonHold?.();
+  }
   st.bob = Math.sin(waveT*Math.PI*2*SURF.crestHz)*SURF.bob;
   if (st.crestZ === null && st.enabled && st.ready) {
     st.spawnT -= dt;
@@ -372,6 +434,8 @@ export async function attach(w,c,renderer,effects,speech,rideBus) {
 
 export function dispose() {
   ++generation;
+  releaseKeys();
+  window.BeachScene?.unregisterActivity(waveActivity.id, waveActivity);
   document.removeEventListener("keydown",onKeyDown);
   document.removeEventListener("keyup",onKeyUp);
   window.removeEventListener("blur",releaseKeys);

@@ -92,6 +92,7 @@ body {
 /* ---------- Header right cluster (energy + sound) ---------- */
 .header-right {
   display: flex;
+  max-width: 100%;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
@@ -101,6 +102,7 @@ body {
 /* ---------- Energy HUD ---------- */
 .energy-hud {
   display: flex;
+  max-width: 100%;
   align-items: center;
   gap: 8px;
   background: var(--cream);
@@ -1055,6 +1057,11 @@ body {
   .nav-button { padding: 10px 12px; }
 }
 
+@media (max-width: 360px) {
+  .screen-nav { gap: 4px; }
+  .nav-button { flex: 1; min-width: 0; padding: 10px 4px; font-size: 0.9rem; }
+}
+
 @media (max-width: 640px) {
   .map-board {
     display: flex;
@@ -1564,6 +1571,18 @@ b[data-char-name] {
   opacity: 0.55;
   cursor: default;
   transform: none;
+}
+
+.beach-action-button[data-activity-id="surfwave"] {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.beach-action-button.is-held {
+  background: var(--pink-dark);
+  box-shadow: 0 0 0 4px rgba(79, 195, 217, 0.55), var(--shadow-soft);
 }
 
 .beach-swim-style {

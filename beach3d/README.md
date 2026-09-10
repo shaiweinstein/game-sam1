@@ -106,6 +106,14 @@ It is available on shore and during rides, has a 44 px touch target, and does
 not resize when its value changes. Space retains native UI behavior on focused
 controls; focus/click the beach canvas for the existing hold-to-catch behavior.
 
+On phones, select **Start surfing**, swim offshore, then use **Catch wave**.
+Tap when a wave reaches the swimmer, or hold the button to catch automatically
+when the next wave arrives. Release to cancel the hold; drag on the play area
+to steer once riding. The button uses pointer capture and does not scroll the
+action bar while held. Blur, hidden tabs, action-bar replacement, stopping
+surfing, and closing the beach release touch holds. Space and touch holds are
+tracked independently; keyboard and assistive-technology button clicks also work.
+
 Movement is **press and hold**, not click-to-swim. Releasing to choose a style
 rests in the original, face-visible Head-up float; selecting a style never
 starts movement. Press and hold water again to use the chosen stroke. Freestyle

@@ -618,8 +618,13 @@
 
   /* Rebuilds #beach-actions: one button per activity visible in the
      current mode (emoji + short label, 44px+ targets via CSS). */
+  let actionCleanups = [];
   function renderActions() {
     if (!actionsEl) return;
+    actionCleanups.forEach(function (cleanup) {
+      try { cleanup(); } catch (e) { /* Keep retiring the other controls. */ }
+    });
+    actionCleanups = [];
     actionsEl.textContent = "";
     activities.forEach(function (spec) {
       if (!activityVisible(spec)) return;
@@ -628,14 +633,20 @@
       button.className = "beach-action-button";
       button.setAttribute("data-activity-id", spec.id);
       button.textContent = spec.emoji ? spec.emoji + " " + spec.label : spec.label;
-      button.addEventListener("click", function () {
+      button.addEventListener("click", function (event) {
         try {
-          spec.onClick(makeCtx());
+          spec.onClick(makeCtx(), event);
         } catch (e) {
           /* One broken activity must never take the whole bar down. */
         }
       });
       actionsEl.appendChild(button);
+      if (spec.mount) {
+        try {
+          const cleanup = spec.mount(button);
+          if (typeof cleanup === "function") actionCleanups.push(cleanup);
+        } catch (e) { /* One activity must not take the whole bar down. */ }
+      }
     });
     if (openState && using3D) {
       const label = document.createElement("label");
