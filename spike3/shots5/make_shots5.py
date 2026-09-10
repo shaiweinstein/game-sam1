@@ -9,6 +9,7 @@ Run (serve.py must be up on :8123, repo root):
   /tmp/kilo/venv/bin/python spike3/shots5/make_shots5.py
 """
 
+import argparse
 import os
 import sys
 from playwright.sync_api import sync_playwright
@@ -20,13 +21,18 @@ VIEWPORT = {"width": 640, "height": 640}
 
 # clip -> (frames total) at 30fps authored (verified against the GLB)
 CLIPS = {
-    "Walk": 32, "Idle": 299, "Swim": 137, "Sit": 64,
+    "Walk": 32, "Idle": 299, "Swim": 137, "SwimFreestyle": 137, "Sit": 64,
     "Paddle": 218, "SurfRide": 31, "Cheer": 88, "Greet": 17,
 }
 
 
 def main():
-    os.makedirs(SHOT, exist_ok=True)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--out", default=SHOT, help="Screenshot directory")
+    parser.add_argument("--model", help="Optional local GLB snapshot, served only to this test page")
+    parser.add_argument("--hair", choices=[f"hair{i}" for i in range(1, 7)], default="hair1")
+    args = parser.parse_args()
+    os.makedirs(args.out, exist_ok=True)
     console_errors = []
     bad_requests = []
     with sync_playwright() as p:
@@ -36,9 +42,15 @@ def main():
               if m.type == "error" else None)
         pg.on("pageerror", lambda e: console_errors.append(str(e)))
         pg.on("requestfailed", lambda r: bad_requests.append(r.url))
+        if args.model:
+            pg.route("**/beach3d/assets/lily4_full.glb",
+                     lambda route: route.fulfill(path=os.path.abspath(args.model), content_type="model/gltf-binary"))
         pg.goto(URL)
+        pg.wait_for_load_state("networkidle")
         pg.wait_for_function("window.__clips3.ready.then(()=>true)", timeout=30000)
+        pg.locator("#hair").select_option(args.hair)
         info = pg.evaluate("window.__clips3.clips()")
+        assert set(info) == set(CLIPS), f"clip interface mismatch: {set(info)}"
         print("loaded clip durations:",
               {n: round(v["duration"], 3) for n, v in info.items()})
         vp = pg.locator("#viewport")
@@ -49,11 +61,11 @@ def main():
                 pg.evaluate(f"window.__clips3.seek({name!r}, {f})")
                 pg.evaluate(f"window.__clips3.setView({name!r}, 'front')")
                 pg.wait_for_timeout(150)
-                vp.screenshot(path=os.path.join(SHOT, f"{name}-f{f}.png"))
+                vp.screenshot(path=os.path.join(args.out, f"{name}-f{f}.png"))
             pg.evaluate(f"window.__clips3.seek({name!r}, {mids})")
             pg.evaluate(f"window.__clips3.setView({name!r}, 'side')")
             pg.wait_for_timeout(150)
-            vp.screenshot(path=os.path.join(SHOT, f"{name}-f{mids}-side.png"))
+            vp.screenshot(path=os.path.join(args.out, f"{name}-f{mids}-side.png"))
             print(f"  {name}: 4 shots")
 
         fps = pg.evaluate("window.__clips3.fps()")
@@ -62,7 +74,7 @@ def main():
     print("fps:", fps)
     print("console errors:", console_errors if console_errors else "NONE")
     print("request failures:", bad_requests if bad_requests else "NONE")
-    files = sorted(os.listdir(SHOT))
+    files = sorted(os.listdir(args.out))
     print(f"shots: {len(files)}")
     missing = [f"{n}-f{k}.png" for n, t in CLIPS.items()
                for k in (1, (1 + t) // 2, t)] + \

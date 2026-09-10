@@ -993,7 +993,15 @@ export function createWorld(hostEl) {
 
   /* 2D PROPS anchors (js/beach-game.js) mapped fx→x, fy→z */
   plantProp(scene, buildUmbrella(), -5.4, 1.9, 0.95, 0.9);
-  plantProp(scene, buildBall(), 5.2, 3.4, 0.3, 1);
+  const ballRoot = plantProp(scene, buildBall(), 5.2, 3.4, 0.3, 1);
+  ballRoot.name = "beachBall";
+  const ball = { root: ballRoot, mesh: ballRoot.children[0], shadow: ballRoot.children[1],
+    radius: 0.26, grounded: true };
+  const post = { id: "umbrella-post", x: -5.4, z: 1.9, radius: 0.045 };
+  function obstacles() {
+    return [post, ...(ball.grounded ? [{ id: "ball", x: ballRoot.position.x,
+      z: ballRoot.position.z, radius: ball.radius }] : [])];
+  }
   plantProp(scene, buildStarfish(), 4.2, 1.4, 0.2, 1);
   { const s = buildScallop(0xffd1e3, 0xf26d9d); s.rotation.y = -0.4; plantProp(scene, s, -1.9, 1.7, 0.16, 1); }
   { const s = buildScallop(0xffe7c9, 0xe8963a); s.rotation.y = 2.1;  plantProp(scene, s, -0.2, 4.3, 0.15, 1); }
@@ -1045,7 +1053,7 @@ export function createWorld(hostEl) {
   let surfaceT = null;
 
   return {
-    renderer, scene, camera, canvas,
+    renderer, scene, camera, canvas, ball, obstacles,
     get frameCap() { return frameCap; },
     camTarget,
     zoom: () => zoom,

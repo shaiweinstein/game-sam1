@@ -592,6 +592,7 @@
   const HIDDEN_IN_3D = { castle: true };
 
   function activityVisible(spec) {
+    if (spec.only3D && !using3D) return false;
     if (using3D && HIDDEN_IN_3D[spec.id]) return false;
     if (spec.modes === "*") return true;
     return Array.isArray(spec.modes) && spec.modes.indexOf(currentMode) !== -1;
@@ -674,7 +675,9 @@
     const name = freestyle ? "Freestyle" : "Head-up";
     let text;
     if (status.mode === "loading") text = name + " selected. Loading swimmer...";
-    else if (status.mode === "boat" || status.mode === "surf") {
+    else if (status.mode === "catch") {
+      text = "Playing catch! Throw when your friend is ready. Stop playing to walk or swim again.";
+    } else if (status.mode === "boat" || status.mode === "surf") {
       text = name + " selected for your next swim. " + (status.mode === "boat" ? "Boat ride" : "Surfing") + " continues.";
     } else if (status.mode === "shore") {
       text = name + " selected. Press and hold water to swim." + (freestyle ? " Aim farther toward the horizon." : " Release to rest.");
@@ -707,6 +710,17 @@
     }
     activities.push(spec);
     renderActions();
+  }
+
+  function unregisterActivity(id, spec) {
+    // Only the current owner may unregister: an old visit must not remove a replacement.
+    const index = activities.findIndex(function (activity) {
+      return activity.id === id && activity === spec;
+    });
+    if (index === -1) return false;
+    activities.splice(index, 1);
+    renderActions();
+    return true;
   }
 
   function setMode(name) {
@@ -1025,6 +1039,7 @@
     close: close,
     isOpen: isOpen,
     registerActivity: registerActivity,
+    unregisterActivity: unregisterActivity,
     say: say,                      // speech line for canvas modules (mission 8)
     syncSwimStatus: syncSwimStatus,
     setMode: setMode,

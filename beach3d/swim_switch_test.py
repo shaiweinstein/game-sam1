@@ -362,7 +362,7 @@ def main():
                             idle = record(page,out,label+'-selected',shots=True)
                             assert idle['saved'] == idle['action']['swimStyle'] == style
                             assert idle['source'] is None and not idle['capture']
-                            native.hold(direction*span,z)
+                            native.hold(direction*(span+3),z)
                             page.wait_for_function('__qaChar.loco.moving && __qaChar.loco.targetSrc==="pointer"')
                             rows=[]
                             for frame in range(6):
@@ -370,8 +370,12 @@ def main():
                                 rows.append(record(page,out,label+f'-{frame}',shots=True))
                                 if rows[-1]['x']*direction > span-1.4:
                                     direction *= -1
-                                    native.drag(direction*span,z)
-                            native.release();page.wait_for_timeout(800)
+                                # Aim beyond the turnaround so a slow screenshot
+                                # cannot consume the remaining target distance.
+                                # Re-aim visible waypoints as the camera follows.
+                                native.drag(direction*(span+3),z)
+                            native.release()
+                            page.wait_for_function('__beach3d.action().stance==="float" && __beach3d.action().clip==="Swim"', timeout=3000)
                             rest=record(page,out,label+'-rest')
                             cases[label]={'idle':idle,'hold':rows,'rest':rest}
                             expected = 'SwimFreestyle' if style=='freestyle' and zone=='deep' else 'Swim'

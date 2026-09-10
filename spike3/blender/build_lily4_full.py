@@ -657,11 +657,15 @@ def body_bind(co, arm=0.0):
     # Keep elbow rotation out of the shoulder socket. Its lower boundary is
     # near the conformed elbow height, but is still torso/shoulder topology.
     fore = _ss((arm_bend_z+.026-co.z)/.052) * _ss((arm-.70)/.30)
+    # The supported wrist now meets the real .399 joint. Distal palms follow
+    # Hand rather than staying rigidly attached to ForeArm; fingers stay soft.
+    hand = _ss((.414-co.z)/.044)
     head = _ss((co.z-.556)/(.645-.556))
     return [("mixamorig:Spine", (1-arm)*(1-head)),
             ("mixamorig:Head", (1-arm)*head),
             (f"mixamorig:{side}Arm", arm*(1-fore)),
-            (f"mixamorig:{side}ForeArm", arm*fore)]
+            (f"mixamorig:{side}ForeArm", arm*fore*(1-hand)),
+            (f"mixamorig:{side}Hand", arm*fore*hand)]
 
 
 def leg_bind(co):
@@ -1470,10 +1474,10 @@ print(f"GLB GATES: 9 clips / 65 bones; Walk regression worst-diff {worst:.9g} < 
 # Optional immutable baseline for geometry-only changes. Compare named tracks,
 # not node/accessor indices, which legitimately change when adding variants.
 if os.environ.get("LILY_REFERENCE_GLB"):
-    for name, _, _, _ in CLIPS:
+    for name in clip_acts:
         _, actual = glb_tracks(OUT, name)
         _, reference = glb_tracks(os.environ["LILY_REFERENCE_GLB"], name)
         assert actual.keys() == reference.keys(), f"{name} channel set changed"
         assert all(np.array_equal(a, b) for key in actual
                    for a, b in zip(actual[key], reference[key])), f"{name} tracks changed"
-    print("GLB GATES: all eight clips exactly equal to LILY_REFERENCE_GLB")
+    print("GLB GATES: all nine clips exactly equal to LILY_REFERENCE_GLB")
