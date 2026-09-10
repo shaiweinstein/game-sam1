@@ -196,7 +196,7 @@ function startLoop() {
         if (character) character.update(dt, waveT);
       }
       world.stepZoom(raw);
-      world.updateCamera(raw);
+      world.updateCamera(raw, character?.getAnchor(), character?.swimStatus().mode);
       world.animate(waveT, raw, rm);
       window.BeachScene?.syncSwimStatus?.();
       world.render();
@@ -393,20 +393,21 @@ window.__beach3d = {
       waveT: +waveT.toFixed(3),
       fps, zoom: +world.zoom().toFixed(2),
       zoomTarget: world.zoomTarget(),
-      /* The same manual overview in every zone and stance. */
+      /* Manual distance zoom, with stable swim/float focus. */
       cam: world ? [
         +world.camera.position.x.toFixed(3),
         +world.camera.position.y.toFixed(3),
         +world.camera.position.z.toFixed(3)
       ] : null,
       camMode: world ? world.camMode() : null,
+      camFocus: world ? world.camFocus() : null,
       /* Full precision distinguishes manual zoom easing from its settle. */
       camFull: world ? [
         world.camera.position.x,
         world.camera.position.y,
         world.camera.position.z
       ] : null,
-      /* manual zoom audit (get-and-clear): max per-frame camera travel
+      /* camera audit (get-and-clear): max per-frame camera travel
          (m) and max real-time speed (m/s) since the last state() */
       camStep: world ? world.camStep() : 0,
       camSpeed: world ? world.camSpeed() : 0,

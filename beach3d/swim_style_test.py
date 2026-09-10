@@ -398,7 +398,7 @@ def main():
                   profile['freestyle']['requiredDepth']<.195 and profile['blend']['requiredDepth']<limits['exit']-.01 and
                   max(profile[s]['radius'] for s in ('head-up','freestyle','blend'))<.40,profile)
             paths=[]
-            unchanged=page.evaluate('({energy:GameState.getEnergy(),location:GameState.getLocation(),camera:__qaWorld.camera.position.toArray(),zoom:__qaWorld.zoomTarget()})')
+            unchanged=page.evaluate('({energy:GameState.getEnergy(),location:GameState.getLocation(),zoom:__qaWorld.zoomTarget()})')
             for rm in (False,True):
                 page.emulate_media(reduced_motion='reduce' if rm else 'no-preference')
                 page.wait_for_function('v=>__beach3d.state().rm===v',arg=rm)
@@ -442,8 +442,17 @@ def main():
                     and all(r['action']['swimDepthGuard']['depth'] is None for r in history if r['name'].endswith('clears readiness')),
                     history)
             (out/'guard-paths.json').write_text(json.dumps(paths,indent=2))
-            check('guard preserves energy/location/camera/zoom',unchanged==page.evaluate(
-                '({energy:GameState.getEnergy(),location:GameState.getLocation(),camera:__qaWorld.camera.position.toArray(),zoom:__qaWorld.zoomTarget()})'))
+            check('guard preserves energy/location/manual zoom',unchanged==page.evaluate(
+                '({energy:GameState.getEnergy(),location:GameState.getLocation(),zoom:__qaWorld.zoomTarget()})'))
+            check('selected style does not affect camera at the same anchor',page.evaluate('''()=>{
+                const w=__qaWorld,c=__qaChar,rows=[];
+                for(const style of ['head-up','freestyle']){
+                    swimQA.setup(style);
+                    for(let i=0;i<180;i++)w.updateCamera(1/60,c.getAnchor(),c.swimStatus().mode);
+                    rows.push([...w.camera.position.toArray(),...w.camera.quaternion.toArray(),w.zoomTarget()]);
+                }
+                return w.camMode()==='swimmer' && rows[0].every((v,i)=>Math.abs(v-rows[1][i])<1e-9);
+            }'''))
             page.emulate_media(reduced_motion='no-preference');page.wait_for_function('!__beach3d.state().rm')
             check('shallow rapid toggles stay Head-up and release to approved float',page.evaluate('''()=>{
                 swimQA.setup('freestyle');__qaChar.teleport(-2,-1);swimQA.step(60);

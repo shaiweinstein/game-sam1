@@ -35,7 +35,7 @@ SHIMS = """async () => {
         let now=0,next=null,renders=0,total=0,maxDt=0;
         const read=boot({frameCap:cap,stepZoom(){},updateCamera(){},animate(){},
             render(){renders++;},noteWindow(){}}, {update(){}}, {update(){}},
-            {update(dt){total+=dt;maxDt=Math.max(maxDt,dt);}}, {now:()=>now}, cb=>{
+            {update(dt){total+=dt;maxDt=Math.max(maxDt,dt);},getAnchor(){},swimStatus(){return {mode:'shore'};}}, {now:()=>now}, cb=>{
                 if(next) throw Error('Duplicate game RAF'); next=cb; return 1;
             });
         for(let i=1;i<=(stall?1:288);i++) {
@@ -107,15 +107,30 @@ def main():
             fixed = page.evaluate('sceneQA.camera()')
             for z in (2.6, .52, -3.8, -9.5):
                 page.evaluate('z=>__beach3d.teleport(0,z)', z)
-                page.wait_for_timeout(200)
-                check(f'fixed camera at z={z}', page.evaluate('sceneQA.camera()') == fixed)
-            page.evaluate('__beach3d.teleport(4.5,-3.5)')
+                page.wait_for_timeout(1800)
+                if z > 0:
+                    check(f'overview at z={z}', page.evaluate('sceneQA.camera()') == fixed)
+                else:
+                    check(f'swimmer focus at z={z}', page.evaluate('''z=>{
+                        const w=__qaWorld,f=w.camFocus();return w.camMode()==='swimmer' &&
+                            Math.hypot(f[0],f[1]-.17,f[2]-z)<.001 && w.zoomTarget()===1;
+                    }''',z))
+            page.evaluate('__beach3d.teleport(4.5,-3.5);__beach3d.setZoom(.81)')
+            page.wait_for_timeout(1800)
             boat = page.evaluate('__beach3d.project(4.7,.12,-3.5)')
             page.mouse.click(boat['x'], boat['y'])
             page.wait_for_function('__beach3d.boat().riding')
-            check('native boat boarding keeps camera fixed', page.evaluate('sceneQA.camera()') == fixed)
+            page.wait_for_timeout(2000)
+            check('native boat boarding returns to overview preserving manual zoom', page.evaluate('''fixed=>{
+                const expected=JSON.parse(fixed);expected[0]=[0,1.66+(3.6-1.66)*.81,2.64+(10.4-2.64)*.81];
+                return sceneQA.camera()===JSON.stringify(expected) && __qaWorld.camMode()==='overview' && __qaWorld.zoomTarget()===.81;
+            }''',fixed))
             page.get_by_role('button', name='Hop out & swim').click()
             page.wait_for_function('!__beach3d.boat().riding')
+            page.wait_for_timeout(2000)
+            check('boat hop restores float follow without resetting zoom',page.evaluate(
+                '__qaWorld.camMode()==="swimmer" && __qaWorld.zoomTarget()===.81'))
+            page.evaluate('__beach3d.setZoom(1)');page.wait_for_function('__qaWorld.zoom()===1')
             page.mouse.move(640,420)
             for i in range(3):
                 page.mouse.wheel(0,-100)
@@ -141,6 +156,7 @@ def main():
                 page.evaluate('document.querySelector("#scene-edit").remove()')
             page.evaluate('__beach3d.setZoom(1); __beach3d.teleport(0,-8)')
             page.wait_for_function('__qaWorld.zoom()===1')
+            page.wait_for_timeout(1800)
             target = page.evaluate('__beach3d.project(2,.12,-8)')
             page.mouse.move(target['x'],target['y']); page.mouse.down(); page.keyboard.down('Space')
             check('native pointer and Space hold', page.evaluate('__qaChar.loco.targetSrc==="pointer" && __beach3d.surf().armed'))
@@ -168,18 +184,21 @@ def main():
             page.evaluate('__beach3d.teleport(0,-9.3); __beach3d.setTarget(0,-99)')
             page.wait_for_function('__beach3d.state().z===-9.5 && __qaWorld.zoom()===1')
             check('deep limit reached by live character steps', True)
-            page.evaluate("""()=>{
-                const q=sceneQA,render=__qaWorld.render;q.ride={fixed:true,legal:true};
+            page.evaluate('__beach3d.setZoom(.73)');page.wait_for_function('__qaWorld.zoom()===.73')
+            page.evaluate("""fixed=>{
+                const q=sceneQA,render=__qaWorld.render;q.ride={overview:true,settled:true,legal:true};
                 __qaWorld.render=()=>{
                     render();const s=__beach3d.state(),r=s.surf,a=q.ride,t=performance.now();
                     if(a.end!==undefined)return;
                     if(r.mode==='riding' && a.start===undefined){a.start=t;a.z0=r.crestZ;a.t0=s.waveT;}
                     if(a.start===undefined)return;
-                    a.fixed &&= q.camera()===q.fixed;
+                    a.overview &&= s.camMode==='overview' && s.zoomTarget===.73;
+                    if(t-a.start>3000)a.settled &&= q.camera()===q.fixed;
                     a.legal &&= s.z>=-9.5 && r.z>=-9.5 && Math.abs(s.x)<=6.2 && Math.abs(r.x)<=6.2;
                     if(!r.riding){a.end=t;a.z1=r.crestZ;a.t1=s.waveT;}
-                };q.fixed=q.camera();
-            }""")
+                };const expected=JSON.parse(fixed);
+                expected[0]=[0,1.66+(3.6-1.66)*.73,2.64+(10.4-2.64)*.73];q.fixed=JSON.stringify(expected);
+            }""",fixed)
             page.get_by_role('button', name='Start surfing').click()
             # Keep native focus: Start surfing followed by Space must still work.
             page.keyboard.down('Space'); page.wait_for_function('__beach3d.surf().riding', timeout=5000)
@@ -187,9 +206,9 @@ def main():
             ride = page.evaluate('sceneQA.ride')
             ride['seconds'] = (ride['end']-ride['start'])/1000
             ride['speed'] = (ride['z1']-ride['z0'])/(ride['t1']-ride['t0'])
-            check('native opt-in/Space early ride, fixed camera, legal bounds and counter', ride['fixed'] and ride['legal']
+            check('native opt-in/Space early ride, settled overview, legal bounds and counter', ride['overview'] and ride['settled'] and ride['legal']
                   and 9.05<ride['seconds']<9.7 and abs(ride['speed']-1.1)<.005
-                  and page.evaluate('__beach3d.surf().counter===1 && __beach3d.state().stance==="stand"'), ride)
+                   and page.evaluate('__beach3d.surf().counter===1 && __beach3d.state().stance==="stand" && __qaWorld.zoomTarget()===.73'), ride)
             page.evaluate('window.retiredGL=__qaWorld.renderer.getContext()')
             page.click('#beach-close'); page.wait_for_function('retiredGL.isContextLost()')
             check('close loses old context and removes zoom handler', page.evaluate('__beach3d.performance()===null && !sceneQA.key({key:"="})'))
