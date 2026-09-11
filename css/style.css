@@ -1585,6 +1585,70 @@ b[data-char-name] {
   box-shadow: 0 0 0 4px rgba(79, 195, 217, 0.55), var(--shadow-soft);
 }
 
+.beach-action-button, .beach-close, .beach-play-button { touch-action: manipulation; }
+
+.beach-menu-button { display: none; }
+.beach-more-panel { display: contents; }
+
+@media (max-width: 620px), (max-height: 480px) and (pointer: coarse) {
+  .beach-actions.beach-compact {
+    gap: 6px;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    max-height: none;
+    overflow: visible;
+    flex-wrap: nowrap;
+  }
+  .beach-compact .beach-action-button {
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    border-width: 3px;
+  }
+  .beach-compact .beach-menu-button { display: block; }
+  .beach-compact .beach-more-panel {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 8px;
+    right: 8px;
+    max-height: 55dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 12px;
+    background: var(--cream);
+    border: var(--border-chunky);
+    border-radius: 20px;
+    box-shadow: var(--shadow-soft);
+  }
+  .beach-compact.menu-open .beach-more-panel {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+  }
+  .beach-compact .beach-swim-status { height: auto; }
+  .beach-scene:has(.beach-compact) .beach-talk {
+    position: absolute;
+    top: 60px;
+    margin: 0 12px;
+    max-width: calc(100% - 24px);
+    max-height: 4.6em;
+    overflow-y: auto;
+    padding: 6px 12px;
+    border-width: 3px;
+    border-radius: 18px;
+    font-size: 0.85rem;
+    line-height: 1.2;
+  }
+  .beach-scene:has(.beach-compact) .beach-close {
+    top: 8px;
+    left: 8px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+  }
+}
+
 .beach-swim-style {
   display: flex;
   align-items: center;

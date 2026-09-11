@@ -238,8 +238,8 @@ def main():
             native.travel(0,1)
             page.wait_for_timeout(2200)
             land=page.evaluate('cameraQA.sample()')
-            check('native return to shore preserves closest overview',land['mode']=='overview' and land['target']==.37
-                  and math.dist(land['position'],[0,1.66+1.94*.37,2.64+7.76*.37])<1e-8,land)
+            check('native return to shore preserves closest overview with portrait tracking',land['mode']=='overview' and land['target']==.37
+                  and math.dist(land['position'],[land['anchor']['x'],1.66+1.94*.37,2.64+7.76*.37])<1e-8,land)
             shot(page,'native-land-return-closest')
             page.evaluate('__qaWorld.setZoom(1)');page.wait_for_function('__qaWorld.zoom()===1')
             shot(page,'native-land-return-default')

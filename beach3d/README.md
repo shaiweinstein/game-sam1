@@ -107,12 +107,15 @@ not resize when its value changes. Space retains native UI behavior on focused
 controls; focus/click the beach canvas for the existing hold-to-catch behavior.
 
 On phones, select **Start surfing**, swim offshore, then use **Catch wave**.
-Tap when a wave reaches the swimmer, or hold the button to catch automatically
-when the next wave arrives. Release to cancel the hold; drag on the play area
-to steer once riding. The button uses pointer capture and does not scroll the
-action bar while held. Blur, hidden tabs, action-bar replacement, stopping
-surfing, and closing the beach release touch holds. Space and touch holds are
-tracked independently; keyboard and assistive-technology button clicks also work.
+Tap when a wave reaches the swimmer, or tap offshore to wait for the next wave
+without keeping a finger down. **Cancel catch** cancels that queued catch.
+Holding also works; releasing a long hold cancels the hold. Drag on the play
+area to steer once riding. Blur, hidden tabs, action-bar replacement, stopping
+surfing, and closing the beach clear queued catches and touch holds. Space and
+touch holds are tracked independently; keyboard and assistive-technology
+button clicks also work. On phones the primary controls stay in a compact
+bottom toolbar; **Menu** contains the other activities and swim-style selector.
+The speech bubble overlays the sky rather than shrinking the play area.
 
 Movement is **press and hold**, not click-to-swim. Releasing to choose a style
 rests in the original, face-visible Head-up float; selecting a style never
@@ -297,7 +300,10 @@ constitute an exhaustive posed collision audit.
 ## Swimmer camera and manual zoom
 
 `world.js` smoothly follows the swimmer during both swimming and resting floats.
-Walking, duck boating, and surfing smoothly return to the original overview.
+Walking, duck boating, and surfing return to the overview height and depth.
+Portrait views keep tracking the player's horizontal position during those
+modes so an off-center ride or landing cannot lose her offscreen. Ball catch
+retains its centered two-character view.
 There is **no automatic zoom**, including on entry, release, style selection,
 boarding, landing, or resize. The user's chosen distance factor is retained.
 The original default pose is preserved: position `(0, 3.6, 10.4)`, target
@@ -311,7 +317,9 @@ upward without moving the camera.
   the old 0.55 floor (2.96 m versus 4.40 m), with 1.51x projected body height.
   Position is `smoothedFocus + (originalBase - originalTarget) * zoom`.
   The fixed offset gives the same distance at every swim depth/direction.
-  Orientation and FOV remain fixed; only a resize changes the aspect projection.
+  Orientation stays fixed. Resizing retains at least 38 degrees of horizontal
+  field of view: portrait screens expand vertical FOV to fit side-on strokes
+  in the taller play area, without changing the chosen distance factor.
 - Swim focus uses anchor x/z and static waterline + **0.05 m** (y = 0.17),
   independent of heading, style, hair, breath, root height and animated waves.
   A critically damped spring at **24/s** retains velocity across entry/exit,

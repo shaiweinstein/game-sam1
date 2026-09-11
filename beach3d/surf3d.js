@@ -20,12 +20,19 @@ let world = null, character = null, fx = null, say = null, bus = null, st = null
 let root = null, wave = null, face = null, crest = null, wash = null, chip = null;
 let foam = [], foamGeometry = null, foamCursor = 0, foamTex = null, crestTex = null;
 let generation = 0;
-let spaceHeld = false, buttonHeld = false, releaseButtonHold = null;
+let spaceHeld = false, buttonHeld = false, queuedCatch = false, releaseButtonHold = null;
 const waveActivity = {
   id: "surfwave", label: "Catch wave", only3D: true, modes: ["sand"],
   onClick: (_ctx, event) => {
     // Pointer presses already catch on down. Keep native keyboard/AT clicks.
-    if (!event?.detail) requestCatch();
+    if (!event?.detail) {
+      if (queuedCatch) {
+        queuedCatch = false;
+        say?.("Catch cancelled. Tap Catch wave when you're ready.");
+      }
+      else if (!requestCatch() && canWaitForWave()) queuedCatch = true;
+      syncArmed();
+    }
   },
   mount: mountCatchButton
 };
@@ -70,22 +77,38 @@ function registerActivity() {
 }
 
 function syncArmed() {
-  if (st) st.armed = spaceHeld || buttonHeld;
+  if (st) st.armed = spaceHeld || buttonHeld || queuedCatch;
+}
+
+function canWaitForWave() {
+  if (!st?.enabled || !st.ready || document.hidden || active() || bus?.rideActive?.()) return false;
+  const a = character.getAnchor();
+  return a.z < shorelineZ(a.x) - SURF.seaGuard;
 }
 
 function requestCatch() {
   if (!st?.enabled || document.hidden || active() || bus?.rideActive?.()) return;
-  if (!catchWave()) say?.("Swim farther out, then tap Catch wave as a wave reaches you, or keep holding for the next one!");
+  if (catchWave()) return true;
+  say?.(canWaitForWave() ? "Waiting for the next wave! Tap Cancel catch to stop waiting."
+    : "Swim farther out, then tap Catch wave. You can also hold it for the next wave!");
+  return false;
 }
 
 function mountCatchButton(button) {
   const events = new AbortController();
-  let pointer = null;
-  button.title = "Tap to catch a nearby wave. Hold to catch the next wave automatically.";
+  let pointer = null, pressedAt = 0, pressX = 0, pressY = 0, cancelling = false;
+  button.title = "Tap offshore to catch or wait for the next wave. Tap again to cancel. Holding also works.";
   button.setAttribute("aria-description", button.title);
   const release = (event) => {
     if (event && event.pointerId !== pointer) return;
     const id = pointer;
+    if (event?.type === "pointerup" && !cancelling && performance.now() - pressedAt < 450 &&
+        Math.hypot(event.clientX - pressX, event.clientY - pressY) < 12 && canWaitForWave()) {
+      queuedCatch = true;
+    }
+    if (event?.type === "pointerup" && !queuedCatch && !cancelling && canWaitForWave()) {
+      say?.("Hold released. Tap Catch wave to wait for the next wave.");
+    }
     pointer = null; buttonHeld = false; syncArmed();
     button.classList.remove("is-held");
     if (id !== null && button.hasPointerCapture(id)) button.releasePointerCapture(id);
@@ -95,15 +118,19 @@ function mountCatchButton(button) {
     if (event.button !== 0 || pointer !== null || !st?.enabled || !st.ready ||
         document.hidden || active() || bus?.rideActive?.()) return;
     event.preventDefault();
-    pointer = event.pointerId; buttonHeld = true; syncArmed();
+    pointer = event.pointerId; pressedAt = performance.now(); cancelling = queuedCatch;
+    pressX = event.clientX; pressY = event.clientY;
+    queuedCatch = false; buttonHeld = !cancelling; syncArmed();
     button.setPointerCapture(pointer);
     button.classList.add("is-held");
-    requestCatch();
+    if (cancelling) say?.("Catch cancelled. Tap Catch wave when you're ready.");
+    else requestCatch();
   }, { signal: events.signal });
   for (const type of ["pointerup", "pointercancel", "lostpointercapture"])
     button.addEventListener(type, release, { signal: events.signal });
   button.addEventListener("contextmenu", event => event.preventDefault(), { signal: events.signal });
   return () => {
+    queuedCatch = false;
     release(); events.abort();
     if (releaseButtonHold === release) releaseButtonHold = null;
   };
@@ -142,6 +169,7 @@ export function catchWave() {
   const a = character.getAnchor();
   bus?.beforeCatch?.();
   st.mode = "riding"; st.landing = false; st.parked = false;
+  queuedCatch = false; syncArmed();
   st.x = clamp(a.x, SURF.xMin, SURF.xMax); st.z = st.crestZ+SURF.pocket;
   st.yaw = 0; st.lean = st.vx = st.splashAcc = 0;
   st.held = false; st.pointerId = null;
@@ -167,6 +195,7 @@ export function onKeyUp(ev) {
 }
 export function releaseKeys() {
   spaceHeld = false;
+  queuedCatch = false;
   releaseButtonHold?.();
   buttonHeld = false;
   if (!st) return;
@@ -297,8 +326,11 @@ export function update(dt,waveT,rm) {
     const unavailable = !st.ready || !!bus?.rideActive?.();
     // Preserve an existing hold through the ride, just like holding Space.
     button.disabled = unavailable || (active() && !buttonHeld);
+    button.textContent = queuedCatch ? "Cancel catch" : "Catch wave";
+    button.setAttribute("aria-pressed", String(queuedCatch));
+    button.classList.toggle("is-held", buttonHeld || queuedCatch);
     button.classList.toggle("is-ready", canCatch());
-    if (unavailable) releaseButtonHold?.();
+    if (unavailable) { queuedCatch = false; releaseButtonHold?.(); syncArmed(); }
   }
   st.bob = Math.sin(waveT*Math.PI*2*SURF.crestHz)*SURF.bob;
   if (st.crestZ === null && st.enabled && st.ready) {
@@ -388,7 +420,7 @@ export function getCameraAnchor() {
 }
 export function state() {
   return st ? { mode:st.mode, enabled:st.enabled, ready:st.ready, crestZ:st.crestZ,
-    counter:st.counter, armed:st.armed, canCatch:canCatch(), riding:active(), landing:st.landing,
+    counter:st.counter, armed:st.armed, queuedCatch, canCatch:canCatch(), riding:active(), landing:st.landing,
     x:st.x,y:st.y,z:st.z,yaw:st.yaw,lean:st.lean,bob:st.bob,vx:st.vx,held:st.held,
     spawnT:st.spawnT,gap:st.gap,spawnCount:st.spawnCount,breakT:st.breakT,
     lastTalk:st.lastTalk,foam:foam.filter(f=>f.mesh.visible).length } : null;

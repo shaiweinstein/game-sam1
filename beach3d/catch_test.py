@@ -346,6 +346,7 @@ def main():
             if args.section in ('all', 'mobile'):
                 context, page = new_page(browser, mobile=True)
                 page.emulate_media(reduced_motion='reduce')
+                page.get_by_role('button', name='Menu', exact=True).tap()
                 page.get_by_role('button', name='Play catch', exact=True).tap()
                 wait_phase(page, 'ready')
                 context.set_offline(True)
