@@ -44,6 +44,8 @@ OBSERVE = """async () => {
             status:document.querySelector('#beach-swim-status')?.textContent || '',pose,
             bonePose:bones.flatMap(b=>[...b.position.toArray(),...b.quaternion.toArray()]),
             viewportHeight:innerHeight,stage:__qaWorld.canvas.getBoundingClientRect().toJSON(),
+            menuCollapsed:!!document.querySelector('.beach-menu-button')?.checkVisibility() &&
+                !document.querySelector('#beach-more-panel')?.checkVisibility(),
             feedback:(()=>{const n=document.querySelector('#beach-swim-status');
                 return n && {box:n.getBoundingClientRect().toJSON(),height:n.clientHeight,
                     scroll:n.scrollHeight,display:getComputedStyle(n).display};})(),
@@ -114,6 +116,8 @@ class NativeInput:
 
 def choose(page, style):
     select = page.locator('#beach-swim-style')
+    if not select.is_visible():
+        page.get_by_role('button', name='Menu', exact=True).click()
     if page.evaluate('navigator.maxTouchPoints>0'):
         select.tap()
     else:
@@ -138,6 +142,9 @@ def record(page, out, label, shots=False):
 
 def feedback(row, expected):
     assert expected in row['status'], row['status']
+    if row.get('menuCollapsed'):
+        assert row['stage']['height'] >= row['viewportHeight'] * .8
+        return
     box = row['feedback']
     assert box and box['display'] != 'none' and box['height'] >= box['scroll']
     assert box['box']['width'] > 0 and box['box']['height'] > 0

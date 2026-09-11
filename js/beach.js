@@ -626,6 +626,31 @@
     });
     actionCleanups = [];
     actionsEl.textContent = "";
+    actionsEl.classList.toggle("beach-compact", using3D);
+    const menu = document.createElement("div");
+    menu.id = "beach-more-panel";
+    menu.className = "beach-more-panel";
+    const menuButton = document.createElement("button");
+    menuButton.type = "button";
+    menuButton.className = "beach-action-button beach-menu-button";
+    menuButton.textContent = "Menu";
+    menuButton.setAttribute("aria-expanded", "false");
+    menuButton.setAttribute("aria-controls", menu.id);
+    const closeMenu = function () {
+      actionsEl.classList.remove("menu-open");
+      menuButton.setAttribute("aria-expanded", "false");
+    };
+    closeMenu();
+    menuButton.addEventListener("click", function () {
+      const expanded = actionsEl.classList.toggle("menu-open");
+      menuButton.setAttribute("aria-expanded", String(expanded));
+    });
+    menu.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") { closeMenu(); menuButton.focus(); }
+    });
+    stageEl?.addEventListener("pointerdown", closeMenu);
+    actionCleanups.push(function () { stageEl?.removeEventListener("pointerdown", closeMenu); });
+    const primary = new Set(["surfcatch", "surfwave", "catchthrow", "catchstop", "boathop"]);
     activities.forEach(function (spec) {
       if (!activityVisible(spec)) return;
       const button = document.createElement("button");
@@ -634,13 +659,14 @@
       button.setAttribute("data-activity-id", spec.id);
       button.textContent = spec.emoji ? spec.emoji + " " + spec.label : spec.label;
       button.addEventListener("click", function (event) {
+        closeMenu();
         try {
           spec.onClick(makeCtx(), event);
         } catch (e) {
           /* One broken activity must never take the whole bar down. */
         }
       });
-      actionsEl.appendChild(button);
+      (primary.has(spec.id) ? actionsEl : menu).appendChild(button);
       if (spec.mount) {
         try {
           const cleanup = spec.mount(button);
@@ -648,6 +674,8 @@
         } catch (e) { /* One activity must not take the whole bar down. */ }
       }
     });
+    actionsEl.appendChild(menuButton);
+    actionsEl.appendChild(menu);
     if (openState && using3D) {
       const label = document.createElement("label");
       label.className = "beach-swim-style";
@@ -666,12 +694,12 @@
         window.GameState.setSwimStyle(select.value);
       });
       label.appendChild(select);
-      actionsEl.appendChild(label);
+      menu.appendChild(label);
       const status = document.createElement("p");
       status.id = "beach-swim-status";
       status.className = "beach-swim-status";
       status.setAttribute("role", "status");
-      actionsEl.appendChild(status);
+      menu.appendChild(status);
       syncSwimStatus();
     }
   }

@@ -127,6 +127,7 @@ def released_does_not_catch(page):
 def reopen(page):
     if page.evaluate('Beach3D.isOpen()'):
         tap(page, '#beach-close')
+        page.wait_for_selector('#beach-scene', state='hidden')
     tap(page, '#beach-play-button')
     page.wait_for_function('__beach3d.state()?.boat?.ready && __beach3d.state()?.surf?.ready')
     require(page.evaluate('__beach3d.waitReady()'), 'Reopened swimmer failed to load')
@@ -343,6 +344,7 @@ def gates(page, touch):
     start(page)
     touch.down()
     armed(page, True)
+    page.get_by_role('button', name='Menu', exact=True).click()
     page.get_by_role('button', name='Play catch', exact=True).focus()
     page.keyboard.press('Enter')
     require(not surf(page)['enabled'] and not surf(page)['armed'] and page.locator(WAVE).count() == 0,
@@ -422,9 +424,98 @@ def layout(page, touch):
             and detail['bottom'] <= min(detail['viewportHeight'], detail['barBottom']) + 1,
             'Catch wave is clipped/unreachable after normal scroll-into-view', detail)
     require(detail['touchAction'] == 'none', 'Catch wave hold permits native pan cancellation', detail)
+    stage = page.locator('#beach-stage').bounding_box()
+    require(stage['height'] >= detail['viewportHeight'] * .8,
+            'Collapsed beach controls consume too much of the phone screen', stage)
+    page.get_by_role('button', name='Menu', exact=True).click()
+    require(page.locator('#beach-swim-style').is_visible(), 'Swim preferences are missing from Menu')
+    page.get_by_role('button', name='Menu', exact=True).click()
     tap(page, WAVE)
     require(not surf(page)['armed'], 'Reachable mobile tap did not release')
     return detail
+
+
+def native_swim_and_wait(page, touch):
+    # No teleport/spawn fixtures: swim from the beach using a visible water point.
+    start(page)
+    stage = page.locator('canvas').bounding_box()
+    touch.send('touchStart', stage['x'] + stage['width'] * .5, stage['y'] + stage['height'] * .42)
+    page.wait_for_function('__beach3d.state().z < -4.5', timeout=15000)
+    touch.send('touchEnd')
+    tap(page, WAVE)
+    page.wait_for_function('__beach3d.surf().queuedCatch || __beach3d.surf().riding')
+    if surf(page)['queuedCatch']:
+        page.wait_for_function('document.querySelector(\'' + WAVE + '\').textContent === "Cancel catch"')
+        tap(page, WAVE)
+        armed(page, False)
+        tap(page, WAVE)
+    page.wait_for_function('__beach3d.surf().riding', timeout=25000)
+    require(not surf(page)['queuedCatch'], 'Queued catch was not consumed')
+    require(not surf(page)['armed'], 'A single tap should catch only one wave')
+    return {'stage': stage, 'surf': surf(page)}
+
+
+def queued_cleanup(page, touch):
+    for event in ('outside', 'blur', 'hidden', 'stop', 'rebuild'):
+        # Keep reset activation independent of the preceding CDP drag gesture.
+        page.locator('#beach-close').focus()
+        page.keyboard.press('Enter')
+        reopen(page)
+        start(page)
+        page.evaluate('__beach3d.teleport(0, -3)')
+        if event == 'outside':
+            touch.down()
+            touch.send('touchMove', 4, 4)
+            touch.send('touchEnd')
+            armed(page, False)
+            continue
+        tap(page, WAVE)
+        page.wait_for_function('__beach3d.surf().queuedCatch')
+        if event == 'blur':
+            page.evaluate('window.dispatchEvent(new Event("blur"))')
+        elif event == 'hidden':
+            visibility(page, True)
+            visibility(page, False)
+        elif event == 'stop':
+            tap(page, '[data-activity-id="surfcatch"]')
+        else:
+            page.evaluate('BeachScene.setMode("sand")')
+        armed(page, False)
+        require(not surf(page)['queuedCatch'], 'Queued catch survived ' + event)
+
+
+def native_side_wave(page, touch):
+    start(page)
+    stage = page.locator('canvas').bounding_box()
+    touch.send('touchStart', 12, stage['height'] * .38)
+    page.wait_for_function('__beach3d.state().z < -3', timeout=15000)
+    touch.send('touchMove', 4, stage['height'] * .3)
+    page.wait_for_function('__beach3d.state().z < -6', timeout=15000)
+    touch.send('touchMove', 8, stage['height'] * .28)
+    page.wait_for_function('__beach3d.state().x < -5.5 && __beach3d.state().z < -6', timeout=15000)
+    touch.send('touchEnd')
+    zoom = page.evaluate('__beach3d.state().zoomTarget')
+    tap(page, WAVE)
+    page.wait_for_function('__beach3d.surf().riding', timeout=25000)
+    samples = []
+    for _ in range(24):
+        sample = page.evaluate('''() => {
+            const s = __beach3d.state();
+            return {state:s, body:__beach3d.project(s.x,s.rootY+.5,s.z)};
+        }''')
+        samples.append(sample)
+        require(15 < sample['body']['x'] < stage['width'] - 15 and
+                0 < sample['body']['y'] < stage['height'], 'Off-center surfer left the view', sample)
+        require(sample['state']['zoomTarget'] == zoom, 'Ride reset chosen zoom')
+        if sample['state']['surf']['counter'] == 1:
+            break
+        page.wait_for_timeout(500)
+    require(samples[-1]['state']['surf']['counter'] == 1, 'Off-center ride did not land')
+    page.wait_for_timeout(800)
+    final = page.evaluate('''() => { const s=__beach3d.state();
+        return __beach3d.project(s.x,s.rootY+.5,s.z); }''')
+    require(15 < final['x'] < stage['width'] - 15, 'Lily disappeared after landing', final)
+    return {'samples': samples, 'landed': final}
 
 
 def main():
@@ -446,13 +537,16 @@ def main():
     cases += [('independent-space-button', independent_holds), ('pointer-click-no-duplicate', pointer_click)]
     cases += [(f'keyboard-{kind}', lambda p, t, k=kind: keyboard(p, t, k))
               for kind in ('accessible-click', 'Enter', 'Space', 'global-space')]
-    cases += [('close-reopen-handlers', reopen_handlers), ('boat-catch-gates', gates),
+    cases += [('close-reopen-handlers', reopen_handlers), ('boat-catch-gates', gates), ('queued-cleanup', queued_cleanup),
               ('activity-mount-cleanup-faults', activity_faults)]
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         try:
-            for width, height in ((390, 740), (320, 568)):
-                selected = (cases if width == 390 else []) + [(f'layout-{width}x{height}', layout)]
+            for width, height in ((390, 740), (320, 568), (740, 390)):
+                selected = (cases if width == 390 else []) + [(f'layout-{width}x{height}', layout),
+                    (f'native-swim-wait-{width}x{height}', native_swim_and_wait)]
+                if width < height:
+                    selected.append((f'native-side-wave-{width}x{height}', native_side_wave))
                 selected = [(name, fn) for name, fn in selected if not args.case or args.case in name]
                 if not selected:
                     continue

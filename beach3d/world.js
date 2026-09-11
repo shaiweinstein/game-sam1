@@ -454,7 +454,12 @@ export function createWorld(hostEl) {
   function updateCamera(dt, anchor, mode) {
     camMode = anchor && (mode === "swim" || mode === "rest") ? "swimmer" : "overview";
     if (camMode === "swimmer") focusGoal.set(anchor.x, WORLD.water.y + camCfg.swimFocusHeight, anchor.z);
-    else focusGoal.copy(camTarget);
+    else {
+      focusGoal.copy(camTarget);
+      // A narrow view cannot show the whole beach. Keep off-center rides and
+      // landings in frame without changing the player's chosen zoom.
+      if (anchor && camera.aspect < 1 && mode !== "catch") focusGoal.x = anchor.x;
+    }
     if (camFocus.distanceToSquared(focusGoal) < 1e-12 && focusVelocity.lengthSq() < 1e-12) {
       camFocus.copy(focusGoal);
       focusVelocity.set(0, 0, 0);
@@ -1022,6 +1027,9 @@ export function createWorld(hostEl) {
     canvas.style.width = w + "px";
     canvas.style.height = h + "px";
     camera.aspect = w / h;
+    // Keep a side-on swimmer inside the taller mobile play area at close zoom.
+    camera.fov = camera.aspect >= 1 ? camCfg.fov : THREE.MathUtils.radToDeg(2 * Math.atan(
+      Math.tan(THREE.MathUtils.degToRad(camCfg.fov / 2)) / camera.aspect));
     camera.updateProjectionMatrix();
     /* Resize changes projection and sky layout, never current focus or zoom. */
     camera.updateMatrixWorld();
