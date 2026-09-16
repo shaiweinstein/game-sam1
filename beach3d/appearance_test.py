@@ -139,9 +139,148 @@ def main():
                         a.materials[m+'Main'].color===c.main && a.materials[m+'Trim'].color===c.trim &&
                         (g==='one'||a.materials[m+'Bottom'].color===c.bottom);
                 }"""))
+            # ---- 3D wardrobe extras (extra1..extra7) ----
+            # Extras are procedural three.js groups parented to bones, named
+            # extra_<id>; exactly one (or none) is visible at a time.
+            extra_ids=[None]+[f'extra{i}' for i in range(1,8)]
+            extras_loaded=len(assets)
+            applied,visible={},{}
+            for eid in extra_ids:
+                page.evaluate('(id)=>GameState.setOutfitSlot("extra",id)',eid)
+                assert page.evaluate('__beach3d.syncAppearance()')
+                applied[eid]=page.evaluate('__beach3d.appearance().extra')
+                visible[eid]=page.evaluate("""()=>{
+                    const names=[];
+                    __qaChar.root.traverse(o=>{
+                        if(o.isGroup&&o.name.startsWith('extra_')&&o.visible)names.push(o.name);
+                    });
+                    return names;
+                }""")
+            check('extra slot round-trips every id',
+                  all(applied[e]==e for e in extra_ids),applied)
+            check('exactly one visible extra group matches the requested id',
+                  all(visible[e]==([] if e is None else ['extra_'+e]) for e in extra_ids),visible)
+            # Invalid ids must fall back to "no extra" at both the direct 3D
+            # setter and the persisted GameState slot.
+            page.evaluate('GameState.setOutfitSlot("extra",null)')
+            assert page.evaluate('__beach3d.syncAppearance()')
+            saved_outfit=page.evaluate('JSON.stringify(GameState.getOutfit())')
+            probe=page.evaluate("""saved=>{
+                const vis=()=>{let n=0;__qaChar.root.traverse(o=>{
+                    if(o.isGroup&&o.name.startsWith('extra_')&&o.visible)n++;});return n;};
+                __beach3d.setExtra('bogus');
+                const direct=__beach3d.appearance().extra===null&&vis()===0;
+                const saveAfterDirect=JSON.stringify(GameState.getOutfit())===saved;
+                GameState.setOutfitSlot('extra','bogus');
+                const viaState=__beach3d.appearance().extra===null&&vis()===0;
+                GameState.setOutfitSlot('extra',null);
+                return {direct,viaState,saveAfterDirect,
+                    restored:JSON.stringify(GameState.getOutfit())===saved};
+            }""",saved_outfit)
+            check('invalid extra ids fall back to none',
+                  probe['direct'] and probe['viaState'],probe)
+            check('invalid extra ids do not corrupt the saved outfit',
+                  probe['saveAfterDirect'] and probe['restored'],probe)
+            check('switching extras never reloads the GLB',len(assets)==extras_loaded)
+            # Persistence: extra4 survives a reload (mirrors the hair reload check).
+            page.evaluate('GameState.setOutfitSlot("extra","extra4")')
+            assert page.evaluate('__beach3d.syncAppearance()')
+            page.reload(wait_until='networkidle')
+            page.click('#welcome-continue')
+            page.click('.nav-button[data-screen="map"]');page.click('.place[data-place-id="beach"]')
+            if page.locator('#beach-scene').is_hidden():page.click('#beach-play-button')
+            wait_ready(page)
+            check('reload honors existing outfit.extra',
+                  page.evaluate('__beach3d.appearance().extra')=='extra4')
+            # Clear the slot so the later hair/wardrobe checks run with no prop.
+            page.evaluate('GameState.setOutfitSlot("extra",null)')
+            assert page.evaluate('__beach3d.syncAppearance()')
+            # ---- QA-pass gaps (manual QA of the extras feature) ----
+            # 1) The programmatic setOutfitSlot+sync path never exercised the
+            # real Extras tab or its prepended empty-id "No extra" item; drive
+            # both through the actual wardrobe UI like the hair round-trip.
+            page.set_viewport_size({'width':1280,'height':800})
+            # (wardrobe item id, expected appearance().extra afterwards)
+            for item,want in [('extra6','extra6'),('',None)]:
+                before=page.evaluate('({friend:GameState.getCharacter().id,energy:GameState.getEnergy(),location:GameState.getLocation().id})')
+                # Same compact-menu workaround as the hair round-trip below.
+                if page.locator('.beach-menu-button').is_visible():
+                    page.locator('.beach-menu-button').click()
+                page.get_by_role('button',name='Change swimsuit').click()
+                assert page.locator('#wardrobe-tab-swimsuit').get_attribute('aria-selected')=='true'
+                page.click('#wardrobe-tab-extra')
+                page.locator(f'.wardrobe-item[data-item-id="{item}"]').click()
+                page.get_by_role('button',name='Back to Beach').click()
+                wait_ready(page)
+                after=page.evaluate('({friend:GameState.getCharacter().id,energy:GameState.getEnergy(),location:GameState.getLocation().id})')
+                label=item or 'no-extra'
+                check(f'real wardrobe {label} return at 1280px',
+                      before==after and page.evaluate('__beach3d.appearance().extra')==want,after)
+                page.screenshot(path=str(out/f'wardrobe-extra-{label}.png'))
+            # 2) Rigid bind-follow: props are parented to bones, so the bone→
+            # prop world distance must stay invariant while the Idle clip
+            # rotates the skeleton. The suite runs reduced-motion, which
+            # freezes the mixer (mixer.update(0)); briefly unpark Idle for
+            # sampling so the invariant is tested against live rotation,
+            # and assert the bone actually moved (premise guard).
+            BONE_OF={'extra1':'mixamorigHead','extra2':'mixamorigRightHand',
+                     'extra3':'mixamorigHead','extra4':'mixamorigSpine2',
+                     'extra5':'mixamorigHead','extra6':'mixamorigHead',
+                     'extra7':'mixamorigHead'}
+            spreads={}
+            page.emulate_media(reduced_motion='no-preference')
+            try:
+                for eid in BONE_OF:
+                    page.evaluate('(id)=>__beach3d.setExtra(id)',eid)
+                    spreads[eid]=page.evaluate("""async spec=>{
+                        const T=await import('/lib/three/three.module.js');
+                        const bone=__qaChar.root.getObjectByName(spec.bone);
+                        const prop=__qaChar.root.getObjectByName('extra_'+spec.eid);
+                        if(!bone||!prop) return {missing:true};
+                        const bp=new T.Vector3(),pp=new T.Vector3(),ds=[],pts=[];
+                        for(let i=0;i<20;i++){
+                            ds.push(bone.getWorldPosition(bp).distanceTo(prop.getWorldPosition(pp)));
+                            pts.push([bp.x,bp.y,bp.z]);
+                            await new Promise(r=>setTimeout(r,50));
+                        }
+                        let boneRange=0;
+                        for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++)
+                            boneRange=Math.max(boneRange,Math.hypot(...pts[i].map((v,k)=>v-pts[j][k])));
+                        return {spread:+(Math.max(...ds)-Math.min(...ds)).toFixed(6),
+                            boneRange:+boneRange.toFixed(6)};
+                    }""",{'bone':BONE_OF[eid],'eid':eid})
+            finally:
+                page.evaluate('__beach3d.setExtra(null)')
+                page.emulate_media(reduced_motion='reduce')
+            check('extras hold rigid bind-follow distance through Idle',
+                  all(s.get('spread',1)<0.005 and s.get('boneRange',0)>0.001 for s in spreads.values()),spreads)
+            # 3) Draw-call budget: the flower crown was merged down to 4
+            # meshes (the unmerged version cost +27 calls); every prop must
+            # stay well inside the +12-call ceiling over the no-extra scene.
+            # renderer.info refreshes per rendered frame, so settle ~150ms
+            # before each read; sample the null baseline twice, best wins.
+            samples=page.evaluate("""async ids=>{
+                const rows=[];
+                for(const id of ids){
+                    __beach3d.setExtra(id);
+                    await new Promise(r=>setTimeout(r,150));
+                    rows.push({id,calls:__qaWorld.renderer.info.render.calls});
+                }
+                return rows;
+            }""",[None]+[f'extra{i}' for i in range(1,8)]+[None])
+            baselines=[r['calls'] for r in samples if r['id'] is None]
+            deltas={r['id']:r['calls']-min(baselines) for r in samples if r['id'] is not None}
+            check('extras fit the draw-call budget vs no-extra',
+                  all(d<12 for d in deltas.values()),
+                  {'nullBaseline':baselines,'deltas':deltas})
             for hair,width in [('hair2',1280),('hair5',390)]:
                 page.set_viewport_size({'width':width,'height':800})
                 before=page.evaluate('({friend:GameState.getCharacter().id,energy:GameState.getEnergy(),location:GameState.getLocation().id})')
+                # Narrow viewports collapse secondary beach actions into the
+                # compact "Menu" popover; open it so the wardrobe entry stays
+                # reachable (the round-trip check itself is unchanged).
+                if page.locator('.beach-menu-button').is_visible():
+                    page.locator('.beach-menu-button').click()
                 page.get_by_role('button',name='Change swimsuit').click()
                 assert page.locator('#wardrobe-tab-swimsuit').get_attribute('aria-selected')=='true'
                 page.click('#wardrobe-tab-hair')

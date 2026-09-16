@@ -18,7 +18,12 @@ Pipeline (headless Blender 5.0):
 """
 import bpy
 import math
+import os
+import sys
 from mathutils import Vector
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cycles_gpu import enable_cuda
 
 BASE = "/home/shai/sg/game2/spike3"
 FBX = BASE + "/assets/mixamo/Walking.fbx"
@@ -262,6 +267,7 @@ sc.render.fps = 30
 # Cycles CPU: headless EEVEE-Next renders pure black on this box
 sc.render.engine = "CYCLES"
 sc.cycles.samples = 24
+enable_cuda(sc)
 if sc.world is None:
     sc.world = bpy.data.worlds.new("World")
 sc.world.use_nodes = True

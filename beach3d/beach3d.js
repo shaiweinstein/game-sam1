@@ -84,7 +84,8 @@ function syncAppearance() {
       window.CharacterRenderer?.catalog?.swimsuit?.[suit]?.colors ? suit : "suit1"
     );
     const hairOK = character.setHair(outfit?.hair);
-    return character.setFriend(id || "lily").then(friendOK => suitOK && hairOK && friendOK);
+    const extraOK = character.setExtra(outfit?.extra);
+    return character.setFriend(id || "lily").then(friendOK => suitOK && hairOK && extraOK && friendOK);
   } catch (e) { return Promise.resolve(false); }
 }
 
@@ -388,6 +389,7 @@ window.__beach3d = {
   appearance: () => character?.appearance() || null,
   setSuit: id => character?.setSuit(id) || false,
   setHair: id => character?.setHair(id) || false,
+  setExtra: id => character?.setExtra(id) || false,
   setFriend: id => character?.setFriend(id) || Promise.resolve(false),
   state: () => {
     if (!character) return null;

@@ -34,6 +34,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { moveAroundProps } from "./collision3d.js";
+import { createExtras, EXTRA_IDS } from "./extras3d.js";
 import {
   toonify, blobShadowTexture, sandY, zoneAt, waterSurfaceY, WORLD
 } from "./world.js";
@@ -272,6 +273,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
   let bakedFace = null;
   let requestedSuit = "suit1", requestedFriend = "lily";
   let requestedHair = "hair1", appliedHair = null;
+  let requestedExtra = null, appliedExtra = null, extras = null;
   let appliedSuit = null, appliedFriend = null, suitKey = null;
   let pendingFriend = null;
   let visible = true, ballPose = null;
@@ -376,6 +378,15 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
     return true;
   }
 
+  function setExtra(id) {
+    if (disposed) return false;
+    requestedExtra = typeof id === "string" && EXTRA_IDS.includes(id) ? id : null;
+    if (!ready || !extras) return false;
+    extras.setExtra(requestedExtra);
+    appliedExtra = extras.applied();
+    return true;
+  }
+
   function setFriend(id) {
     try {
       const palette = window.CHARACTERS?.[id];
@@ -438,6 +449,14 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
       });
       soleSupport = cacheSoleSupport(gltf.scene, gltf.animations);
       model.add(gltf.scene);
+      /* Extras ride the skeleton in bind pose, so attach BEFORE the
+         mixer starts Idle. Use the character's own toon ramp. */
+      const ramp = materials.get("hairMain")?.[0]?.gradientMap ||
+        [...materials.values()][0]?.[0]?.gradientMap;
+      extras = createExtras({ gradientMap: ramp });
+      extras.attach(gltf.scene);
+      extras.setExtra(requestedExtra);
+      appliedExtra = extras.applied();
       mixer = new THREE.AnimationMixer(gltf.scene);
       for (const clip of gltf.animations) {
         let playable = clip;
@@ -832,6 +851,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
     },
     setSuit,
     setHair,
+    setExtra,
     setFriend,
     setVisible(on) {
       visible = !!on;
@@ -843,6 +863,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
     appearance() {
       return {
         suit: appliedSuit, friend: appliedFriend, hair: appliedHair,
+        extra: appliedExtra,
         visibleHair: Object.fromEntries(Object.entries(hairMeshes).map(([k, v]) =>
           [k, v.filter(m => m.visible).length])),
         visible: Object.fromEntries(Object.entries(suitMeshes).map(([k, v]) =>
@@ -990,6 +1011,8 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
       ready = false;
       if (mixer) { mixer.stopAllAction(); mixer.uncacheRoot(model.children[0]); }
       soleSupport = [];
+      if (extras) { extras.dispose(); extras = null; }
+      appliedExtra = null;
       disposeMeshes(model);
       scene.remove(mixRoot);
       scene.remove(shadow);
