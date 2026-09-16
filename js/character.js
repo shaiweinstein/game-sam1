@@ -172,17 +172,90 @@
     '<path d="M 136 124 Q 150 140 164 124" fill="none" stroke="__FACE__" stroke-width="4.5" stroke-linecap="round"/>'
   ].join("\n      ");
 
+  /* ---------- Anatomy anchors (authoring contract) ----------
+     Every number below is read straight off BODY_MARKUP above, so it is the
+     single source of truth for "where does a garment have to land?". Item
+     markup in the catalog is hand-placed against these values, and
+     tests/character_fit_test.py measures rendered items against them
+     (window.CharacterRenderer.anchors). If you move the body, fix this block
+     first — items and fit assertions both follow it.
+
+     Rules a new/edited item must satisfy:
+     1. Tops: the hem of anything that tucks must reach at least hipY, so no
+        bare torso band can show above a waistband. Untucked garments paint
+        over the waistband they cover (see LAYER_ORDER).
+     2. Sleeves: fabric must FOLLOW the arm curve, not cut across it. At the
+        shoulder band the fabric's outer edge stays within a few units of the
+        arm's own outer edge (no stiff overhang into empty space), and at the
+        sleeve hem the fabric still covers that edge (no arm poking out from
+        under the sleeve). Stroke-along-the-arm-curve, like top3, is the
+        reference implementation.
+     3. Footwear: sits ON the foot — the shoe's top edge must be at or above
+        leg.skinInkBottom (so the foot is inside the shoe, not hovering over
+        it) and its sole must reach soleY. Each shoe stays clear of the other.
+     4. Headwear: must intersect the head box (it is worn, not floating) and
+        must not cross eyes.top. Big hair may need its own seat.
+     5. Nothing paints outside the viewBox, and no pattern may bleed past the
+        silhouette it decorates (clip it). */
+
+  const BODY_ANCHORS = {
+    view: { width: 300, height: 340 },
+    head: { cx: 150, cy: 105, rx: 58, ry: 55,
+            top: 50, bottom: 160, left: 92, right: 208 },
+    eyes: { cy: 103, ry: 11, top: 92, bottom: 114 },
+    torso: { left: 116, right: 184, top: 164, bottom: 250, corner: 26 },
+    shoulderY: 164, waistY: 200, hipY: 232, crotchY: 250,
+    arm: {
+      outlineWidth: 15, skinWidth: 9, halfOutline: 7.5,
+      left: { from: [122, 172], control: [104, 194], to: [98, 226] },
+      right: { from: [178, 172], control: [196, 194], to: [202, 226] }
+    },
+    leg: {
+      centers: [138, 162], topY: 248, endY: 302,
+      outlineWidth: 17, skinWidth: 10, halfOutline: 8.5,
+      skinInkBottom: 307, inkBottom: 310.5
+    },
+    soleY: 318, groundY: 328
+  };
+
   /* ---------- Catalog ----------
      Each item's markup is positioned for its layer group.
      Hair items have both 'back' (behind head) and 'front'
      (fringe over forehead) parts. 'extra4' has a 'back' part
      (the bag behind the body) plus 'front' straps. Simple tees tuck
      into bottoms; untucked tops paint over the waistband. A dress
-     coversBottom visually without removing the saved bottom choice. */
+     coversBottom visually without removing the saved bottom choice.
+     Items that cover the upper arm set `sleeved: true` — that flag is what
+     the fit test measures against the arm curve (see BODY_ANCHORS rule 2). */
 
-  const TEE_PATH =
-    "M 116 162 Q 150 174 184 162 L 204 174 L 195 206 L 184 199 " +
-    "L 184 240 Q 150 248 116 240 L 116 199 L 105 206 L 96 174 Z";
+  /* Tee body with no arms of its own; teeSleeves() draws the sleeves underneath. */
+  /* Tee body with no arms of its own; teeSleeves() draws the sleeves underneath.
+     The shoulder corners are ROUNDED (radius ~12, and the neckline stops short of
+     them) for the same reason top3's sweater body is: a hard corner at (184,162)
+     pokes out past the rounded sleeve cap and reads as a pointy hanger shoulder. */
+  const TEE_TORSO_PATH =
+    "M 128 162 Q 150 174 172 162 Q 184 162 184 174 L 184 240 Q 150 248 116 240 " +
+    "L 116 174 Q 116 162 128 162 Z";
+
+  /* A short sleeve is the arm's own curve stroked twice — thick trim colour under
+     thinner fill colour, round caps — so the cuff reads as a rounded sleeve end.
+     Picker thumbnails render a top with NO arms behind it (renderItemPreview), so
+     a single filled flap looks like a stiff wing however its edges are placed;
+     stroking the arm curve is what top3 Sunny Sweater already does, and it is why
+     that card reads as a garment. Centrelines sit on the arm curve from
+     BODY_ANCHORS (178,172 -> 196,194 -> 202,226) stopped at the mid-upper-arm. */
+  const TEE_SLEEVE_CURVES = [
+    "M 122 172 Q 107 188 105 203",
+    "M 178 172 Q 193 188 195 203"
+  ];
+
+  function teeSleeves(fill, trim) {
+    const stroke = (d, width, color) =>
+      '<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + width +
+      '" stroke-linecap="round"/>';
+    return TEE_SLEEVE_CURVES.map(d => stroke(d, 19, trim)).join("") +
+      TEE_SLEEVE_CURVES.map(d => stroke(d, 13, fill)).join("");
+  }
 
   /* Follow the torso's full hips before narrowing around the legs
      (centers 138/162, outer radius 8.5). Waist tucks under every vest. */
@@ -296,8 +369,10 @@
       top1: {
         name: "Pink T-Shirt",
         emoji: "👕",
+        sleeved: true,
         front:
-          '<path d="' + TEE_PATH + '" fill="#ff8fb8" stroke="#d9568a" stroke-width="4" stroke-linejoin="round"/>' +
+          teeSleeves("#ff8fb8", "#d9568a") +
+          '<path d="' + TEE_TORSO_PATH + '" fill="#ff8fb8" stroke="#d9568a" stroke-width="4" stroke-linejoin="round"/>' +
           '<path d="M 150 208 C 147 204 141 205 141 210 C 141 215 147 218 150 221 ' +
           'C 153 218 159 215 159 210 C 159 205 153 204 150 208 Z" fill="#fff9ec"/>'
       },
@@ -306,8 +381,8 @@
         emoji: "👗",
         coversBottom: true,
         front:
-          '<path d="M 116 162 Q 150 174 184 162 L 186 207 Q 188 226 206 278 ' +
-          "Q 150 292 94 278 Q 112 226 114 207 Z" +
+          '<path d="M 128 162 Q 150 174 172 162 Q 184 162 186 174 L 186 207 Q 188 226 206 278 ' +
+          "Q 150 292 94 278 Q 112 226 114 207 L 114 174 Q 116 162 128 162 Z" +
           '" fill="#a56bd6" stroke="#8449c1" stroke-width="4" stroke-linejoin="round"/>' +
           '<path d="M 114 216 Q 150 224 186 216" fill="none" stroke="#8449c1" stroke-width="3"/>' +
           '<path d="M 101 271 Q 150 284 199 271" fill="none" stroke="#d29ce8" stroke-width="3" stroke-linecap="round"/>' +
@@ -317,6 +392,7 @@
         name: "Sunny Sweater",
         emoji: "🔆",
         untucked: true,
+        sleeved: true,
         front:
           '<path d="M 118 172 Q 104 194 99 218" stroke="#e0b420" stroke-width="19" fill="none" stroke-linecap="round"/>' +
           '<path d="M 182 172 Q 196 194 201 218" stroke="#e0b420" stroke-width="19" fill="none" stroke-linecap="round"/>' +
@@ -329,8 +405,10 @@
       top4: {
         name: "Teal Stripes",
         emoji: "🎽",
+        sleeved: true,
         front:
-          '<path d="' + TEE_PATH + '" fill="#4fc3d9" stroke="#2f9fb5" stroke-width="4" stroke-linejoin="round"/>' +
+          teeSleeves("#4fc3d9", "#2f9fb5") +
+          '<path d="' + TEE_TORSO_PATH + '" fill="#4fc3d9" stroke="#2f9fb5" stroke-width="4" stroke-linejoin="round"/>' +
           '<path d="M 122 190 L 178 190" stroke="#ffffff" stroke-width="5" opacity="0.85" stroke-linecap="round"/>' +
           '<path d="M 122 206 L 178 206" stroke="#ffffff" stroke-width="5" opacity="0.85" stroke-linecap="round"/>' +
           '<path d="M 122 222 L 178 222" stroke="#ffffff" stroke-width="5" opacity="0.85" stroke-linecap="round"/>'
@@ -339,8 +417,10 @@
         name: "Rainbow Shirt",
         emoji: "🌈",
         untucked: true,
+        sleeved: true,
         front:
-          '<path d="' + TEE_PATH + '" fill="#fff9ec" stroke="#c9a15a" stroke-width="4" stroke-linejoin="round"/>' +
+          teeSleeves("#fff9ec", "#c9a15a") +
+          '<path d="' + TEE_TORSO_PATH + '" fill="#fff9ec" stroke="#c9a15a" stroke-width="4" stroke-linejoin="round"/>' +
           '<path d="M 120 188 Q 150 194 180 188" stroke="#ff5a5a" stroke-width="5" fill="none" stroke-linecap="round"/>' +
           '<path d="M 120 197 Q 150 203 180 197" stroke="#ffa54a" stroke-width="5" fill="none" stroke-linecap="round"/>' +
           '<path d="M 120 206 Q 150 212 180 206" stroke="#ffd93d" stroke-width="5" fill="none" stroke-linecap="round"/>' +
@@ -351,8 +431,10 @@
       top6: {
         name: "Ladybug Tee",
         emoji: "🐞",
+        sleeved: true,
         front:
-          '<path d="' + TEE_PATH + '" fill="#ff5a5a" stroke="#e04b4b" stroke-width="4" stroke-linejoin="round"/>' +
+          teeSleeves("#ff5a5a", "#e04b4b") +
+          '<path d="' + TEE_TORSO_PATH + '" fill="#ff5a5a" stroke="#e04b4b" stroke-width="4" stroke-linejoin="round"/>' +
           /* tiny ladybug head + antennae peeking at the neckline */
           '<path d="M 145 169 L 141 163" stroke="#3a3040" stroke-width="2.5" stroke-linecap="round"/>' +
           '<path d="M 155 169 L 159 163" stroke="#3a3040" stroke-width="2.5" stroke-linecap="round"/>' +
@@ -369,8 +451,10 @@
         name: "Cozy Hoodie",
         emoji: "🧥",
         untucked: true,
+        sleeved: true,
         front:
-          '<path d="' + TEE_PATH + '" fill="#4fc3d9" stroke="#2f9fb5" stroke-width="4" stroke-linejoin="round"/>' +
+          teeSleeves("#4fc3d9", "#2f9fb5") +
+          '<path d="' + TEE_TORSO_PATH + '" fill="#4fc3d9" stroke="#2f9fb5" stroke-width="4" stroke-linejoin="round"/>' +
           /* scrunchy hood resting behind the neck (front arc at the neckline) */
           '<path d="M 118 169 Q 150 156 182 169 Q 150 184 118 169 Z" ' +
           'fill="#7fd4e6" stroke="#2f9fb5" stroke-width="3.5" stroke-linejoin="round"/>' +
@@ -386,8 +470,10 @@
       top8: {
         name: "Star Tee",
         emoji: "⭐",
+        sleeved: true,
         front:
-          '<path d="' + TEE_PATH + '" fill="#4a90e2" stroke="#3273b8" stroke-width="4" stroke-linejoin="round"/>' +
+          teeSleeves("#4a90e2", "#3273b8") +
+          '<path d="' + TEE_TORSO_PATH + '" fill="#4a90e2" stroke="#3273b8" stroke-width="4" stroke-linejoin="round"/>' +
           star(150, 203, 24, "#ffd93d", "#e0b420") +
           '<circle cx="124" cy="183" r="2.2" fill="#fff9ec" opacity="0.9"/>' +
           '<circle cx="176" cy="221" r="2.2" fill="#fff9ec" opacity="0.9"/>'
@@ -634,14 +720,14 @@
         name: "Party Hat",
         emoji: "🥳",
         front:
-          '<path d="M 150 10 L 184 62 Q 150 72 116 62 Z" ' +
+          '<path d="M 150 11.5 L 184 62 Q 150 72 116 62 Z" ' +
           'fill="#ff8fb8" stroke="#d9568a" stroke-width="4" stroke-linejoin="round"/>' +
           /* bold candy stripes kept inside the cone edges */
           '<path d="M 136 33 L 164 33 L 169 43 L 131 43 Z" ' +
           'fill="#ffd93d" stroke="#e0b420" stroke-width="2.5" stroke-linejoin="round"/>' +
           '<path d="M 127 48 L 173 48 L 179 58 L 121 58 Z" ' +
           'fill="#a56bd6" stroke="#8449c1" stroke-width="2.5" stroke-linejoin="round"/>' +
-          '<circle cx="150" cy="10" r="9" fill="#a56bd6" stroke="#8449c1" stroke-width="3.5"/>'
+          '<circle cx="150" cy="11.5" r="9" fill="#a56bd6" stroke="#8449c1" stroke-width="3.5"/>'
       },
       extra6: {
         name: "Flower Crown",
@@ -1059,6 +1145,7 @@
     forget: forget,
     getItemName: getItemName,
     catalog: CATALOG,
+    anchors: BODY_ANCHORS,
     onChanged: onChanged,
     playAnimation: playAnimation,
     setPreviewSkip: setPreviewSkip
