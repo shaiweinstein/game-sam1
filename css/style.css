@@ -440,6 +440,7 @@ body {
 
 .wardrobe-heading .screen-title { text-align: left; margin: 0; font-size: clamp(1.05rem, 2.4vw, 1.7rem); }
 .wardrobe-return,
+.wardrobe-print,
 .wardrobe-undo,
 .wardrobe-category-next {
   flex: none;
@@ -457,9 +458,10 @@ body {
   cursor: pointer;
 }
 .wardrobe-return { background: #8ee0e7; box-shadow: 0 3px 0 var(--text-color); }
+.wardrobe-print { background: #d7c6f2; box-shadow: 0 3px 0 var(--text-color); }
 .wardrobe-return[hidden], .wardrobe-hint[hidden] { display: none; }
 .wardrobe-undo:disabled { opacity: 0.5; cursor: default; }
-.wardrobe-return:hover, .wardrobe-undo:not(:disabled):hover,
+.wardrobe-return:hover, .wardrobe-print:hover, .wardrobe-undo:not(:disabled):hover,
 .wardrobe-category-next:hover { background: var(--sunny-yellow); }
 .wardrobe-open button:focus-visible { outline: 3px solid var(--text-color); outline-offset: 2px; }
 
@@ -2134,3 +2136,161 @@ b[data-char-name] {
    MUST stay visible while the canvas boat rides (it is the game's
    own hop-out). js/beach-surf.js keeps 'surfcatch' visible by
    registering it for the modes the game actually runs. */
+
+/* ============================================================
+   Print paper dolls (js/print-dolls.js)
+   Two things share this block: the on-screen preview sheet, and the
+   @media print rules that turn it into a US Letter paper-doll sheet.
+   Sizes are in mm on purpose — the art is authored in one shared
+   300x340 coordinate space, so js sets every box as units x mm-per-unit
+   and the printed clothes fit the printed doll by construction.
+   ============================================================ */
+
+.print-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background: rgba(58, 46, 110, 0.92);
+}
+.print-sheet[hidden] { display: none; }
+
+.print-toolbar {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  min-width: 0;
+  padding: 10px 14px;
+  background: var(--cream);
+  border-bottom: 4px solid var(--text-color);
+  color: var(--text-color);
+}
+.print-toolbar-title { margin: 0; font-size: 1.15rem; font-weight: bold; }
+.print-toolbar-label { font-size: 0.85rem; font-weight: bold; opacity: 0.75; }
+.print-toolbar-note { margin: 0; flex: 1 1 180px; font-size: 0.8rem; opacity: 0.7; }
+.print-hair { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-width: 0; }
+/* The six chips must wrap on a phone instead of pushing the Print button off
+   the edge — the toolbar is fixed on screen, so overflow is unreachable. */
+.print-hair-choice { display: flex; flex-wrap: wrap; gap: 6px; }
+.print-hair-choice-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 78px;
+  padding: 3px 4px;
+  border: 3px solid transparent;
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 0.6rem;
+  line-height: 1.05;
+  cursor: pointer;
+}
+.print-hair-choice-button .print-hair-art { display: block; width: 34px; height: 34px; }
+/* Names wrap to two lines rather than truncating: a child choosing a hairstyle
+   by picture should still see the whole word. */
+.print-hair-choice-button .print-hair-name {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.print-hair-choice-button:hover { background: var(--sunny-yellow); }
+.print-hair-choice-button.chosen { border-color: var(--grass-green-dark); background: #eafbe7; }
+.print-hair-choice-button:focus-visible { outline: 3px solid var(--text-color); outline-offset: 2px; }
+.print-actions { display: flex; gap: 8px; margin-left: auto; }
+.print-go,
+.print-close {
+  min-height: 44px;
+  padding: 6px 14px;
+  border: 3px solid var(--text-color);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: bold;
+  line-height: 1.1;
+  color: var(--text-color);
+  cursor: pointer;
+}
+.print-go { background: var(--sunny-yellow); box-shadow: 0 3px 0 var(--text-color); }
+.print-close { background: var(--white); }
+.print-go:hover { background: #ffe873; }
+.print-close:hover { background: var(--sky-blue); }
+.print-go:focus-visible, .print-close:focus-visible { outline: 3px solid var(--text-color); outline-offset: 2px; }
+
+.print-scroll { flex: 1; overflow: auto; padding: 16px; }
+.print-pages { display: block; }
+
+/* One printed sheet page. US Letter with 12.7mm (0.5in) margins leaves
+   190.5 x 254mm of content; that is what @page below asks the printer for. */
+.print-page {
+  width: 190.5mm;
+  min-height: 254mm;
+  margin: 0 auto 14px;
+  padding: 4mm;
+  background: var(--white);
+  color: #000;
+  border-radius: 4px;
+  box-shadow: var(--shadow-soft);
+}
+.print-sheet-title { margin: 0 0 2mm; font-size: 15pt; }
+.print-group-title { margin: 0 0 2mm; font-size: 11pt; border-bottom: 0.5mm solid #bbb; }
+.print-how { margin: 0 0 4mm; padding-left: 5mm; font-size: 9pt; }
+.print-how li { margin: 0 0 0.6mm; }
+.print-dolls,
+.print-pieces {
+  list-style: none;
+  margin: 0 0 4mm;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  /* Bottoms (hems, soles) on one line and pieces of different heights still
+     read as a row, instead of every label sitting at its own height. */
+  align-items: flex-end;
+  gap: 6mm 8mm;
+}
+.print-doll,
+.print-piece { display: flex; flex-direction: column; align-items: center; gap: 1mm; }
+.print-doll-name,
+.print-piece-name { font-size: 8pt; color: #444; text-align: center; }
+.print-doll-svg, .print-piece-svg { display: block; }
+.print-group { margin: 0 0 3mm; }
+.print-belongs { margin: 4mm 0 0; font-size: 10pt; }
+
+@media print {
+  /* US Letter, portrait, half-inch margins. */
+  @page { size: letter portrait; margin: 12.7mm; }
+
+  body.print-dolls-open { overflow: visible; background: #fff; }
+  /* Only the sheet reaches the printer. */
+  body.print-dolls-open > *:not(#print-sheet) { display: none !important; }
+
+  #print-sheet { position: static; display: block; background: none; }
+  .print-toolbar { display: none !important; }
+  .print-scroll { overflow: visible; padding: 0; }
+  .print-page {
+    width: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    break-after: page;
+    page-break-after: always;
+  }
+  .print-page:last-child { break-after: auto; page-break-after: auto; }
+  .print-doll, .print-piece { break-inside: avoid; page-break-inside: avoid; }
+  /* Keep a slot's heading together with its whole set of pieces, so a row is
+     never split with one shoe stranded at the top of the next sheet. */
+  .print-group { break-inside: avoid; page-break-inside: avoid; }
+  /* A heading must never be left alone at the bottom of a sheet. */
+  .print-group-title { break-after: avoid; page-break-after: avoid; }
+
+  /* Greys and pastel fills must survive the printer's ink-saving default. */
+  #print-sheet { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

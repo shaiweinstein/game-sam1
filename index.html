@@ -24,6 +24,7 @@
   <script src="./js/state.js" defer></script>
   <script src="./js/character.js" defer></script>
   <script src="./js/wardrobe.js" defer></script>
+  <script src="./js/print-dolls.js" defer></script>
   <script src="./js/kitchen.js" defer></script>
   <script src="./js/map.js" defer></script>
   <!-- Phaser engine (vendored, offline-safe) + canvas beach game,
@@ -97,6 +98,7 @@
         <div class="wardrobe-heading">
           <h2 class="screen-title" id="wardrobe-title">Dress Up <b data-char-name>Lily</b>!</h2>
           <button class="wardrobe-return" id="wardrobe-return" type="button" hidden>Back to Beach</button>
+          <button class="wardrobe-print" id="wardrobe-print" type="button">🖨️ Print paper dolls</button>
         </div>
         <div class="wardrobe-workspace">
           <!-- Only this registered character gets swimsuit preview overrides. -->
@@ -173,6 +175,24 @@
     <div class="beach-talk" id="beach-talk">Time to play at the beach! 🌊</div>
     <div class="beach-stage" id="beach-stage"><!-- layers added by later tasks --></div>
     <div class="beach-actions" id="beach-actions"><!-- activity buttons added by later tasks --></div>
+  </div>
+  <!-- Print paper dolls sheet (js/print-dolls.js): screen preview + @media print output -->
+  <div class="print-sheet" id="print-sheet" role="dialog" aria-modal="true" aria-label="Print paper dolls" hidden>
+    <div class="print-toolbar">
+      <p class="print-toolbar-title">🖨️ Print paper dolls</p>
+      <div class="print-hair" role="group" aria-label="Which hairstyle to print">
+        <span class="print-toolbar-label">Lily's hair</span>
+        <div class="print-hair-choice" id="print-hair-choice"></div>
+      </div>
+      <p class="print-toolbar-note" id="print-toolbar-note">Cut along the outlines. Fold the grey tabs and tape them on her back.</p>
+      <div class="print-actions">
+        <button class="print-go" id="print-go" type="button">🖨️ Print</button>
+        <button class="print-close" id="print-close" type="button">Close</button>
+      </div>
+    </div>
+    <div class="print-scroll">
+      <div class="print-pages" id="print-pages"></div>
+    </div>
   </div>
 </body>
 </html>

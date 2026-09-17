@@ -906,6 +906,91 @@
     }
   };
 
+  /* ---------- Paper-doll underclothes (js/print-dolls.js only) ---------- */
+
+  /* Not a catalog slot: the printed doll wears a plain white tank top and shorts so
+     cut-out garments can be laid over her without pre-deciding her look.  They live
+     here rather than in the print module because this is body art, hand-placed
+     against the same BODY_ANCHORS as any garment.
+       TONE (the whole reason this garment failed a parent review before): the tank
+     stays pure #ffffff but the shorts fill light grey #e8ebf5, the same cool family
+     as the #b9c0d4 cut outline; the print sheet's @media block forces
+     print-color-adjust:exact, so the grey survives the printer.  Two same-width
+     white-on-white outlines + white fills merge on paper into ONE dress silhouette,
+     and a white panel between the legs reads as a diaper.  Grey-vs-white-vs-warm-
+     skin is what separates the two garments from each other and the shorts from the
+     skin, on screen and printed.
+       SHAPE — snug denim shorts, not a pouch and not a diaper:
+       * the WAISTBAND TUCKS UNDER THE TANK HEM: the top edge starts at
+         (119,204) and its Q control dips to (150,215), so the curve bottoms
+         out just above y210 at the centre line — on every column the grey top
+         edge stays below the white hem (y202 sides, ~y204.5 centre) and the
+         white shirt overhangs the grey (grey riding above the shirt hem would
+         read as shorts worn OUTSIDE the shirt).  Two #9aa0b5 detail seams
+         cross the band (darker than the outline so they survive printing);
+       * the SIDES NEVER LEAVE THE TORSO: outermost points are x116/x184 at
+         the hips (y234), exactly the torso's own edge — no flare past it;
+       * TWO PANT LEG TUBES with hems at y256 spanning x130..145 (left) /
+         x155..170 (right), each inside its leg column's own ink (centers
+         x138/x162), drawn as exactly ONE grey-filled main path (the doll test
+         samples that single silhouette with isPointInFill; every other shape
+         here is a fill="none" stroke);
+       * the INSEAM APEX sits ON THE CROTCH LINE (150,247) with a SOLID grey
+         panel between the band and that apex — seat/crotch fabric is
+         denim-shorts anatomy, NOT a diaper, because the sides are snug; the
+         wedge between the tubes opens only BELOW the apex, so bare skin shows
+         at (150,250)/(150,252) and everywhere under the hems.  A panel down
+         to the hem level reads as a diaper and a crotch slit up to the
+         waistband reads as a leotard — both fail the pin list in
+         tests/print_dolls_test.py.
+       The tank (top) is untouched: its hem (y202 sides, dipping to ~y204.5)
+       stays the topmost fabric edge on every column — the shorts draw after
+       it in LAYER_ORDER but their top edge never rises above that hem, so the
+       waistband reads as tucked under the shirt.  Grey outline instead of
+       none so every edge also reads as a cut target on paper. */
+  const UNDERNEATH = "#under";
+  const UNDER_MARKUP = {
+    top:
+      '<path d="M 130 163 Q 150 173 170 163 Q 182 163 182 176 L 182 202 Q 150 207 118 202 ' +
+      'L 118 176 Q 118 163 130 163 Z" fill="#ffffff" stroke="#b9c0d4" stroke-width="3" stroke-linejoin="round"/>' +
+      '<path d="M 134 168 Q 150 177 166 168" fill="none" stroke="#b9c0d4" stroke-width="2.5" stroke-linecap="round"/>',
+    bottom:
+      '<path d="M 119 204 Q 150 215 181 204 ' +
+      'Q 180.5 211 181 218 Q 183.5 226 184 234 ' +
+      'Q 178 247 170 256 L 155 256 ' +
+      'Q 152 250 150 247 Q 148 250 145 256 ' +
+      'L 130 256 Q 122 247 116 234 ' +
+      'Q 116.5 226 119 218 Q 119.5 211 119 204 Z" ' +
+      'fill="#e8ebf5" stroke="#b9c0d4" stroke-width="3" stroke-linejoin="round"/>' +
+      '<path d="M 120 210 Q 150 221 180 210" fill="none" stroke="#9aa0b5" stroke-width="2.5" stroke-linecap="round"/>' +
+      '<path d="M 120 215 Q 150 226 180 215" fill="none" stroke="#9aa0b5" stroke-width="2.5" stroke-linecap="round"/>'
+  };
+
+  /* One printable paper doll as an <svg> string: body + chosen hair + the white
+     underclothes, no ground shadow (nothing should print under her feet except the
+     stand tab the print sheet draws).  The viewBox stretches 12u below the body so
+     that tab has room. */
+  const PRINT_DOLL_VIEWBOX = "0 0 300 352";
+
+  function buildPrintDollSVG(opts) {
+    const options = opts || {};
+    const characterId = typeof options.characterId === "string" && CHARACTERS[options.characterId]
+      ? options.characterId : "lily";
+    const hair = typeof options.hair === "string" && CATALOG.hair[options.hair]
+      ? options.hair : "hair1";
+    const outfit = {
+      hair: hair, top: UNDERNEATH, bottom: UNDERNEATH,
+      shoes: null, extra: null, swimsuit: null
+    };
+    return buildSVG(outfit, "character-big", characterId, ["shadow"])
+      /* The ground shadow is not its own layer - it is the first shape inside
+         BODY_MARKUP - and a paper doll must not print with a grey puddle under
+         her feet, which is exactly where the stand tab belongs. tests/print_dolls_test.py
+         asserts nothing paints below the feet, so this cannot rot silently. */
+      .replace('<ellipse cx="150" cy="328" rx="58" ry="10" fill="#3a2e6e" opacity="0.10"/>', '')
+      .replace('viewBox="0 0 300 340"', 'viewBox="' + PRINT_DOLL_VIEWBOX + '"');
+  }
+
   /* ---------- Paint order (bottom -> top) ---------- */
 
   const LAYER_ORDER = [
@@ -919,6 +1004,7 @@
   function layerMarkup(slot, part, outfit) {
     const id = outfit ? outfit[slot] : null;
     if (!id) return "";
+    if (id === UNDERNEATH) return part === "front" ? (UNDER_MARKUP[slot] || "") : "";
     const item = CATALOG[slot] && CATALOG[slot][id];
     if (!item) return "";
     const markup = item[part];
@@ -1142,6 +1228,7 @@
   window.CharacterRenderer = {
     render: render,
     renderItemPreview: renderItemPreview,
+    buildPrintDollSVG: buildPrintDollSVG,
     forget: forget,
     getItemName: getItemName,
     catalog: CATALOG,
