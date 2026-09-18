@@ -15,12 +15,9 @@
   <!-- Inline favicon (same data URI as the game's index.html) — no favicon.ico request -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text x='0' y='14' font-size='14'>🌈</text></svg>">
   <link rel="stylesheet" href="landing/landing.css">
-  <!--
-    ADSENSE SITE SCRIPT — paste this ONE line into <head> when your AdSense
-    account is approved (replace ca-pub-XXXXXXXXXXXXXXXX with your publisher id):
-
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
-  -->
+  <!-- AdSense verification/loader tag — owner's publisher id ca-pub-8606608049292845.
+       Required for AdSense onboarding: this is how Google verifies site ownership. -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8606608049292845" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -37,14 +34,26 @@
     <!--
       AD SLOT A — horizontal leaderboard (728x90, responsive).
 
-      When your AdSense account is approved, replace the placeholder inside
-      this box with your own unit, and paste the site script (in <head> above)
-      once:
+      The AdSense site script is already live in <head> (verification/loader
+      tag, publisher id ca-pub-8606608049292845). To turn ads on:
+      create 3 ad units in the AdSense UI → paste each unit's data-ad-slot
+      number into the matching commented <ins> below (A, B and C) →
+      uncomment all three. Do NOT uncomment before pasting real slot
+      numbers: an <ins> pushed without a data-ad-slot makes adsbygoogle
+      throw console errors. Until then the placeholder box below stays
+      inert (nothing loads, height reserved).
+
+      TFAT child tag is already set (tag-for-age-treatment data attribute,
+      value "1" = child treatment) on the commented unit below — this site
+      is a children's game; keep it on all ad units. Site-level age-restricted
+      marking: do it in Search Console (Settings → mark as directed to
+      children) once the property is verified.
 
         <ins class="adsbygoogle"
              style="display:block"
-             data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+             data-ad-client="ca-pub-8606608049292845"
              data-ad-slot="YYYYYYYYYY"
+             data-tag-for-age-treatment="1"
              data-ad-format="horizontal"
              data-full-width-responsive="true"></ins>
         <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
@@ -58,8 +67,8 @@
          paste it above each ad unit, e.g.
          <script>(adsbygoogle = window.adsbygoogle || []).push({ consentState: ... });</script>
          (or the Funding Choices/UMP loader Google gives you — kept commented here until then).
-      3. Replace ca-pub-XXXXXXXXXXXXXXXX and data-ad-slot="YYYYYYYYYY" with
-         your real publisher / slot ids from the AdSense UI.
+      3. Paste each unit's real data-ad-slot number over YYYYYYYYYY below
+         (the ca-pub id is already your real publisher id).
     -->
     <div class="ad-slot ad-slot--leaderboard" role="complementary" aria-label="Advertisement placeholder">
       <span class="ad-label">Advertisement</span>
@@ -161,12 +170,23 @@
     <!--
       AD SLOT B — in-content rectangle (336x280, responsive).
 
-      Paste your unit inside this box (same two-part pattern as slot A):
+      Same pattern as slot A: create the unit in the AdSense UI → paste its
+      data-ad-slot number over YYYYYYYYYY below → uncomment (all three
+      slots together). Uncommenting without a real data-ad-slot number
+      makes adsbygoogle throw console errors; the box stays inert until
+      then.
+
+      TFAT child tag is already set (tag-for-age-treatment data attribute,
+      value "1" = child treatment) on the commented unit below — this site
+      is a children's game; keep it on all ad units. Site-level age-restricted
+      marking: do it in Search Console (Settings → mark as directed to
+      children) once the property is verified.
 
         <ins class="adsbygoogle"
              style="display:block; width:336px; height:280px; margin:0 auto"
-             data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+             data-ad-client="ca-pub-8606608049292845"
              data-ad-slot="YYYYYYYYYY"
+             data-tag-for-age-treatment="1"
              data-ad-format="rectangle"
              data-full-width-responsive="true"></ins>
         <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
@@ -174,7 +194,8 @@
       Reminder: keep this slot away from the Play button area when you
       re-arrange the page (Google's placement policy: no ads near controls),
       and keep the three pre-apply settings from slot A (child-directed /
-      non-personalized ads ON, consent manager snippet, real pub/slot ids).
+      non-personalized ads ON, consent manager snippet, real slot numbers —
+      the ca-pub id is already your real publisher id).
     -->
     <div class="ad-slot ad-slot--rectangle" role="complementary" aria-label="Advertisement placeholder">
       <span class="ad-label">Advertisement</span>
@@ -310,13 +331,23 @@
   <div class="wrap">
     <!--
       AD SLOT C — footer banner (728x90, responsive). Same pattern as slots
-      A and B; create a separate ad unit in AdSense for it (don't reuse a
-      slot id — separate units report separately):
+      A and B; create a separate ad unit in the AdSense UI for it (don't
+      reuse a slot id — separate units report separately), paste its
+      data-ad-slot number over YYYYYYYYYY below, then uncomment together
+      with A and B. Uncommenting without a real data-ad-slot number makes
+      adsbygoogle throw console errors; the box stays inert until then.
+
+      TFAT child tag is already set (tag-for-age-treatment data attribute,
+      value "1" = child treatment) on the commented unit below — this site
+      is a children's game; keep it on all ad units. Site-level age-restricted
+      marking: do it in Search Console (Settings → mark as directed to
+      children) once the property is verified.
 
         <ins class="adsbygoogle"
              style="display:block"
-             data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+             data-ad-client="ca-pub-8606608049292845"
              data-ad-slot="YYYYYYYYYY"
+             data-tag-for-age-treatment="1"
              data-ad-format="horizontal"
              data-full-width-responsive="true"></ins>
         <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
@@ -333,10 +364,10 @@
       <ul class="footer-links">
         <li><a href="privacy.html">Privacy Policy</a></li>
         <li><a href="#parents">About the game &amp; its safety</a></li>
-        <li><a href="mailto:CONTACT_EMAIL">Contact the maker</a></li>
+        <li><a href="mailto:shai.weinstein@gmail.com">Contact the maker</a></li>
         <li><a href="THIRD-PARTY-NOTICES.md">Third-Party Notices</a></li>
       </ul>
-      <p class="copyright">© 2026 Lily's Dress-Up Adventure. Made with 💛 and far too much coffee.</p>
+      <p class="copyright">© 2026 Lily's Dress-Up Adventure — game by Shai Weinstein and his daughters.<br>Made with 💛 and far too much coffee.</p>
     </div>
   </footer>
 

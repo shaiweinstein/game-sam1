@@ -6,6 +6,8 @@ Stdlib only. Layout produced:
     deploy/
       index.html               ← landing.html (Play link rewritten to play/)
       privacy.html
+      robots.txt               ← crawler rules + Sitemap: pointer
+      sitemap.xml              ← / , /play/ , /privacy.html
       THIRD-PARTY-NOTICES.md
       landing/                 ← css/, js/ (if present), img/ — never the
                                   capture script (.py files are banned outright)
@@ -24,6 +26,7 @@ Run from anywhere: paths resolve relative to this file.
 import re
 import shutil
 import sys
+import xml.dom.minidom
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent
@@ -80,6 +83,7 @@ def copy_tree(src: Path, dst: Path) -> int:
 def main() -> int:
     # ---- sanity of the sources before touching anything ------------------
     for must in ("landing.html", "privacy.html", "THIRD-PARTY-NOTICES.md",
+                 "robots.txt", "sitemap.xml",
                  "index.html", "css", "js", "lib", "beach3d",
                  "landing/img/hero-beach.png"):
         src = REPO / must
@@ -102,8 +106,12 @@ def main() -> int:
         'href="index.html"' not in rewritten, "Play link rewrite failed"
     (DEPLOY / "index.html").write_text(rewritten, encoding="utf-8")
 
-    # 2) standalone public docs
-    for name in ("privacy.html", "THIRD-PARTY-NOTICES.md"):
+    # 2) standalone public docs + crawler files (robots/sitemap once lived
+    #    only on the server and died to `rsync --delete` — they are now
+    #    first-class repo sources shipped through this same allowlist)
+    for name in ("privacy.html", "THIRD-PARTY-NOTICES.md",
+                 "robots.txt", "sitemap.xml"):
+        assert forbidden(Path(name)) is None, f"forbidden public file: {name}"
         shutil.copy2(REPO / name, DEPLOY / name)
 
     # 3) landing/ assets: landing.css (+ any top-level landing js) and the
@@ -152,6 +160,18 @@ def main() -> int:
     # the six card images made it
     assert len(list((DEPLOY / "landing" / "img").glob("*.png"))) == 6, \
         "landing/img did not ship all six screenshots"
+    # crawler files shipped and are well-formed (rsync --delete lost the
+    # server-only originals once; the bundle must never come out without them)
+    robots = (DEPLOY / "robots.txt").read_text(encoding="utf-8")
+    assert "\r" not in robots, "robots.txt must be LF-only"
+    assert "User-agent: *" in robots and "Allow: /" in robots \
+        and "Sitemap: https://lily.game/sitemap.xml" in robots, \
+        "robots.txt incomplete"
+    dom = xml.dom.minidom.parse(str(DEPLOY / "sitemap.xml"))
+    locs = [t.firstChild.data for t in dom.getElementsByTagName("loc")]
+    assert locs == ["https://lily.game/", "https://lily.game/play/",
+                    "https://lily.game/privacy.html"], \
+        f"sitemap.xml locs wrong: {locs}"
 
     # ---- summary -----------------------------------------------------------
     total = sum(f.stat().st_size for f in files)
