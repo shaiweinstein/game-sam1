@@ -1,0 +1,25 @@
+Art & 3D asset license — CC BY-NC 4.0
+=====================================
+
+All original artwork and 3D assets in this repository — including the SVG
+character/doll art (assets/, spike/svg/), texture atlases (spike/atlas.png,
+beach3d/assetgen/), and the character models (beach3d/assets/*.glb,
+beach3d/assets/duck_boat.glb, surfboard.glb) — are © 2026 Shai Weinstein and
+his daughters and licensed under Creative Commons Attribution-NonCommercial
+4.0 International (CC BY-NC 4.0):
+
+  License text: https://creativecommons.org/licenses/by-nc/4.0/legalcode
+  Deed (human summary): https://creativecommons.org/licenses/by-nc/4.0/
+
+You are free to share and adapt these assets for NON-COMMERCIAL purposes
+with attribution ("Lily's Dress-Up Adventure — lily.game"). Commercial use
+of the original art assets requires written permission from the authors.
+
+Exclusions — third-party-derived content:
+  * The animation clips retargeted into beach3d/assets/lily4_full.glb
+    originate from Adobe Mixamo. They are used in this game under Adobe's
+    Mixamo terms (see THIRD-PARTY-NOTICES.md): you may use this repository's
+    game build as the license permits, but the raw Mixamo source files must
+    NOT be redistributed — they are deliberately absent from this repository.
+  * All vendored code libraries under lib/ keep their own licenses (MIT —
+    see THIRD-PARTY-NOTICES.md and the license files shipped in-tree).
