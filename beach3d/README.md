@@ -440,3 +440,179 @@ early surf ride, and writes `/tmp/kilo/beach-polish/scene-test.json`. Synthetic
 visibility and actual-source-function pacing/long-stall FPS shims verify policy;
 they are not native OS-visibility tests or hardware GPU benchmarks. The test does
 not start/stop the server or touch a user's browser profile.
+
+## Sand castle builder
+
+The 3D beach action bar's 🏰 button (activity id `sandcastle`, modes
+`["sand"]`, `only3D`; the 2D DOM builder keeps the `castle` id, which
+`js/beach.js` hides in 3D) starts with a walk: Lily walks to the plot beside
+the umbrella — plot center `(-3.9, 1.9)`, 2.2 m square; stand point
+`(-2.55, 1.9)` — and the builder opens on arrival (anchor distance
+< 0.35 m, 6 s walk timeout; the button is disabled while walking). The beach
+switches to mode `castle`, which renders the action bar empty. Re-registering
+the same activity id flips the label between "🏰 Build sand castle" and
+"🏰 Edit sand castle" whenever a baked castle exists.
+
+**Scene and camera model.** The builder session
+(`beach3d/sandcastle-editor.js`) owns a private `THREE.Scene`,
+`PerspectiveCamera`, and vendored three.js r170 `OrbitControls`
+(`lib/three/addons/controls/OrbitControls.js`), rendered through the beach's
+single `WebGLRenderer` and canvas — one context, one canvas; the main beach
+scene and camera are never touched while a session is open, so there is
+nothing to restore. Default pose: camera `(-3.9, 2.6, 4.4)` looking at
+`(-3.9, 0.35, 1.9)`. `world.animate()` keeps running every frame; the
+builder's per-frame `renderFrame()` only replaces `world.render()`, so the
+sea clock never jumps and the beach resumes seamlessly on exit. The shared
+canvas handlers (press-hold locomotion, beach zoom) go quiet while the
+builder or its walk-in is active — `OrbitControls` listens on the same
+element. Lily is hidden (`setEnabled(false)`) and faces the plot while
+building.
+
+**Field and tools.** The voxel field is a 32³ `Uint8Array`
+(`beach3d/sandcastle-field.js`, pure logic, no three.js, no DOM; index
+`x + 32y + 1024z`): density 0 = air, 255 = packed sand, `SOLID = 160` is the
+stamp write target. Rows 0–1 are a protected tapered base plinth the brushes
+and stamps can never enter (`modifiable()` gates rows 2–20); row 20's top
+sits ≈ 1.44 m above the sand at `CELL = 2.2/32 ≈ 0.06875 m` per cell. The
+mesh is the vendored r170 `MarchingCubes` addon
+(`lib/three/addons/objects/MarchingCubes.js`) at resolution 36, isolation
+80, triangle cap 30,000, with the grid copied into MC samples at a +2 offset
+(without it our cells would land at samples 1..32, leaving the outer `0/1`
+and `32/33` crossings undrawn — open skins at the plot rim). Field values
+are raw byte densities; isolation 80 puts the surface ≈ 0.31 cell from the
+air side, and 255-density skins bulge ≈ 0.19 cell (~1.3 cm) above a row top.
+
+| Tool | Kind | Input | Notes |
+|---|---|---|---|
+| ✋ Pile / 🥄 Carve | brush, drag-paint | left-drag | ±56 density per application, ≈ 15 cm radius (2.2 cells) |
+| 🌊 Smooth / 📏 Flatten | brush, drag-paint | left-drag | soft radius 2.5 cells; Flatten levels to the raw height under the pointer at stroke start |
+| 🗼 Tower / 🧱 Wall / 🏰 Gate / 🪜 Stairs / 🕳 Moat | stamp, tap-to-commit | one pointerdown | anchors clamped 4 cells inside the plot rim (5–27); a sky click commits nothing |
+| 🚩 Flag / 🐚 Shell / 🌿 Seaweed | decor, tap-to-commit | one pointerdown | ≤ 12 records, oldest dropped; sunk 0.012 m into the row top |
+
+Stamps and decor commit exactly once on pointerdown; the rest of the gesture
+is swallowed (no drag-painting). Undo/Redo keep 25 levels of 32 KB snapshots
+— one per paint stroke, stamp, decor add or template fill — and the stacks
+are session-local (fresh on every builder entry). The three template presets
+(🏰 Keep / 🏰 Fort / 🏰 Mound) clear the field but keep decor: presets are
+ground plans, and collected shells survive trying a layout. 🧺 Reset is a
+double-press arm (3 s, red outline while armed): the confirmed reset clears
+field, decor and both stacks and is deliberately undo-free.
+
+**Controls.** Left-drag paints; Shift+drag, Ctrl/Meta+drag, right-drag or a
+second finger orbit; middle-drag, wheel and pinch zoom. The mapping rides
+an r170 `OrbitControls` quirk: `mouseButtons = { LEFT: PAN, MIDDLE: DOLLY,
+RIGHT: ROTATE }` with `enablePan` false — with LEFT=PAN, shift/ctrl/cmd+left
+substitutes ROTATE for PAN, so a plain left-drag is inert to the controls
+(paint wins) while Shift+left-drag orbits; `touches = { ONE: null,
+TWO: DOLLY_ROTATE }` keeps one-finger painting and two-finger
+dolly-rotate. The editor's pointer handlers are registered before the
+controls are constructed, so they run first (same-element listeners fire in
+registration order); a second finger landing while a stroke is live hands
+the gesture to `OrbitControls`. While a drag paints, rebuilds throttle to
+every 80 ms (the brush still applies on every qualifying move).
+
+**Toolbar and accessibility.** `#beach-sc-toolbar` is appended to
+`#beach-stage`, so action-bar re-renders can never touch it (removed from
+the DOM on exit, destroyed on beach dispose). Native buttons only, wrapped
+in `role="toolbar"` / `aria-label="Sand castle tools"`: twelve tool pills
+with `aria-pressed`, ↩️ Undo / ↪️ Redo with native disabled states, three
+template presets (`title` + `aria-description`), the armed Reset, and
+💾 Done. The
+status line is a `<p role="status">` written only on change (height-stable,
+`beach-swim-status` pattern). Touch targets are ≥ 44 px; on phones the
+toolbar caps at 34 vh with a compact ≤ 620 px variant. Escape semantics live
+in `js/beach.js`'s document keydown: while `phase === "building"` the
+builder claims Escape first (exit, beach stays open); otherwise the existing
+overlay-close runs. The builder must not resize the stage: on entry the
+still-rendered sand-mode bar's height is published as `--sc-bar-h`, and
+`.mode-castle .beach-actions:empty` keeps an invisible strip of exactly that
+height in the flow while the toolbar offsets down into it.
+
+**Exit and bake.** 💾 Done bakes the current field: ONE static
+`BufferGeometry` from the same MarchingCubes conversion as the live session,
+plus the ≤ 12 decor meshes and one blob-shadow disc (r 1.2 m, opacity 0.9)
+in a single Group named `sandcastleBake`, planted at
+`(PLOT.x, sandY(PLOT.x, PLOT.z), PLOT.z)` — the geometry is PLOT-local, so
+the castle sits exactly where the builder showed it. Done also plays the new
+`character.cheer()` one-shot (land-only, skipped under reduced motion) with
+the talk line "A castle fit for a crab! 🏰". Escape bakes quietly. Exit
+policy: non-empty field → always bake (replaces the previous root);
+empty field with session changes (Reset / undo-to-empty) → bake removed and
+the save cleared; empty, untouched session → previous bake kept. The
+previous bake is hidden (not destroyed) while building. A walk-around
+obstacle `world.addObstacle({ id: "sandcastle", radius: 1.15 })` joins the
+same disc list `moveAroundProps` sweeps, so she walks around the plot. Draw
+calls: measured desktop software-GL baseline 42 → 44 after a small bake
+(+2); the budget is +2 typical, up to ≈ +14 with a full 12-record decor
+list. ⬅️ Back / any beach close mid-build does NOT bake — the world is
+being disposed; `dispose()` saves first, and the next `open()` re-bakes the
+saved castle before the builder is ever entered.
+
+**Persistence.** The castle lives in the existing `lily-game-save-v1` save
+as a top-level `sandcastle` key `{ v: 1, grid: <RLE>, decor: [...] }` through
+`GameState.getSandcastle()` / `setSandcastle()` / `clearSandcastle()`
+(`js/state.js`). The RLE encodes the raw 32³ grid as base36 count `:`
+base36 value pairs joined by `;` (e.g. `a:5;1a:3`), with `encode`/`decode`
+in `sandcastle-field.js`. `setSandcastle()` stores a normalized defensive
+copy and notifies reason `sandcastle` (the third named reason after
+`swimStyle`/`reset`); `clearSandcastle()` exists because empty castles must
+genuinely remove the key — `setSandcastle(null)` would be silently ignored
+by validation. Autosave fires on every gesture end (the editor's change
+callback → deduped save), and Done/Escape/Back re-save idempotently.
+Load-on-open decodes the save and bakes immediately: the castle stands on
+the beach before the builder is ever opened, and the button already reads
+"🏰 Edit sand castle". A decor-only save seeds the builder records but never
+bakes. Corrupt/oversized saves decode to null and self-heal silently on the
+next real write. `GameState.reset()` clears the key and the bake live via
+the `reset` reason subscription (the only subscription — no `sandcastle`
+listener, writes stay one-way, no loops). Gotcha: the welcome screen's
+"🎈 Let's Play!" always calls `GameState.reset()`, so it removes a saved
+castle; "💛 Continue my game" preserves it. The builder's own Reset-all
+(then Done/Escape with an empty field) also clears the save.
+
+**Reduced motion.** No idle decor animation; the only kept feedback
+animation is the 150 ms one-shot cursor-ring pulse (1.4× scale) on
+stamp/decor commit. Everything else is instant.
+
+**Performance.** Drag rebuilds cost an EMA-tracked 1.35–1.85 ms steady state
+on software GL (`__beach3d.sandcastle.editState().lastRebuildMs`); the bake
+is the same conversion plus a geometry freeze, a few ms. Undo snapshots are
+32 KB copies; autosave writes are deduped by grid+decor key.
+
+**Test API.** `window.__beach3d.sandcastle = { enter, exit, state, setTool,
+applyTemplate, reset, bake, save, editState, projectPoint }`, where
+`state()` = `{ phase ("idle"/"walking"/"building"), walking, tool,
+stats: { solid, tris }, decorCount, baked, saved }`. `editState()` adds the
+session-local extras (`canUndo`, `canRedo`, decor records, `lastRebuildMs`,
+`plotY`, builder camera position, last raycast hit); `projectPoint()`
+projects editor-space meters to screen px for deterministic aiming.
+
+**Tests.** With the server on port 8123 and Python Playwright/Chromium
+installed:
+
+```sh
+python3 -B beach3d/sandcastle_test.py                 # all sections, 57 checks
+python3 -B beach3d/sandcastle_test.py --section desktop
+python3 -B beach3d/sandcastle_test.py --section persist
+python3 -B beach3d/sandcastle_test.py --section mobile
+python3 -B beach3d/sandcastle_test.py --section lifecycle
+```
+
+Report and screenshots go to `/tmp/kilo/sandcastle/` (`--out` overrides).
+Desktop/persist run 1280x800; mobile runs 420x720 with `has_touch` +
+reduced motion. UI interactions are real clicks/taps/keys; the
+`__beach3d.sandcastle` hooks are used only for state polling and
+deterministic aiming, and artifacts stay outside the repository. Sections:
+**desktop** — walk-in, toolbar, drag paint, undo/redo, fort template,
+Done/bake, obstacle, draw-call budget, Escape-in-builder; **persist** —
+autosave shape, reload + Continue reopen without entering the builder,
+edit re-entry equality, corrupt-save self-heal, reset-all; **mobile** —
+toolbar fit, 44 px targets, stable stage size, touchscreen tap stamp,
+drag paint, Escape; **lifecycle** — close the beach mid-build → reopen via
+the map → the autosaved castle is baked. The existing `scene_test.py` and
+`catch_test.py` still pass.
+
+Known limits, stated honestly: undo/redo history is session-local (every
+entry starts empty); one castle at a time at the fixed plot; decor has no
+physics and the blob shadow is static; no erosion, tide damage or melting —
+the castle persists byte-identical between sessions.

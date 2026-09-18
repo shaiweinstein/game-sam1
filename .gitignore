@@ -17,3 +17,6 @@ tmp/
 
 # Local credential files — NEVER commit
 *-login.md
+
+# Public bundle built by make_deploy.py (never commit)
+deploy/

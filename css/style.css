@@ -2294,3 +2294,139 @@ b[data-char-name] {
   /* Greys and pastel fills must survive the printer's ink-saving default. */
   #print-sheet { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* ============================================================
+   Beach sandcastle builder toolbar (3D — beach3d/sandcastle3d.js)
+   ------------------------------------------------------------
+   While the 3D builder is open ("castle" bar mode) js/beach.js
+   renders #beach-actions EMPTY and this toolbar — appended to
+   #beach-stage so bar re-renders can never recreate it — takes the
+   action bar's bottom slot 1:1: same translucent cream, same
+   border-top, same 34vh cap ("wrap first, then scroll"). The empty
+   bar itself must leave no cream strip behind; renderActions()
+   always appends at least the Menu button in every other mode, so
+   :empty only ever matches the castle gate. Placed AFTER the
+   compact media block so this rule wins that cascade too.
+   ============================================================ */
+.beach-actions:empty { display: none; }
+
+/* Castle bar-mode (3D builder): the empty bar must still reserve the
+   sand-mode bar's slot, otherwise the stage (and the 3D canvas) would
+   jump by that height the moment the builder opens — plan §5: "the
+   toolbar must not resize the stage". sandcastle3d.arrive() measures
+   the still-rendered sand-mode bar and publishes its height as
+   --sc-bar-h; the strip below keeps that exact slot in the flow,
+   invisible, and the toolbar offsets down into it (rule below) so it
+   still sits flush with the screen bottom where the bar used to be. */
+.beach-scene.mode-castle .beach-actions:empty {
+  display: flex;
+  visibility: hidden;
+  background: transparent;
+  border-top-color: transparent;
+  min-height: var(--sc-bar-h, 0px);
+}
+
+.beach-sc-toolbar {
+  position: absolute; /* anchors to the positioned #beach-stage */
+  left: 0;
+  right: 0;
+  bottom: calc(-1 * var(--sc-bar-h, 0px)); /* reach the reserved bar slot */
+  z-index: 12; /* above the canvas host (3), props (4), character (6) */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  max-height: 34vh; /* action-bar cap: wrap first, then scroll */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: rgba(255, 249, 236, 0.75); /* same translucent cream */
+  border-top: 4px solid rgba(58, 46, 110, 0.25);
+}
+
+/* Tool/utility pills — the .beach-action-button look, slightly
+   tighter: same 44px min-height (touch targets stay consistent),
+   smaller font/padding so nine tools + utilities wrap on 420px. */
+.beach-sc-tool {
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--text-color);
+  background: var(--pink);
+  border: var(--border-chunky);
+  border-radius: 999px;
+  min-height: 44px;
+  padding: 6px 12px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.15s ease, background 0.15s ease;
+  touch-action: manipulation;
+}
+
+.beach-sc-tool:hover {
+  transform: scale(1.06);
+  background: var(--pink-dark);
+}
+
+.beach-sc-tool:active {
+  transform: scale(0.95);
+}
+
+/* Active tool: filled pill + the is-held glow ring. */
+.beach-sc-tool[aria-pressed="true"] {
+  background: var(--pink-dark);
+  box-shadow: 0 0 0 4px rgba(79, 195, 217, 0.55), var(--shadow-soft);
+}
+
+.beach-sc-tool:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+}
+
+.beach-sc-tool:focus-visible {
+  outline: 3px solid var(--text-color);
+  outline-offset: 2px;
+}
+
+/* Done = the primary pill (same teal as the map's Play button). */
+.beach-sc-done {
+  background: #4fc3d9;
+}
+
+/* Reset while armed (double-press confirm): red-ish outline. */
+.beach-sc-danger {
+  outline: 3px solid #e05656;
+  outline-offset: 2px;
+  background: #ffd9d9;
+}
+
+/* Height-stable status line below the buttons (beach-swim-status
+   pattern: three mobile lines reserved, whatever the text). */
+.beach-sc-status {
+  flex: 0 0 100%;
+  height: 3.6em;
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--text-color);
+}
+
+/* 420px phones: 34vh ≈ 245px must hold the pills + status with every
+   target ≥44px, so 16 buttons have to make it into 3 rows — tighten
+   the type/padding until five/six pills fit a 420px row (4 rows + the
+   status line mathematically cannot fit the cap). Desktop keeps the
+   roomier base sizes above. */
+@media (max-width: 620px) {
+  .beach-sc-toolbar {
+    gap: 3px;
+    padding: 4px 6px calc(4px + env(safe-area-inset-bottom));
+  }
+  .beach-sc-tool {
+    font-size: 0.75rem;
+    padding: 3px 6px;
+    border-width: 3px;
+  }
+}

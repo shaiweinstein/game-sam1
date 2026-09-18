@@ -1003,9 +1003,28 @@ export function createWorld(hostEl) {
   const ball = { root: ballRoot, mesh: ballRoot.children[0], shadow: ballRoot.children[1],
     radius: 0.26, grounded: true };
   const post = { id: "umbrella-post", x: -5.4, z: 1.9, radius: 0.045 };
+  /* Runtime obstacle entries (task 9): the baked sand castle adds one
+     disc so Lily walks around it. obstacles() re-builds its list on
+     every collision query (the ball rides here too), so appending to
+     this array is the whole integration — no other consumer changes. */
+  const extraObstacles = [];
+  function addObstacle(entry) {
+    if (!entry || typeof entry.id !== "string" || !entry.id ||
+        !Number.isFinite(entry.x) || !Number.isFinite(entry.z) ||
+        !Number.isFinite(entry.radius)) return false;
+    removeObstacle(entry.id);            /* same id → replace in place */
+    extraObstacles.push({ id: entry.id, x: entry.x, z: entry.z, radius: entry.radius });
+    return true;
+  }
+  function removeObstacle(id) {
+    const i = extraObstacles.findIndex((o) => o.id === id);
+    if (i === -1) return false;
+    extraObstacles.splice(i, 1);
+    return true;
+  }
   function obstacles() {
     return [post, ...(ball.grounded ? [{ id: "ball", x: ballRoot.position.x,
-      z: ballRoot.position.z, radius: ball.radius }] : [])];
+      z: ballRoot.position.z, radius: ball.radius }] : []), ...extraObstacles];
   }
   plantProp(scene, buildStarfish(), 4.2, 1.4, 0.2, 1);
   { const s = buildScallop(0xffd1e3, 0xf26d9d); s.rotation.y = -0.4; plantProp(scene, s, -1.9, 1.7, 0.16, 1); }
@@ -1062,6 +1081,9 @@ export function createWorld(hostEl) {
 
   return {
     renderer, scene, camera, canvas, ball, obstacles,
+    /* Runtime obstacle registry (task 9) — same discs the character's
+       moveAroundProps() sweeps against, via beach3d's movement.obstacles. */
+    addObstacle, removeObstacle,
     get frameCap() { return frameCap; },
     camTarget,
     zoom: () => zoom,

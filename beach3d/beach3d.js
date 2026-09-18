@@ -35,6 +35,7 @@ import { createCharacter } from "./character3d.js";
 import * as boat from "./boat3d.js";
 import * as surf from "./surf3d.js";
 import { createCatch } from "./catch3d.js";
+import { createSandcastle } from "./sandcastle3d.js";
 
 /* Speech hook for the 3D side (B2 talk port): js/beach.js owns the
    #beach-talk bubble; BeachScene.say is the canvas-module line API
@@ -62,6 +63,7 @@ function reducedMotion() { return rmMatches; }
 let world = null;
 let character = null;
 let catchGame = null;
+let sandcastle = null;
 let hostEl = null;
 let opened = false;
 let loopId = null;
@@ -138,6 +140,15 @@ function open(stageEl) {
       if (trackedPointer !== null) pointerWasRide = true;
     }
   });
+  sandcastle = createSandcastle(world, {
+    character, say: sayLine, reducedMotion,
+    sound: (name) => window.GameSounds?.play(name),
+    rideActive: () => surf.active() || boat.active() || !!catchGame?.busy(),
+    stageEl,   /* #beach-stage — hosts the builder toolbar (task 7) */
+    GameState: window.GameState   /* task 10 persistence glue (get/set/
+                                  clear sandcastle + reset reason) */
+  });
+  sandcastle.register();
   trackedPointer = null;
   unwireInput = wireInput(world.canvas);
   opened = true;
@@ -160,6 +171,7 @@ function close() {
   if (loopId !== null) { cancelAnimationFrame(loopId); loopId = null; }
   /* Full teardown, including permanent renderer context loss. */
   catchGame?.dispose(); catchGame = null;
+  sandcastle?.dispose(); sandcastle = null;
   surf.dispose();
   boat.dispose();
   trackedPointer = null;
@@ -207,13 +219,18 @@ function startLoop() {
         remaining -= dt;
         boat.update(dt, waveT, rm);
         catchGame?.update(dt, waveT);
+        sandcastle?.update(dt);
         if (character) character.update(dt, waveT);
       }
       world.stepZoom(raw);
       world.updateCamera(raw, character?.getAnchor(), character?.swimStatus().mode);
       world.animate(waveT, raw, rm);
       window.BeachScene?.syncSwimStatus?.();
-      world.render();
+      /* Builder session renders its own scene through the shared
+         renderer; world.animate() still runs so the sea clock never
+         jumps and the beach resumes seamlessly (plan §4). */
+      if (sandcastle?.isActive()) sandcastle.editor.renderFrame(raw);
+      else world.render();
     }
     /* Frame reporting uses wall time; the physics clamp must not hide stalls. */
     frames++; fpsWindow += elapsed;
@@ -231,6 +248,18 @@ function startLoop() {
 let trackedPointer = null;      /* first-down pointerId (one-pointer) */
 let pointerWasRide = false;     /* auto-hop never hands an old hold to swimming */
 
+/* The sandcastle builder owns the shared canvas while it is open (and
+   keeps the walk-to-plot target while she approaches): the beach's own
+   press-hold/zoom handlers below go quiet — OrbitControls listens on
+   the same element for drag/wheel/pinch. */
+function editorActive() {
+  return !!sandcastle && sandcastle.isActive();
+}
+function sandcastleBusy() {
+  const s = sandcastle?.state();
+  return !!s && (s.phase === "building" || s.phase === "walking");
+}
+
 function wireInput(canvas) {
   canvas.tabIndex = 0;
   canvas.setAttribute("aria-label", "Beach play area. Tap the ball to play catch. Hold Space to catch a wave; plus and minus to zoom.");
@@ -245,7 +274,7 @@ function wireInput(canvas) {
     return world.pickGround(nx, ny);
   };
   on("pointerdown", (ev) => {
-    if (!character || document.hidden || trackedPointer !== null) return;   /* first wins */
+    if (!character || document.hidden || trackedPointer !== null || sandcastleBusy()) return;   /* first wins */
     canvas.focus({ preventScroll: true });
     trackedPointer = ev.pointerId;
     try { canvas.setPointerCapture(ev.pointerId); } catch (e) { /* ok */ }
@@ -255,7 +284,7 @@ function wireInput(canvas) {
     ev.preventDefault();
   });
   on("pointermove", (ev) => {
-    if (!character || ev.pointerId !== trackedPointer) return;
+    if (!character || ev.pointerId !== trackedPointer || sandcastleBusy()) return;
     if (catchGame?.busy()) return;
     if (pointerWasRide && !surf.active() && !boat.active()) return;
     if (surf.active() || boat.active()) pointerWasRide = true;
@@ -275,7 +304,7 @@ function wireInput(canvas) {
   on("lostpointercapture", up);
   /* Accumulate on the requested zoom, not its still-easing current value. */
   on("wheel", (ev) => {
-    if (document.hidden || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (document.hidden || editorActive() || ev.ctrlKey || ev.metaKey || ev.altKey) return;
     ev.preventDefault();
     const unit = ev.deltaMode === 1 ? 16 : ev.deltaMode === 2 ? canvas.clientHeight : 1;
     world.setZoom(world.zoomTarget() * Math.exp(Math.max(-600, Math.min(600, ev.deltaY * unit)) * 0.0012));
@@ -283,7 +312,8 @@ function wireInput(canvas) {
 
   let ignoreZoomRepeat = false;
   const zoomKey = (ev) => {
-    if (!opened || !world || document.hidden || (ev.repeat && ignoreZoomRepeat) ||
+    if (!opened || !world || document.hidden || editorActive() ||
+        (ev.repeat && ignoreZoomRepeat) ||
         ev.ctrlKey || ev.metaKey || ev.altKey ||
         ev.target?.isContentEditable || ev.target?.closest?.("input, textarea, select")) return;
     let direction;
@@ -302,7 +332,7 @@ function wireInput(canvas) {
   const live = new Map();     /* pointerId -> {x,y} client coords */
   let pinchD0 = 0, pinchZ0 = 1;
   on("pointerdown", (ev) => {
-    if (document.hidden) return;
+    if (document.hidden || editorActive()) return;
     live.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
     if (live.size === 2) {
       const [a, b] = [...live.values()];
@@ -316,7 +346,7 @@ function wireInput(canvas) {
     if (live.size === 2 && pinchD0 > 8) {
       const [a, b] = [...live.values()];
       const d = Math.hypot(a.x - b.x, a.y - b.y);
-      if (d > 8) world.setZoom(pinchZ0 * (pinchD0 / d));
+      if (d > 8 && !editorActive()) world.setZoom(pinchZ0 * (pinchD0 / d));
     }
   });
   const liveUp = (ev) => {
@@ -402,6 +432,7 @@ window.__beach3d = {
       boat: boat.state(),
       surf: surf.state(),
       catch: catchGame?.state() || null,
+      sandcastle: sandcastle?.state() || null,
       /* Ride anchor is diagnostic only; it never controls the camera. */
       rideAnchor: surf.getCameraAnchor() || boat.getCameraAnchor(),
       shoreZ: +shorelineZ(a.x).toFixed(3),
@@ -438,6 +469,27 @@ window.__beach3d = {
   catchStart: () => catchGame?.start() || false,
   catchThrow: () => catchGame?.throwBall() || false,
   catchStop: () => catchGame?.stop() || false,
+  /* Sandcastle builder (walk-in + editor session; plan §3) */
+  sandcastle: {
+    enter: () => sandcastle?.enter() || false,
+    exit: () => sandcastle?.exit() || false,
+    state: () => sandcastle?.state() || null,
+    setTool: (t) => sandcastle?.setTool(t) || false,
+    /* Whole-field actions (task 7; same paths the toolbar buttons use). */
+    applyTemplate: (id) => sandcastle?.editor.applyTemplate?.(id) || false,
+    reset: () => sandcastle?.editor.resetField?.() || false,
+    /* Task 9: force-bake the current session's field (tests) — the
+        exit paths bake by themselves; state().baked reports the bake. */
+    bake: () => sandcastle?.bake?.() || false,
+    /* Task 10: force a save now (tests) — the same dedupe-guarded path
+        autosave uses, so an unchanged field skips the write. */
+    save: () => sandcastle?.saveSandcastle?.() || false,
+    /* Editor-session diagnostics: tool + { solid, tris } + rebuild ms. */
+    editState: () => sandcastle?.editor.state() || null,
+    /* Editor-camera projection for QA aiming (editor-space meters). */
+    projectPoint: (x, y, z) =>
+      (sandcastle?.isActive() && sandcastle.editor.project?.(x, y, z)) || null
+  },
   collisions: () => world?.obstacles().map(o => ({ ...o })) || null,
   input: () => ({ pointer: trackedPointer, activityHold: pointerWasRide }),
   boat: boat.state,

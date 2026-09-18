@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lily's Dress-Up Adventure — free dress-up, kitchen &amp; beach game for kids</title>
+  <meta name="description" content="Lily's Dress-Up Adventure is a free browser game for kids ages ~4-9: dress up, cook in the kitchen, and play on a 3D beach with swimming, surfing, a duck boat and a sandcastle builder. No install, no sign-up, nothing saved to a server.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Lily's Dress-Up Adventure — dress up, cook, and build castles at the beach!">
+  <meta property="og:description" content="A free, friendly browser game: six outfits, a yummy kitchen, and a 3D beach with surfing, a duck boat and a sandcastle that stays. No sign-up, no install.">
+  <!-- Before going live, prefer an absolute URL here (https://your-domain/landing/img/hero-beach.png)
+       so social cards always resolve; the relative path still works for this page. -->
+  <meta property="og:image" content="landing/img/hero-beach.png">
+  <meta name="theme-color" content="#7ec8f7">
+  <!-- Inline favicon (same data URI as the game's index.html) — no favicon.ico request -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text x='0' y='14' font-size='14'>🌈</text></svg>">
+  <link rel="stylesheet" href="landing/landing.css">
+  <!--
+    ADSENSE SITE SCRIPT — paste this ONE line into <head> when your AdSense
+    account is approved (replace ca-pub-XXXXXXXXXXXXXXXX with your publisher id):
+
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+  -->
+</head>
+<body>
+
+  <!-- ================= Header ================= -->
+  <header class="site-header">
+    <div class="wrap">
+      <p class="site-title">🌈 Lily's Dress-Up Adventure</p>
+      <p class="site-tagline">Dress up, cook something yummy, and spend the day at the beach — free, right in the browser.</p>
+    </div>
+  </header>
+
+  <!-- ================= Ad slot A — leaderboard ================= -->
+  <div class="wrap">
+    <!--
+      AD SLOT A — horizontal leaderboard (728x90, responsive).
+
+      When your AdSense account is approved, replace the placeholder inside
+      this box with your own unit, and paste the site script (in <head> above)
+      once:
+
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+             data-ad-slot="YYYYYYYYYY"
+             data-ad-format="horizontal"
+             data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+
+      THREE required settings before you apply (MONETIZATION-AND-LICENSING.md §5):
+      1. AdSense UI → Settings → allow AdSense on this site, and turn ON the
+         child-directed / non-personalized ads treatment (contextual ads only —
+         this game is clearly for kids; misdeclaring it risks the account).
+      2. Enable Google's consent manager (UMP): copy the consent line snippet
+         from AdSense → Settings → "Privacy &amp; terms" / Consent Management and
+         paste it above each ad unit, e.g.
+         <script>(adsbygoogle = window.adsbygoogle || []).push({ consentState: ... });</script>
+         (or the Funding Choices/UMP loader Google gives you — kept commented here until then).
+      3. Replace ca-pub-XXXXXXXXXXXXXXXX and data-ad-slot="YYYYYYYYYY" with
+         your real publisher / slot ids from the AdSense UI.
+    -->
+    <div class="ad-slot ad-slot--leaderboard" role="complementary" aria-label="Advertisement placeholder">
+      <span class="ad-label">Advertisement</span>
+      <span class="ad-hint">Ad space (leaderboard 728×90) — nothing renders here until the owner pastes their AdSense unit.</span>
+    </div>
+  </div>
+
+  <!-- ================= Hero ================= -->
+  <section class="hero" aria-labelledby="hero-heading">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">🆓 Free · no sign-up · ages ~4–9</p>
+        <h1 id="hero-heading">Dress up, cook, and build castles at the beach!</h1>
+        <p class="hero-lead">
+          Meet Lily and her friends. Try on outfits and swimsuits, pancake breakfasts
+          and bowls of soup, then head out to the sunny 3D beach — swim, catch a wave,
+          paddle a little duck boat, and sculpt a sandcastle that is still standing
+          when you come back. Everything happens right in the browser: no install,
+          no account, and your child's progress is never sent anywhere.
+        </p>
+        <!-- Play button lives in the hero with plenty of air around it —
+             ad placement policy: never inside or adjacent to the controls. -->
+        <p>
+          <a id="play-cta" class="play-button" href="index.html">▶ Play free</a>
+        </p>
+        <p class="play-note">No install. No sign-up. Plays right in your browser.</p>
+      </div>
+      <figure class="hero-figure">
+        <img src="landing/img/hero-beach.png" width="1280" height="800"
+             alt="Screenshot from the game: Lily the little girl stands on the sandy 3D beach next to a pink-and-yellow beach umbrella, with the blue sea and sky behind her.">
+        <figcaption>The real game — Lily, the sea, and the umbrella on the 3D beach.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ================= What to play ================= -->
+  <section class="section section-alt" id="what-to-play" aria-labelledby="play-heading">
+    <div class="wrap">
+      <h2 id="play-heading">What to play</h2>
+      <p class="section-intro">Four rooms at home and a whole beach out front. Here's what a visit usually looks like.</p>
+      <ul class="cards">
+        <li class="card">
+          <img src="landing/img/card-dressup.png" width="1280" height="800" loading="lazy"
+               alt="Screenshot: the wardrobe room with a grid of clothing choices — hairstyle, tops, bottoms, shoes and swimsuits — and Lily standing on the fitting stage.">
+          <div class="card-body">
+            <h3>👗 Dress-up</h3>
+            <p>Six hairstyles, eight tops, eight bottoms, six pairs of shoes, six swimsuits and a drawer of extras.
+               Tap to try a look on, and hit Undo whenever it isn't right.
+               Then pick which of the four friends you're playing as today.</p>
+          </div>
+        </li>
+        <li class="card">
+          <img src="landing/img/card-kitchen.png" width="1280" height="800" loading="lazy"
+               alt="Screenshot: the kitchen screen with big food buttons — apple, banana, sandwich, pancakes, soup, juice and more — and Lily waiting to be served.">
+          <div class="card-body">
+            <h3>👩‍🍳 Kitchen</h3>
+            <p>Cook and serve: apples and bananas, warm soup, fluffy pancakes, juice and smoothies.
+               Every treat fills Lily's energy bar so there's always room for another adventure.
+               Veggies first and pancakes last — that part is between you two.</p>
+          </div>
+        </li>
+        <li class="card">
+          <img src="landing/img/card-beach-play.png" width="1280" height="800" loading="lazy"
+               alt="Screenshot: Lily riding the yellow duck boat on the blue sea in the 3D beach scene, wake trailing behind.">
+          <div class="card-body">
+            <h3>🏄 Beach play</h3>
+            <p>The 3D beach is where the hour goes: press and hold the water to swim
+               (head-up float or freestyle stroke), catch a wave on the surfboard,
+               putter around in the duck boat, or play catch with the beach ball.</p>
+          </div>
+        </li>
+        <li class="card">
+          <img src="landing/img/card-sandcastle-build.png" width="1280" height="800" loading="lazy"
+               alt="Screenshot: the sand-castle builder with a sandcastle being sculpted on its plot, a row of round tool buttons below — pile, carve, tower, wall, flag — and a toolbar of tools.">
+          <div class="card-body">
+            <h3>🏰 Sandcastle builder</h3>
+            <p>Sculpt real sand: pile it up, carve it back, smooth the slopes, then stamp
+               towers, walls, gates and stairs and plant a flag on top.
+               Not sure where to start? The Keep, Fort and Mound templates lay down a ground
+               plan you can build on — then press Done and the castle stays on the beach.</p>
+          </div>
+        </li>
+        <li class="card">
+          <img src="landing/img/card-sandcastle-baked.png" width="1280" height="800" loading="lazy"
+               alt="Screenshot: the finished sandcastle with towers and a flag standing on the sand beside the beach umbrella, seen from the game's main view.">
+          <div class="card-body">
+            <h3>🐚 Collect &amp; care</h3>
+            <p>Notice the shells and starfish dotted in the sand, keep an eye on the energy
+               bar and pop back to the kitchen when it runs low, and come back to a beach
+               that remembers you: the castle you built is exactly where you left it.</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================= Ad slot B — in-content rectangle ================= -->
+  <div class="wrap">
+    <!--
+      AD SLOT B — in-content rectangle (336x280, responsive).
+
+      Paste your unit inside this box (same two-part pattern as slot A):
+
+        <ins class="adsbygoogle"
+             style="display:block; width:336px; height:280px; margin:0 auto"
+             data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+             data-ad-slot="YYYYYYYYYY"
+             data-ad-format="rectangle"
+             data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+
+      Reminder: keep this slot away from the Play button area when you
+      re-arrange the page (Google's placement policy: no ads near controls),
+      and keep the three pre-apply settings from slot A (child-directed /
+      non-personalized ads ON, consent manager snippet, real pub/slot ids).
+    -->
+    <div class="ad-slot ad-slot--rectangle" role="complementary" aria-label="Advertisement placeholder">
+      <span class="ad-label">Advertisement</span>
+      <span class="ad-hint">Ad space (rectangle 336×280).</span>
+    </div>
+  </div>
+
+  <!-- ================= For parents ================= -->
+  <section class="section" id="parents" aria-labelledby="parents-heading">
+    <div class="wrap">
+      <h2 id="parents-heading">For parents</h2>
+      <p class="section-intro">
+        This game was built for one kid who wanted a dress-up friend and a beach — the
+        safety choices below are the honest ones, written by the person who wrote the game.
+      </p>
+      <div class="parent-grid">
+        <div class="parent-item">
+          <span class="pi-icon" aria-hidden="true">🙋</span>
+          <div>
+            <h3>No account, no sign-up</h3>
+            <p>No email address, no username, no password. The game starts the moment the page opens, for anyone.</p>
+          </div>
+        </div>
+        <div class="parent-item">
+          <span class="pi-icon" aria-hidden="true">🚫</span>
+          <div>
+            <h3>No chat, no strangers</h3>
+            <p>There is nothing user-generated: no chat, no usernames shown to others, no community, no links out. Lily can't talk to anyone but her friends inside the game.</p>
+          </div>
+        </div>
+        <div class="parent-item">
+          <span class="pi-icon" aria-hidden="true">🔒</span>
+          <div>
+            <h3>No trackers or ads in the game itself</h3>
+            <p>The game page runs entirely on your device: zero third-party scripts, no analytics, no ad slots. The only ads on this site are on this landing page, clearly labelled.</p>
+          </div>
+        </div>
+        <div class="parent-item">
+          <span class="pi-icon" aria-hidden="true">💾</span>
+          <div>
+            <h3>Saves stay on your device</h3>
+            <p>Outfits, energy and sandcastles are stored privately in your browser's localStorage. Nothing is ever uploaded — clear the browser's site data and the save is gone, no questions asked.</p>
+          </div>
+        </div>
+        <div class="parent-item">
+          <span class="pi-icon" aria-hidden="true">🔒</span>
+          <div>
+            <h3>Nothing is ever uploaded</h3>
+            <p>No accounts, no scores, nothing sent anywhere — outfits, snacks and your sandcastles live only in this browser on your device. The game downloads everything it needs from this one site and nowhere else; once it has loaded, play continues with no further connection needed.</p>
+          </div>
+        </div>
+        <div class="parent-item">
+          <span class="pi-icon" aria-hidden="true">👆</span>
+          <div>
+            <h3>Mouse or touch, big buttons</h3>
+            <p>Every control is a large, rounded, labelled button sized for small fingers — one hand, no keyboard skills needed, on phone, tablet or computer.</p>
+          </div>
+        </div>
+        <div class="parent-item">
+          <span class="pi-icon" aria-hidden="true">🧒</span>
+          <div>
+            <h3>Friendly for ~ages 4–9</h3>
+            <p>No scores, no timers, no fail states, nothing scary — just dressing up, cooking, and beach play. Best with a grown-up nearby, as with any screen.</p>
+          </div>
+        </div>
+        <div class="parent-item">
+          <span class="pi-icon" aria-hidden="true">💛</span>
+          <div>
+            <h3>Completely free</h3>
+            <p>No purchases, no subscriptions, no "premium outfits". Ads on this landing page (never in the game) keep it that way.</p>
+          </div>
+        </div>
+      </div>
+      <p class="trust-line">
+        Read the full <a href="privacy.html">Privacy Policy</a> for what runs where and how
+        advertising cookies work once ads are enabled.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= How to play ================= -->
+  <section class="section section-alt" id="how-to-play" aria-labelledby="how-heading">
+    <div class="wrap">
+      <h2 id="how-heading">How to play</h2>
+      <p class="section-intro">There's no tutorial to lose anyone in — the buttons say what they do.</p>
+      <ul class="howto">
+        <li><b>🖱️ Press and hold</b> on the sea to swim toward your finger, and drag while holding to steer. Release to float and look around.</li>
+        <li><b>🏰 Drag to build</b> in the sandcastle builder: pick a tool below the plot, then drag on the sand to pile, carve or smooth. One tap stamps a tower.</li>
+        <li><b>🍎 Big buttons everywhere</b> — dress-up tabs, foods, activities and map places are all one tap; if Lily runs low on energy, feed her and go back.</li>
+      </ul>
+      <p class="device-note">
+        Works in any modern browser — Chrome, Edge, Safari or Firefox — on phones,
+        tablets and computers, with touch or mouse. No app store, no plugin, no install.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= FAQ ================= -->
+  <section class="section" id="faq" aria-labelledby="faq-heading">
+    <div class="wrap">
+      <h2 id="faq-heading">Frequently asked questions</h2>
+      <p class="section-intro">The questions actual parents have asked — answered honestly.</p>
+      <div class="faq">
+        <details>
+          <summary>Is it really free?</summary>
+          <p>Yes. There is nothing to buy, nothing to unlock with money, and no account. The game is a passion project; the clearly-labelled ads on this landing page exist so it can stay free for everyone.</p>
+        </details>
+        <details>
+          <summary>Do we need internet to play?</summary>
+          <p>You need a connection to open the site and, the first time you reach the 3D beach, to load its models (one-time, from this server only). After that, playing is fully on-device: nothing leaves the browser and nothing else comes in. A warm browser cache may let the page reopen offline, so for car trips we suggest loading the beach once before you go.</p>
+        </details>
+        <details>
+          <summary>What data does it collect about my kid?</summary>
+          <p>Nothing. The game stores outfits, energy and your sandcastle locally in the browser (localStorage) on your own device; there are no accounts, no analytics and no trackers in the game. When advertising is enabled on this landing page, Google's ad cookies work the way the <a href="privacy.html">Privacy Policy</a> describes — always non-personalized, since this site is child-directed.</p>
+        </details>
+        <details>
+          <summary>Which devices work?</summary>
+          <p>Any modern browser on a phone, tablet or laptop made in the last decade or so — Chrome, Edge, Safari or Firefox. The 3D beach uses standard WebGL like most browser games; the rest of the game runs on anything.</p>
+        </details>
+        <details>
+          <summary>Whose artwork is this?</summary>
+          <p>All the art — Lily, the outfits, the beach and the sandcastle — was drawn and modelled originally for this project (Blender + a small SVG pipeline), and the game is built on the open-source three.js and Phaser engines, properly credited in our <a href="THIRD-PARTY-NOTICES.md">third-party notices</a>.</p>
+        </details>
+        <details>
+          <summary>Why are there ads on the page?</summary>
+          <p>One honest reason: ad income on this landing page pays for hosting and lets the game grow — new outfits, new games — while staying free. Ads never appear inside the game itself, never sit next to the play controls, and because the site is child-directed they are contextual (non-personalized) only.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Ad slot C — footer banner ================= -->
+  <div class="wrap">
+    <!--
+      AD SLOT C — footer banner (728x90, responsive). Same pattern as slots
+      A and B; create a separate ad unit in AdSense for it (don't reuse a
+      slot id — separate units report separately):
+
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+             data-ad-slot="YYYYYYYYYY"
+             data-ad-format="horizontal"
+             data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    -->
+    <div class="ad-slot ad-slot--leaderboard" role="complementary" aria-label="Advertisement placeholder">
+      <span class="ad-label">Advertisement</span>
+      <span class="ad-hint">Ad space (footer banner 728×90).</span>
+    </div>
+  </div>
+
+  <!-- ================= Footer ================= -->
+  <footer class="site-footer">
+    <div class="wrap">
+      <ul class="footer-links">
+        <li><a href="privacy.html">Privacy Policy</a></li>
+        <li><a href="#parents">About the game &amp; its safety</a></li>
+        <li><a href="mailto:CONTACT_EMAIL">Contact the maker</a></li>
+        <li><a href="THIRD-PARTY-NOTICES.md">Third-Party Notices</a></li>
+      </ul>
+      <p class="copyright">© 2026 Lily's Dress-Up Adventure. Made with 💛 and far too much coffee.</p>
+    </div>
+  </footer>
+
+</body>
+</html>

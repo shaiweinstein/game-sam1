@@ -1,0 +1,544 @@
+/* ============================================================
+   Lily's Dress-Up Adventure — public landing page
+   Same design language as the game (css/style.css):
+   cream / pink / purple / sky, chunky rounded shapes,
+   soft shadows, system font stack — zero external requests.
+   ============================================================ */
+
+/* ---------- Palette (identical to the game's :root) ---------- */
+:root {
+  --sky-blue: #7ec8f7;
+  --sky-blue-dark: #4fa3e3;
+  --sunny-yellow: #ffd93d;
+  --grass-green: #6bd66b;
+  --grass-green-dark: #3fa93f;
+  --pink: #ff8fb8;
+  --pink-dark: #f26d9d;
+  --cream: #fff9ec;
+  --text-color: #3a2e6e;
+  --white: #ffffff;
+
+  --shadow-soft: 0 4px 10px rgba(58, 46, 110, 0.18);
+  --border-chunky: 4px solid var(--text-color);
+
+  --radius-card: 24px;
+  --radius-pill: 999px;
+  --maxw: 1080px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: "Comic Sans MS", "Chalkboard SE", "Comic Neue", "Trebuchet MS", "Segoe UI", sans-serif;
+  color: var(--text-color);
+  background: var(--cream);
+  line-height: 1.55;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.wrap {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ---------- Header ---------- */
+.site-header {
+  background: linear-gradient(180deg, var(--sky-blue) 0%, var(--sky-blue-dark) 100%);
+  padding: 26px 0 22px;
+  text-align: center;
+  border-bottom: var(--border-chunky);
+}
+
+.site-title {
+  margin: 0;
+  font-size: clamp(1.5rem, 4.5vw, 2.4rem);
+  color: var(--white);
+  text-shadow: 2px 2px 0 var(--text-color);
+  letter-spacing: 0.01em;
+}
+
+.site-tagline {
+  margin: 8px 0 0;
+  color: var(--white);
+  font-size: clamp(0.95rem, 2.4vw, 1.15rem);
+  text-shadow: 1px 1px 0 rgba(58, 46, 110, 0.45);
+}
+
+/* ---------- Ad slots (placeholders — see the comments in landing.html)
+   They reserve their height so a real ad never shifts the layout. ---------- */
+.ad-slot {
+  position: relative;
+  margin: 28px auto;
+  background: rgba(58, 46, 110, 0.045);
+  border: 3px dashed rgba(58, 46, 110, 0.35);
+  border-radius: var(--radius-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.ad-slot .ad-label {
+  position: absolute;
+  top: 6px;
+  left: 12px;
+  font-size: 0.72rem;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(58, 46, 110, 0.55);
+}
+
+.ad-slot .ad-hint {
+  font-size: 0.85rem;
+  color: rgba(58, 46, 110, 0.5);
+  padding: 0 16px;
+}
+
+.ad-slot--leaderboard {
+  width: min(728px, 100%);
+  min-height: 90px; /* reserves the 728x90 leaderboard height */
+}
+
+.ad-slot--rectangle {
+  width: min(336px, 100%);
+  min-height: 280px; /* reserves the 336x280 in-content rectangle */
+}
+
+/* ---------- Hero ---------- */
+.hero {
+  padding: 44px 0 12px;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 36px;
+  align-items: center;
+}
+
+.hero-copy .eyebrow {
+  display: inline-block;
+  background: var(--pink);
+  border: 3px solid var(--text-color);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-soft);
+  padding: 4px 14px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  margin: 0 0 14px;
+}
+
+.hero h1 {
+  margin: 0 0 14px;
+  font-size: clamp(1.7rem, 4.6vw, 2.7rem);
+  line-height: 1.2;
+}
+
+.hero-lead {
+  margin: 0 0 24px;
+  font-size: clamp(1rem, 2.2vw, 1.15rem);
+  max-width: 54ch;
+}
+
+.play-button {
+  display: inline-block;
+  font-size: clamp(1.3rem, 3.4vw, 1.7rem);
+  font-weight: bold;
+  color: var(--text-color);
+  text-decoration: none;
+  text-align: center;
+  background: var(--sunny-yellow);
+  border: var(--border-chunky);
+  border-radius: var(--radius-pill);
+  padding: 16px 38px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.play-button:hover,
+.play-button:focus-visible {
+  transform: scale(1.05) rotate(-1.5deg);
+  background: var(--pink);
+}
+
+.play-button:active {
+  transform: scale(0.96);
+}
+
+.play-note {
+  margin: 12px 0 0;
+  font-size: 0.95rem;
+  color: rgba(58, 46, 110, 0.75);
+}
+
+.hero-figure {
+  margin: 0;
+}
+
+.hero-figure img {
+  width: 100%;
+  border: var(--border-chunky);
+  border-radius: var(--radius-card);
+  box-shadow: 0 10px 24px rgba(58, 46, 110, 0.28);
+  transform: rotate(1.4deg); /* a hair of kid-booklet tilt */
+  background: var(--white);
+}
+
+.hero-figure figcaption {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 0.88rem;
+  color: rgba(58, 46, 110, 0.65);
+}
+
+/* ---------- Sections ---------- */
+.section {
+  padding: 40px 0;
+}
+
+.section-alt {
+  background: linear-gradient(180deg, rgba(126, 200, 247, 0.22) 0%, rgba(255, 143, 184, 0.14) 100%);
+  border-top: 3px solid rgba(58, 46, 110, 0.12);
+  border-bottom: 3px solid rgba(58, 46, 110, 0.12);
+}
+
+.section h2 {
+  margin: 0 0 8px;
+  text-align: center;
+  font-size: clamp(1.45rem, 3.6vw, 2.1rem);
+}
+
+.section .section-intro {
+  margin: 0 auto 30px;
+  text-align: center;
+  max-width: 62ch;
+  font-size: 1.02rem;
+  color: rgba(58, 46, 110, 0.85);
+}
+
+/* ---------- Feature cards: 5 → 2 → 1 columns ---------- */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 20px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.card {
+  background: var(--white);
+  border: 3px solid var(--text-color);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.card img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-bottom: 3px solid var(--text-color);
+  background: var(--cream);
+}
+
+.card-body {
+  padding: 14px 16px 18px;
+}
+
+.card h3 {
+  margin: 0 0 8px;
+  font-size: 1.06rem;
+  line-height: 1.3;
+}
+
+.card p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* ---------- For parents ---------- */
+.parent-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.parent-item {
+  background: var(--white);
+  border: 3px solid rgba(58, 46, 110, 0.18);
+  border-radius: 18px;
+  box-shadow: var(--shadow-soft);
+  padding: 14px 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.parent-item .pi-icon {
+  font-size: 1.4rem;
+  line-height: 1.2;
+  flex: none;
+}
+
+.parent-item h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.parent-item p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: rgba(58, 46, 110, 0.85);
+}
+
+.trust-line {
+  max-width: 720px;
+  margin: 26px auto 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: rgba(58, 46, 110, 0.7);
+}
+
+.trust-line a {
+  color: var(--pink-dark);
+  font-weight: bold;
+}
+
+/* ---------- How to play ---------- */
+.howto {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px 20px;
+  max-width: 860px;
+  margin: 0 auto;
+  list-style: none;
+  padding: 0;
+}
+
+.howto li {
+  background: var(--white);
+  border: 3px solid rgba(58, 46, 110, 0.18);
+  border-radius: 18px;
+  box-shadow: var(--shadow-soft);
+  padding: 14px 16px;
+  font-size: 0.92rem;
+}
+
+.howto li b {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 1rem;
+}
+
+.device-note {
+  max-width: 640px;
+  margin: 22px auto 0;
+  text-align: center;
+  font-size: 0.92rem;
+  color: rgba(58, 46, 110, 0.8);
+}
+
+/* ---------- FAQ ---------- */
+.faq {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.faq details {
+  background: var(--white);
+  border: 3px solid rgba(58, 46, 110, 0.18);
+  border-radius: 18px;
+  box-shadow: var(--shadow-soft);
+  padding: 12px 18px;
+  margin-bottom: 12px;
+}
+
+.faq summary {
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1rem;
+  list-style: none;
+}
+
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq summary::before {
+  content: "▸ ";
+  color: var(--pink-dark);
+}
+
+.faq details[open] summary::before {
+  content: "▾ ";
+}
+
+.faq details p {
+  margin: 10px 0 4px;
+  font-size: 0.93rem;
+}
+
+/* ---------- Footer ---------- */
+.site-footer {
+  background: var(--text-color);
+  color: rgba(255, 255, 255, 0.92);
+  padding: 28px 0 34px;
+  text-align: center;
+  border-top: var(--border-chunky);
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 22px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.footer-links a {
+  color: var(--sunny-yellow);
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+.footer-links a:hover,
+.footer-links a:focus-visible {
+  color: var(--pink);
+  text-decoration: underline;
+}
+
+.copyright {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1023px) {
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 26px;
+  }
+  .hero-figure {
+    order: -1; /* the beach first, then the words */
+  }
+  .hero-figure img {
+    transform: none;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+  .howto {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .cards {
+    grid-template-columns: 1fr;
+  }
+  .parent-grid {
+    grid-template-columns: 1fr;
+  }
+  .section {
+    padding: 30px 0;
+  }
+  .play-button {
+    display: block;
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .play-button,
+  .play-button:hover,
+  .play-button:focus-visible {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* ---------- Print: policy page gets plain and readable ---------- */
+@media print {
+  .ad-slot,
+  .site-footer .footer-links {
+    display: none;
+  }
+  body {
+    background: #fff;
+  }
+}
+
+/* ============================================================
+   privacy.html extras (same design tokens as above)
+   ============================================================ */
+.policy-main {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 34px 20px 44px;
+}
+
+.policy-main h2 {
+  margin: 30px 0 8px;
+  font-size: 1.3rem;
+}
+
+.policy-main h2:first-of-type {
+  margin-top: 6px;
+}
+
+.policy-main p,
+.policy-main li {
+  font-size: 0.98rem;
+}
+
+.policy-main ul {
+  padding-left: 22px;
+}
+
+.policy-note {
+  background: rgba(255, 217, 61, 0.25);
+  border: 3px solid rgba(58, 46, 110, 0.25);
+  border-radius: 18px;
+  padding: 14px 18px;
+  font-size: 0.92rem;
+}
+
+.back-link {
+  display: inline-block;
+  margin-top: 26px;
+  color: var(--pink-dark);
+  font-weight: bold;
+}

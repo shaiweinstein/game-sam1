@@ -34,6 +34,7 @@
     energy: 50,
     characterId: "lily",
     swimStyle: "head-up",
+    sandcastle: null,
     outfit: {
       hair: "hair1",
       top: "top1",
@@ -61,6 +62,7 @@
       energy: DEFAULTS.energy,
       characterId: DEFAULTS.characterId,
       swimStyle: DEFAULTS.swimStyle,
+      sandcastle: DEFAULTS.sandcastle,
       outfit: Object.assign({}, DEFAULTS.outfit),
       location: Object.assign({}, DEFAULTS.location)
     };
@@ -83,6 +85,7 @@
           energy: state.energy,
           characterId: state.characterId,
           swimStyle: state.swimStyle,
+          sandcastle: state.sandcastle ? Object.assign({}, state.sandcastle) : null,
           outfit: Object.assign({}, state.outfit),
           location: Object.assign({}, state.location)
         })
@@ -108,6 +111,15 @@
       }
       if (data.swimStyle === "head-up" || data.swimStyle === "freestyle") {
         state.swimStyle = data.swimStyle;
+      }
+      // Sandcastle: stored as-is only when it passes full validation;
+      // anything corrupt/malformed is dropped (self-heal) and
+      // state.sandcastle stays null. No save here — the next real
+      // setSandcastle() call persists.
+      if (isValidSandcastle(data.sandcastle)) {
+        state.sandcastle = data.sandcastle;
+      } else {
+        state.sandcastle = null;
       }
       if (data.outfit && typeof data.outfit === "object") {
         OUTFIT_SLOTS.forEach(function (slot) {
@@ -224,6 +236,70 @@
     notify("swimStyle");
   }
 
+  /* Sandcastle: one persisted beach build per save ({ v, n, grid, decor }).
+     v:1 (legacy N=32 grid + cell-int decor) is still ACCEPTED so existing
+     saves reach the castle module's migration path — dropping it here
+     would silently delete someone's castle. v:2 carries the grid's
+     resolution `n` + metre decor. Only shape-level checks live here;
+     deeper per-decor-item validation stays in the castle module. */
+  function isValidSandcastle(value) {
+    if (!value || typeof value !== "object") return false;
+    if (value.v !== 1 && value.v !== 2) return false;
+    if (typeof value.grid !== "string") return false;
+    /* Resolution pass 2 (N=96, compact RLE): the grid guard moves
+       65536 → 262144 (256 KB). Measured at N=96 a typical keep/fort encodes
+       20–24 KB and the MAXIMALLY sculpted castle (keep + 12 towers + walls
+       + 30 pours + noise domes + smooth/carve passes, ~82k solid cells)
+       hits 74 KB — past the old cap. 256 KB still keeps the WHOLE save far
+       inside the 5 MB localStorage budget and only trips on pathological
+       noise (a hand-forced checkerboard field would be ~1.3 MB). */
+    if (value.grid.length < 1 || value.grid.length > 262144) return false;
+    // v:2 records its grid resolution (optional, but must be sane if present)
+    if (value.n !== undefined &&
+        (!Number.isInteger(value.n) || value.n < 2 || value.n > 160)) return false;
+    if (!Array.isArray(value.decor)) return false;
+    return value.decor.every(function (item) {
+      return (
+        !!item &&
+        typeof item === "object" &&
+        typeof item.t === "string" &&
+        typeof item.x === "number" && isFinite(item.x) &&
+        typeof item.y === "number" && isFinite(item.y) &&
+        typeof item.z === "number" && isFinite(item.z)
+      );
+    });
+  }
+
+  function getSandcastle() {
+    return state.sandcastle
+      ? Object.assign({}, state.sandcastle, { decor: state.sandcastle.decor.slice() })
+      : null;
+  }
+
+  function setSandcastle(data) {
+    if (!isValidSandcastle(data)) return;
+    // Store a normalized defensive copy ({ v, grid, decor } + v:2's
+    // resolution tag) so later caller-side edits to the passed
+    // object/array can never corrupt state.
+    state.sandcastle = {
+      v: data.v,
+      grid: data.grid,
+      decor: data.decor.slice()
+    };
+    if (data.v === 2 && Number.isInteger(data.n)) state.sandcastle.n = data.n;
+    save();
+    notify("sandcastle");
+  }
+
+  /* Explicit clear for "empty castle" (Reset → Done): setSandcastle(null)
+     would be silently ignored by validation, leaving the stale save — an
+     empty castle must genuinely remove the key. */
+  function clearSandcastle() {
+    state.sandcastle = null;
+    save();
+    notify("sandcastle");
+  }
+
   /* Which girl the player is playing as. Resolved lazily against
      window.CHARACTERS (state.js loads before character.js, so the
      map may not exist yet at module init). Missing/unknown ids —
@@ -322,6 +398,9 @@
     getOutfit: getOutfit,
     getSwimStyle: getSwimStyle,
     setSwimStyle: setSwimStyle,
+    getSandcastle: getSandcastle,
+    setSandcastle: setSandcastle,
+    clearSandcastle: clearSandcastle,
     setOutfitSlot: setOutfitSlot,
     getCharacter: getCharacter,
     setCharacterId: setCharacterId,

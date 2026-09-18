@@ -257,6 +257,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
   let mixer = null;
   const actions = {};          /* clipName -> AnimationAction */
   let current = null;          /* { clipName, action } */
+  let oneShot = null;          /* task 9: { clip } while a one-shot owns the mixer */
   let swimStyle = "head-up", swimFade = null;
   let freestyleDepthReady = false, swimDepth = null;
   let ready = false;
@@ -602,6 +603,9 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
 
   function setStance(name) {
     if (!STANCES[name] || !ready) return;
+    /* task 9: a running one-shot owns the mixer until update() ends it
+       (natural finish, movement, ride takeover or an RM freeze). */
+    if (oneShot) return;
     if (name === "swim" || name === "float") {
       // Check the whole foot reach now and after the existing fade's travel,
       // so the return to Head-up finishes BEFORE the kick reaches shallows.
@@ -630,6 +634,43 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
     changeAction(cfg.clip);
     applyTimeScale();
     parkIfNeeded();
+  }
+
+  /* ---------- one-shot celebration (task 9: sand-castle Done) ----------
+
+     The GLB caches all nine clips as LoopRepeat actions; a one-shot
+     re-configures the cached Cheer action to LoopOnce +
+     clampWhenFinished, crossfades into it with the standard 0.30 s
+     convention (changeAction), and update() crossfades back to the
+     stance clip when it finishes (or ends it early on movement/ride/
+     RM — a frozen RM mixer could never reach the end). */
+  function cheer() {
+    if (!ready || disposed || oneShot) return false;
+    /* Reduced motion: the mixer is frozen (timeScale 0), so a one-shot
+       could never complete — skip it, the talk line still fires. */
+    if (reducedMotion()) return false;
+    if (rideDriven || loco.zone === "sea") return false;   /* land only */
+    const cheerA = actions["Cheer"];
+    if (!cheerA || !actions[STANCES.stand.clip]) return false;
+    cheerA.setLoop(THREE.LoopOnce, 1);
+    cheerA.clampWhenFinished = true;
+    changeAction("Cheer");
+    oneShot = { clip: "Cheer" };
+    return true;
+  }
+
+  /* End the one-shot: back to the stance clip unless a ride has
+     already taken the mixer over (the ride modules drive their own
+     clips; the one-frame setStance guard above lapses with the flag). */
+  function endOneShot() {
+    const a = oneShot && actions[oneShot.clip];
+    oneShot = null;
+    if (rideDriven) return;
+    if (a && current && current.action === a) {
+      changeAction(STANCES.stand.clip);
+      applyTimeScale();
+      parkIfNeeded();
+    }
   }
 
   /* ---------- the playable box (one place) ----------
@@ -760,6 +801,17 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
     }
     if (loco.enabled && dt > 0) step(dt);
 
+    /* task 9 one-shot resolution: end on natural finish (LoopOnce time
+       reaches the clip end), on movement, on ride takeover, or if RM
+       froze the mixer mid-cheer. */
+    if (oneShot) {
+      const a = actions[oneShot.clip];
+      if (!a || reducedMotion() || rideDriven || loco.moving ||
+          a.time >= a.getClip().duration - 1e-3) {
+        endOneShot();
+      }
+    }
+
     /* smooth yaw, exponential damping ~10/s (spec) — in the sea it
        keeps swinging toward the glide direction while she settles */
     const k = 1 - Math.exp(-10 * dt);
@@ -860,6 +912,8 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
     },
     setBallPose(kind, amount = 0) { ballPose = kind ? { kind, amount } : null; },
     facePoint(x, z) { loco.yawTarget = Math.atan2(x - loco.x, z - loco.z); },
+    /* task 9: land one-shot celebration (Cheer, LoopOnce, then back). */
+    cheer,
     appearance() {
       return {
         suit: appliedSuit, friend: appliedFriend, hair: appliedHair,

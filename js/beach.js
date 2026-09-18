@@ -626,6 +626,14 @@
     });
     actionCleanups = [];
     actionsEl.textContent = "";
+    /* Castle-builder mode (3D): the toolbar living in #beach-stage
+       owns the bottom slot, so the bar renders nothing here. The gate
+       is REQUIRED, not redundant: activityVisible() would already hide
+       every mode-gated activity, but 'swimsuits' is modes:"*" (always
+       visible) and the Menu button + swim-style select are created
+       unconditionally. An empty bar is hidden by the
+       .beach-actions:empty rule (css/style.css, sandcastle section). */
+    if (currentMode === "castle") return;
     actionsEl.classList.toggle("beach-compact", using3D);
     const menu = document.createElement("div");
     menu.id = "beach-more-panel";
@@ -1047,9 +1055,16 @@
       });
     }
 
-    /* Escape closes the overlay while it is open. */
+    /* Escape closes the overlay while it is open. In the 3D beach the
+       sandcastle builder claims Escape first: leave the builder, keep
+       the beach open (SAND-CASTLE-PLAN §3.7). */
     document.addEventListener("keydown", function (event) {
       if (openState && (event.key === "Escape" || event.key === "Esc")) {
+        if (window.Beach3D?.isOpen?.() &&
+            window.__beach3d?.sandcastle?.state?.()?.phase === "building") {
+          window.__beach3d.sandcastle.exit();
+          return;
+        }
         close();
       }
       /* Spacebar = tap the 🏄 button: surf exposes catchWave() and it
