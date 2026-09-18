@@ -13,7 +13,7 @@ under Google's Families/COPPA rules, so budget for contextual (non-personalized)
 | Dependency | Version | License | Obligation | Status |
 |---|---|---|---|---|
 | three.js (`lib/three/`) | r170 | MIT | header intact in `three.module.js` + `lib/three/README.md` | ✅ keep as is |
-| three addons (GLTFLoader, BufferGeometryUtils, OrbitControls, MarchingCubes) | r170 | MIT (part of three) | upstream ships no per-file header; covered by the three README | ⚠️ `OrbitControls.js`/`MarchingCubes.js` are **untracked in git** — commit them (also a functional must for the sandcastle builder) |
+| three addons (GLTFLoader, BufferGeometryUtils, OrbitControls, MarchingCubes) | r170 | MIT (part of three) | upstream ships no per-file header; covered by the three README | ✅ committed |
 | Phaser (`lib/phaser.min.js`) | 3.90.0 (patched) | MIT | ⚠️ minified file carries **no** license text → MIT notice-preservation formally unmet | FIX: add `THIRD-PARTY-NOTICES.md` entry (created with the landing page) |
 | DragonBonesJS (`lib/dbjs/`) | 5.7 | MIT | LICENSE file already vendored | ✅ (spike2-only, not loaded by the game) |
 | SkelForm runtime (`lib/skelform/`) | — | MIT | LICENSE file already vendored | ✅ |
@@ -42,6 +42,9 @@ Per Adobe's Mixamo terms + official FAQ:
 
 **Action:** the deploy builder (see §6) excludes `spike*/` entirely, so the public bundle
 contains only the compiled GLB — exactly the permitted usage. Keep the FBXs private.
+**Done 2026-09-18:** the public GitHub repo's history was rewritten (`git filter-repo`) to
+remove `spike3/assets/mixamo/` from all commits; `.gitignore` now keeps the raw FBXs out
+permanently (they live only as a private dev backup + on this machine).
 
 ## 3. Login-file hygiene (verified CLEAN — no emergency)
 
