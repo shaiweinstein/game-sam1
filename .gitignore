@@ -24,3 +24,6 @@ deploy/
 # Adobe Mixamo raw source files — Adobe's terms forbid redistributing these;
 # they are dev-only inputs for the retargeted clips in beach3d/assets/*.glb.
 spike3/assets/mixamo/
+
+# IDE/MCP config — may contain secrets; configure via env vars (BRAVE_API_KEY)
+.kilo/kilo.json
