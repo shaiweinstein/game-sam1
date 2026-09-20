@@ -83,7 +83,7 @@ def copy_tree(src: Path, dst: Path) -> int:
 def main() -> int:
     # ---- sanity of the sources before touching anything ------------------
     for must in ("landing.html", "privacy.html", "THIRD-PARTY-NOTICES.md",
-                 "robots.txt", "sitemap.xml",
+                 "robots.txt", "sitemap.xml", "ads.txt",
                  "index.html", "css", "js", "lib", "beach3d",
                  "landing/img/hero-beach.png"):
         src = REPO / must
@@ -106,11 +106,11 @@ def main() -> int:
         'href="index.html"' not in rewritten, "Play link rewrite failed"
     (DEPLOY / "index.html").write_text(rewritten, encoding="utf-8")
 
-    # 2) standalone public docs + crawler files (robots/sitemap once lived
-    #    only on the server and died to `rsync --delete` — they are now
+    # 2) standalone public docs + crawler files (robots/sitemap/ads.txt once
+    #    lived only on the server and died to `rsync --delete` — they are now
     #    first-class repo sources shipped through this same allowlist)
     for name in ("privacy.html", "THIRD-PARTY-NOTICES.md",
-                 "robots.txt", "sitemap.xml"):
+                 "robots.txt", "sitemap.xml", "ads.txt"):
         assert forbidden(Path(name)) is None, f"forbidden public file: {name}"
         shutil.copy2(REPO / name, DEPLOY / name)
 
@@ -172,6 +172,11 @@ def main() -> int:
     assert locs == ["https://lily.game/", "https://lily.game/play/",
                     "https://lily.game/privacy.html"], \
         f"sitemap.xml locs wrong: {locs}"
+    # ads.txt must declare our AdSense publisher — without it Google shows
+    # "Not found" and serves no ads (it also died to rsync --delete once)
+    ads = (DEPLOY / "ads.txt").read_text(encoding="utf-8")
+    assert "pub-8606608049292845" in ads and "DIRECT" in ads \
+        and "\r" not in ads, "ads.txt missing or malformed"
 
     # ---- summary -----------------------------------------------------------
     total = sum(f.stat().st_size for f in files)
