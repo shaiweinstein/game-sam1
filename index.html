@@ -27,6 +27,11 @@
   <script src="./js/print-dolls.js" defer></script>
   <script src="./js/kitchen.js" defer></script>
   <script src="./js/map.js" defer></script>
+  <!-- Library bookshelf chooser + story reader (window.BooksUI): classic
+       deferred like map.js. Owns the #bookshelf overlay and the
+       #bookreader storybook READER (page + credits views) over the
+       library stage; a card tap opens the reader with BooksUI.openBook. -->
+  <script src="./js/books.js" defer></script>
   <!-- Phaser engine (vendored, offline-safe) + canvas beach game,
        both must load BEFORE js/beach.js, which drives BeachGame.
        beach-rig.js / beach-boat.js are looked up lazily at scene
@@ -60,6 +65,10 @@
        device), window.Beach3D stays absent/unsupported and
        js/beach.js silently keeps the 2D Phaser beach until B6. -->
   <script type="module" src="./beach3d/beach3d.js"></script>
+  <!-- 3D library (task 1): same import map, same graceful-absence
+       contract — if it fails, window.LibraryScene stays missing and
+       js/map.js shows a friendly talk-bubble line instead. -->
+  <script type="module" src="./beach3d/library3d.js"></script>
 </head>
 <body>
   <div class="game-area">
@@ -146,6 +155,9 @@
         <div class="helper-text">Traveling takes energy! Eat yummy food if <b data-char-name>Lily</b> gets tired.</div>
         <!-- Beach play button: shown by js/map.js only when she is at the beach -->
         <button class="beach-play-button hidden" id="beach-play-button" type="button">🌊 Play at the Beach!</button>
+        <!-- Library play button (3D scene task 1): shown by js/map.js only
+             when she is at the library; same classes as the beach button -->
+        <button class="beach-play-button hidden" id="library-play-button" type="button">📚 Enter the Library!</button>
       </section>
 
       <!-- Friends screen (choose which girl to play as) -->
@@ -175,6 +187,90 @@
     <div class="beach-talk" id="beach-talk">Time to play at the beach! 🌊</div>
     <div class="beach-stage" id="beach-stage"><!-- layers added by later tasks --></div>
     <div class="beach-actions" id="beach-actions"><!-- activity buttons added by later tasks --></div>
+  </div>
+  <!-- Library scene overlay (3D task 1 — clothing/walking/furniture are later
+       tasks). One full-screen overlay (same fixed-inset recipe as
+       .beach-scene); beach3d/library3d.js creates its canvas host inside
+       it, reveals it (drops .hidden) on a successful open(), and js/map.js
+       re-hides it on close. Show/hide = the same .hidden utility the
+       beach overlay toggles. -->
+  <div class="library-stage hidden" id="library-stage" role="dialog" aria-modal="true" aria-label="Visit the library">
+    <button class="beach-close library-close" id="library-close" type="button" aria-label="Back to the map">⬅️ Back</button>
+    <!-- Bookshelf chooser entry (js/books.js / BooksUI): shown while the
+         library is open, .hidden while the shelf itself is open. It is
+         the BIG primary action, bottom-center like the beach activity
+         bar — never over a walk-route click point: its box sits just
+         below the lowest floor row the real-click routes in
+         beach3d/library_camera_test.py project (see css/style.css for
+         the exact clear-band math). -->
+    <button class="library-read-button" id="library-read-button" type="button">📖 Read a book</button>
+    <!-- canvas host div added by beach3d/library3d.js on open() -->
+    <!-- Bookshelf overlay (js/books.js): covers the whole stage like the
+         library overlay covers the game; cards render into #bookshelf-grid.
+         Back/Escape peel it before the library closes (BooksUI.handleBack). -->
+    <div class="bookshelf hidden" id="bookshelf" role="dialog" aria-modal="true" aria-label="Choose a storybook">
+      <div class="bookshelf-header">
+        <button class="beach-close bookshelf-close" id="bookshelf-close" type="button" aria-label="Back to the library">⬅️ Back</button>
+        <h2 class="bookshelf-title">📚 Choose a story</h2>
+      </div>
+      <div class="bookshelf-grid" id="bookshelf-grid"></div>
+    </div>
+    <!-- Storybook reader (js/books.js / BooksUI.openBook): covers the same
+         stage while the shelf stays warm but hidden. Page view =
+         #bookreader-img + #bookreader-text above a fixed control bar
+         (prev / "3 / 12" / next, plus the 🔊 Read page narration button
+         in the mid cluster); #bookreader-credits is the 🎉 The End / CC BY
+         sheet after the last page (or via the ℹ️ Credits header control).
+         Card taps reach it through BooksUI.openBook(id); Back/Escape peel
+         reader → shelf → library through BooksUI.handleBack. -->
+    <div class="bookreader hidden" id="bookreader" role="dialog" aria-modal="true" aria-label="Storybook reader">
+      <div class="bookreader-header">
+        <button class="beach-close bookreader-close" id="bookreader-close" type="button" aria-label="Close the book and return to the bookshelf">📚 Bookshelf</button>
+        <h2 class="bookreader-title" id="bookreader-title"></h2>
+        <button class="bookreader-credits-btn" id="bookreader-credits-btn" type="button" aria-label="Book credits and license">ℹ️ Credits</button>
+      </div>
+      <div class="bookreader-body" id="bookreader-body">
+        <div class="bookreader-pageview" id="bookreader-pageview">
+          <div class="bookreader-figure">
+            <!-- src is set per page by books.js; text-only pages remove it
+                 and hide the element (never a broken image). -->
+            <img class="bookreader-img" id="bookreader-img" alt="Story illustration" />
+          </div>
+          <div class="bookreader-textbox" id="bookreader-textbox">
+            <p class="bookreader-text" id="bookreader-text"></p>
+          </div>
+        </div>
+        <div class="bookreader-credits hidden" id="bookreader-credits">
+          <p class="bookreader-credits-end">🎉 The End</p>
+          <p class="bookreader-credits-title" id="bookreader-credits-title"></p>
+          <p class="bookreader-credits-by" id="bookreader-credits-authors"></p>
+          <p class="bookreader-credits-by" id="bookreader-credits-illustrators"></p>
+          <p class="bookreader-credits-heading">Credits &amp; license</p>
+          <!-- VERBATIM book attribution (CC BY requirement) — filled with
+               textContent, line breaks preserved via white-space: pre-wrap. -->
+          <div class="bookreader-credits-attribution" id="bookreader-credits-attribution"></div>
+          <p class="bookreader-credits-license"><a id="bookreader-credits-license" target="_blank" rel="noopener noreferrer"></a></p>
+          <p class="bookreader-credits-source"><a id="bookreader-credits-source" target="_blank" rel="noopener noreferrer">Source: StoryWeaver</a></p>
+          <div class="bookreader-credits-actions">
+            <button class="bookreader-again" id="bookreader-again" type="button">🔄 Read again</button>
+            <button class="bookreader-credits-close" id="bookreader-credits-close" type="button">📚 Bookshelf</button>
+          </div>
+        </div>
+      </div>
+      <div class="bookreader-controls">
+        <button class="bookreader-nav" id="bookreader-prev" type="button" aria-label="Previous page">⬅️</button>
+        <div class="bookreader-controls-mid">
+          <span class="bookreader-page" id="bookreader-page" aria-live="polite">…</span>
+          <!-- 🔊 Read page (js/books.js TTS): plays the page's narration
+               mp3 when book.json carries pages[].audio, else speaks the
+               page text with a LOCAL en voice only (zero external
+               requests). Toggles to ⏹ Stop while it reads; hidden on the
+               credits sheet; greyed out when the device has neither. -->
+          <button class="bookreader-tts" id="bookreader-tts" type="button" aria-label="Read this page aloud">🔊 Read page</button>
+        </div>
+        <button class="bookreader-nav" id="bookreader-next" type="button" aria-label="Next page">➡️</button>
+      </div>
+    </div>
   </div>
   <!-- Print paper dolls sheet (js/print-dolls.js): screen preview + @media print output -->
   <div class="print-sheet" id="print-sheet" role="dialog" aria-modal="true" aria-label="Print paper dolls" hidden>

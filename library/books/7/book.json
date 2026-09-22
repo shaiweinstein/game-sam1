@@ -1,0 +1,79 @@
+{
+  "id": 7,
+  "title": "Fat King Thin Dog",
+  "slug": "7-fat-king-thin-dog",
+  "sourceUrl": "https://storyweaver.org.in/en/stories/7-fat-king-thin-dog",
+  "language": "English",
+  "level": 1,
+  "orientation": "portrait",
+  "pageCount": 9,
+  "license": "CC BY 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "This book was made possible by Pratham Books' StoryWeaver platform. Content under Creative Commons licenses can be downloaded, translated and can even be used to create new stories ­ provided you give appropriate credit, and indicate if changes were made. To know more about this, and the full terms of use and attribution, please visit the following link. Story Attribution: This story: Fat King Thin Dog is written by Parismita . © Pratham Books , 2007. Some rights reserved. Released under CC BY 4.0 license. Other Credits: This book has been published on StoryWeaver by Pratham Books. Pratham Books is a not-for-profit organization that publishes books in multiple Indian languages to promote reading among children. www.prathambooks.org Images Attributions: Cover page: King catching a dog , by Parismita © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Page 2: Fat King, by Parismita © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Page 3: Fat King walking with a thin dog, by Parismita © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Page 4: Dog chasing a bird, by Parismita © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Page 5: King chasing a dog, by Parismita © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Page 6: Tired king running after a dog , by Parismita © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Page 7: King catching a dog , by Parismita © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Page 8: Thin King and dog, by Parismita © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license.",
+  "copyrightNotice": "This book has been published on StoryWeaver by Pratham Books. Pratham Books is a not-for-profit organization that publishes books in multiple Indian languages to promote reading among children. www.prathambooks.org",
+  "publisher": "Pratham Books",
+  "publishedYear": "2007",
+  "authors": [
+    "Parismita"
+  ],
+  "illustrators": [
+    "Parismita"
+  ],
+  "shelfOrder": 4,
+  "pages": [
+    {
+      "n": 1,
+      "image": "page-01.jpg",
+      "text": "Fat King Thin Dog Author: Parismita Illustrator: Parismita",
+      "audio": "audio/page-01.mp3"
+    },
+    {
+      "n": 2,
+      "image": "page-02.jpg",
+      "text": "This is a fat king.",
+      "audio": "audio/page-02.mp3"
+    },
+    {
+      "n": 3,
+      "image": "page-03.jpg",
+      "text": "The fat king has a thin dog. The fat king and his thin dog go for a walk.",
+      "audio": "audio/page-03.mp3"
+    },
+    {
+      "n": 4,
+      "image": "page-04.jpg",
+      "text": "The dog sees a bird. The dog runs after the bird.",
+      "audio": "audio/page-04.mp3"
+    },
+    {
+      "n": 5,
+      "image": "page-05.jpg",
+      "text": "The king runs after the dog.",
+      "audio": "audio/page-05.mp3"
+    },
+    {
+      "n": 6,
+      "image": "page-06.jpg",
+      "text": "They run and run. They run and run for many days.",
+      "audio": "audio/page-06.mp3"
+    },
+    {
+      "n": 7,
+      "image": "page-07.jpg",
+      "text": "The king catches the dog.",
+      "audio": "audio/page-07.mp3"
+    },
+    {
+      "n": 8,
+      "image": "page-08.jpg",
+      "text": "Now the fat king is thin.",
+      "audio": "audio/page-08.mp3"
+    },
+    {
+      "n": 9,
+      "image": "",
+      "text": "Now the fat king is thin.",
+      "audio": "audio/page-09.mp3"
+    }
+  ]
+}

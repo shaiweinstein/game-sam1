@@ -1,0 +1,67 @@
+{
+  "id": 11537,
+  "title": "The Mango Tree",
+  "slug": "11537-the-mango-tree",
+  "sourceUrl": "https://storyweaver.org.in/en/stories/11537-the-mango-tree",
+  "language": "English",
+  "level": 1,
+  "orientation": "portrait",
+  "pageCount": 7,
+  "license": "CC BY 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "This book was made possible by Pratham Books' StoryWeaver platform. Content under Creative Commons licenses can be downloaded, translated and can even be used to create new stories ­ provided you give appropriate credit, and indicate if changes were made. To know more about this, and the full terms of use and attribution, please visit the following link. Story Attribution: This story: The Mango Tree is written by Kanchan Bannerjee . © Pratham Books , 2013. Some rights reserved. Released under CC BY 4.0 license. Other Credits: 'The Mango Tree' has been published on StoryWeaver by Pratham Books. The illustration and design of this book has been undertaken by Srishti School of Art, Design and Technology. www.prathambooks.org Images Attributions: Cover page: A house with a mango tree beside it , by Kavya Singh © Pratham Books, 2013. Some rights reserved. Released under CC BY 4.0 license. Page 2: A girl with her family rushing to the arms of an old woman, by Kavya Singh © Pratham Books, 2013. Some rights reserved. Released under CC BY 4.0 license. Page 3: A beautiful mango tree giving shelter to birds, by Kavya Singh © Pratham Books, 2013. Some rights reserved. Released under CC BY 4.0 license. Page 4: A girl hiding in a mango tree with a dog far below her, by Kavya Singh © Pratham Books, 2013. Some rights reserved. Released under CC BY 4.0 license. Page 5: A man and a woman looking for something , by Kavya Singh © Pratham Books, 2013. Some rights reserved. Released under CC BY 4.0 license. Page 6: A dog looking up a tree in which a girl is hiding , by Kavya Singh © Pratham Books, 2013. Some rights reserved. Released under CC BY 4.0 license. Page 7: A girl hugging an old woman, by Kavya Singh © Pratham Books, 2013. Some rights reserved. Released under CC BY 4.0 license.",
+  "copyrightNotice": "'The Mango Tree' has been published on StoryWeaver by Pratham Books. The illustration and design of this book has been undertaken by Srishti School of Art, Design and Technology. www.prathambooks.org",
+  "publisher": "Pratham Books",
+  "publishedYear": "2013",
+  "authors": [
+    "Kanchan Bannerjee"
+  ],
+  "illustrators": [
+    "Kavya Singh"
+  ],
+  "shelfOrder": 12,
+  "pages": [
+    {
+      "n": 1,
+      "image": "page-01.jpg",
+      "text": "The Mango Tree Author: Kanchan Bannerjee Illustrator: Kavya Singh",
+      "audio": "audio/page-01.mp3"
+    },
+    {
+      "n": 2,
+      "image": "page-02.jpg",
+      "text": "We like to visit Grandma’s village.",
+      "audio": "audio/page-02.mp3"
+    },
+    {
+      "n": 3,
+      "image": "page-03.jpg",
+      "text": "Grandma has a big mango tree in her garden. Many birds come there.",
+      "audio": "audio/page-03.mp3"
+    },
+    {
+      "n": 4,
+      "image": "page-04.jpg",
+      "text": "I like to hide in the mango tree. No one can see me here.",
+      "audio": "audio/page-04.mp3"
+    },
+    {
+      "n": 5,
+      "image": "page-05.jpg",
+      "text": "Father looks for me near the well. Mother looks for me near the cowshed. But no one can find me.",
+      "audio": "audio/page-05.mp3"
+    },
+    {
+      "n": 6,
+      "image": "page-06.jpg",
+      "text": "Oh no! At last Grandma’s dog finds me.",
+      "audio": "audio/page-06.mp3"
+    },
+    {
+      "n": 7,
+      "image": "page-07.jpg",
+      "text": "Now I have to climb down. Grandma gives me a big hug.",
+      "audio": "audio/page-07.mp3"
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "id": 37232,
+  "title": "The Bee and the Elephant",
+  "slug": "37232-the-bee-and-the-elephant",
+  "sourceUrl": "https://storyweaver.org.in/en/stories/37232-the-bee-and-the-elephant",
+  "language": "English",
+  "level": 1,
+  "orientation": "landscape",
+  "pageCount": 10,
+  "license": "CC BY 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "This book was made possible by Pratham Books' StoryWeaver platform. Content under Creative Commons licenses can be downloaded, translated and can even be used to create new stories ­ provided you give appropriate credit, and indicate if changes were made. To know more about this, and the full terms of use and attribution, please visit the following link. Story Attribution: This story: The Bee and the Elephant is translated by Celia Bolam . The © for this translation lies with Room to Read, 2015. Some rights reserved. Released under CC BY 4.0 license. Based on Original story: 'ឃ្មុំនិងដំរី', by Long Ravy . © Room to Read , 2015. Some rights reserved. Released under CC BY 4.0 license. Other Credits: This story 'The Bee and the Elephant' has been published on StoryWeaver by Room to Read. Images Attributions: Cover page: Bee sleeping on elephant, by Try Samphos © Room to Read, 2011. Some rights reserved. Released under CC BY 4.0 license. Page 2: Bee crying while elephant looks on, by Try Samphos © Room to Read, 2011. Some rights reserved. Released under CC BY 4.0 license. Page 3: Elephant showing a bee a nest, by Try Samphos © Room to Read, 2011. Some rights reserved. Released under CC BY 4.0 license. Page 4: Bird flying towards elephant and bee, by Try Samphos © Room to Read, 2011. Some rights reserved. Released under CC BY 4.0 license. Page 5: Elephant showing a bee a cave, by Try Samphos © Room to Read, 2011. Some rights reserved. Released under CC BY 4.0 license. Page 6: Bee and elephant being chased by bats, by Try Samphos © Room to Read, 2011. Some rights reserved. Released under CC BY 4.0 license. Page 7: Elephant showing a bee a beehive, by Try Samphos © Room to Read, 2011. Some rights reserved. Released under CC BY 4.0 license. Page 8: Bees taking in beehive, by Try Samphos © Room to Read, 2011. Some rights reserved. Released under CC BY 4.0 license. Page 9: All animals going together in the forest, by Try Samphos © Room to Read, 2011. Some rights reserved. Released under CC BY 4.0 license. Page 10: Bee on elephant's trunk, by Try Samphos © Room to Read, 2011. Some rights reserved. Released under CC BY 4.0 license.",
+  "copyrightNotice": "This story 'The Bee and the Elephant' has been published on StoryWeaver by Room to Read. ",
+  "publisher": "Room to Read",
+  "publishedYear": "2015",
+  "authors": [
+    "Celia  Bolam"
+  ],
+  "illustrators": [
+    "Try Samphos"
+  ],
+  "shelfOrder": 9,
+  "pages": [
+    {
+      "n": 1,
+      "image": "page-01.jpg",
+      "text": "The Bee and the Elephant Author: Long Ravy Illustrator: Try Samphos Translator: Celia Bolam",
+      "audio": "audio/page-01.mp3"
+    },
+    {
+      "n": 2,
+      "image": "page-02.jpg",
+      "text": "\"I am lost,\" said Little Bee. \"I cannot find my home!\" \"Can you please help me, Mr. Elephant?\"",
+      "audio": "audio/page-02.mp3"
+    },
+    {
+      "n": 3,
+      "image": "page-03.jpg",
+      "text": "\"Is this nest your home, Little Bee?\" the elephant asked.",
+      "audio": "audio/page-03.mp3"
+    },
+    {
+      "n": 4,
+      "image": "page-04.jpg",
+      "text": "\"Oh no!\" cried Little Bee. \"This is a bird’s home.\"",
+      "audio": "audio/page-04.mp3"
+    },
+    {
+      "n": 5,
+      "image": "page-05.jpg",
+      "text": "\"Is this cave your home?\" asked the elephant.",
+      "audio": "audio/page-05.mp3"
+    },
+    {
+      "n": 6,
+      "image": "page-06.jpg",
+      "text": "\"Oh no! This is a bat’s home.\"",
+      "audio": "audio/page-06.mp3"
+    },
+    {
+      "n": 7,
+      "image": "page-07.jpg",
+      "text": "\"Is this hive your home, Little Bee?\"",
+      "audio": "audio/page-07.mp3"
+    },
+    {
+      "n": 8,
+      "image": "page-08.jpg",
+      "text": "\"Oh yes!\" said Little Bee happily. \"This is my home.\"",
+      "audio": "audio/page-08.mp3"
+    },
+    {
+      "n": 9,
+      "image": "page-09.jpg",
+      "text": "\"Thank you for helping me, Mr. Elephant.\"",
+      "audio": "audio/page-09.mp3"
+    },
+    {
+      "n": 10,
+      "image": "page-10.jpg",
+      "text": ""
+    }
+  ]
+}

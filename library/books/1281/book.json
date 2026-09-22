@@ -1,0 +1,85 @@
+{
+  "id": 1281,
+  "title": "It's All the Cat's Fault!",
+  "slug": "1281-it-s-all-the-cat-s-fault",
+  "sourceUrl": "https://storyweaver.org.in/en/stories/1281-it-s-all-the-cat-s-fault",
+  "language": "English",
+  "level": 2,
+  "orientation": "landscape",
+  "pageCount": 10,
+  "license": "CC BY 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "This book was made possible by Pratham Books' StoryWeaver platform. Content under Creative Commons licenses can be downloaded, translated and can even be used to create new stories ­ provided you give appropriate credit, and indicate if changes were made. To know more about this, and the full terms of use and attribution, please visit the following link. Story Attribution: This story: It's All the Cat's Fault! is written by Anushka Ravishankar . © StoryWeaver , 2015. Some rights reserved. Released under CC BY 4.0 license. Other Credits: This story was first published on StoryWeaver. It was created as part of StoryWeaver's 'Weave-a-Story' campaign which focussed on translating stories into as many languages as possible. https://storyweaver.org.in/ Images Attributions: Cover page: Cat stuck on a tree, by Priya Kuriyan © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license. Page 2: Teacher and boy in the class, by Priya Kuriyan © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license. Page 3: Cat on a tree, boy moving a ladder, by Priya Kuriyan © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license. Page 4: Boy repairing a ladder, baby crying in the house, by Priya Kuriyan © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license. Page 5: Monkey in the kitchen, woman running towards crying baby, by Priya Kuriyan © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license. Page 6: Monkey eating food from a kitchen, by Priya Kuriyan © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license. Page 7: Scene at a tea shop, dog chasing a man, by Priya Kuriyan © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license. Page 8: Dog chewing on a boy's red book, by Priya Kuriyan © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license. Page 9: Teacher scolding a student, by Priya Kuriyan © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license. Page 10: Cat stuck on a tree, by Priya Kuriyan © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license.",
+  "copyrightNotice": "This story was first published on StoryWeaver. It was created as part of StoryWeaver's 'Weave-a-Story' campaign which focussed on translating stories into as many languages as possible. https://storyweaver.org.in/",
+  "publisher": "StoryWeaver",
+  "publishedYear": "2015",
+  "authors": [
+    "Anushka Ravishankar"
+  ],
+  "illustrators": [
+    "Priya Kuriyan"
+  ],
+  "shelfOrder": 14,
+  "pages": [
+    {
+      "n": 1,
+      "image": "page-01.jpg",
+      "text": "It's All the Cat's Fault! Author: Anushka Ravishankar Illustrator: Priya Kuriyan",
+      "audio": "audio/page-01.mp3"
+    },
+    {
+      "n": 2,
+      "image": "page-02.jpg",
+      "text": "Why haven’t you done your homework? Miss, it’s all the cat’s fault.",
+      "audio": "audio/page-02.mp3"
+    },
+    {
+      "n": 3,
+      "image": "page-03.jpg",
+      "text": "If she had not got stuck on the tree, I would not have taken the ladder to climb it.",
+      "audio": "audio/page-03.mp3"
+    },
+    {
+      "n": 4,
+      "image": "page-04.jpg",
+      "text": "If I had not taken the ladder to climb it, I would not have needed to fix it. If I had not needed to fix it, I wouldn’t have woken up the baby.",
+      "audio": "audio/page-04.mp3"
+    },
+    {
+      "n": 5,
+      "image": "page-05.jpg",
+      "text": "If I had not woken up the baby, my mother would not have rushed out of the kitchen. If my mother had not rushed out of the kitchen, the monkey would not have got in.",
+      "audio": "audio/page-05.mp3"
+    },
+    {
+      "n": 6,
+      "image": "page-06.jpg",
+      "text": "If the monkey had not got in, he would not have eaten up all the food. If he had not eaten up all the food, my father would not have bought rotis and chicken curry at the tea-shop.",
+      "audio": "audio/page-06.mp3"
+    },
+    {
+      "n": 7,
+      "image": "page-07.jpg",
+      "text": "If my father had not bought rotis and chicken curry at the tea-shop, the dog would not have followed him home.",
+      "audio": "audio/page-07.mp3"
+    },
+    {
+      "n": 8,
+      "image": "page-08.jpg",
+      "text": "If the dog had not followed him home, he would not have eaten my homework.",
+      "audio": "audio/page-08.mp3"
+    },
+    {
+      "n": 9,
+      "image": "page-09.jpg",
+      "text": "So, you’re saying the dog ate your homework?",
+      "audio": "audio/page-09.mp3"
+    },
+    {
+      "n": 10,
+      "image": "page-10.jpg",
+      "text": "Yes, Miss, it’s all the cat’s fault!",
+      "audio": "audio/page-10.mp3"
+    }
+  ]
+}

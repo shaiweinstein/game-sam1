@@ -1,0 +1,487 @@
+{
+  "licenses": [
+    "CC BY 4.0",
+    "Public Domain"
+  ],
+  "source": "StoryWeaver by Pratham Books",
+  "count": 28,
+  "books": [
+    {
+      "id": 369,
+      "shelfOrder": 1,
+      "title": "The Red Raincoat",
+      "level": 1,
+      "pageCount": 10,
+      "authors": [
+        "Kiran Kasturia"
+      ],
+      "illustrators": [
+        "Zainab Tambawalla"
+      ],
+      "thumb": "books/369/thumb.jpg",
+      "book": "books/369/book.json",
+      "sourceUrl": "https://storyweaver.org.in/en/stories/369-the-red-raincoat",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": 2,
+      "shelfOrder": 2,
+      "title": "Smile Please!",
+      "level": 1,
+      "pageCount": 13,
+      "authors": [
+        "Manisha Chaudhry"
+      ],
+      "illustrators": [
+        "Ajit Narayan"
+      ],
+      "thumb": "books/2/thumb.jpg",
+      "book": "books/2/book.json",
+      "sourceUrl": "https://storyweaver.org.in/en/stories/2-smile-please",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": 98,
+      "shelfOrder": 3,
+      "title": "Rani's First Day at School",
+      "level": 1,
+      "pageCount": 7,
+      "authors": [
+        "Cheryl Rao"
+      ],
+      "illustrators": [
+        "Mayur Mistry"
+      ],
+      "thumb": "books/98/thumb.jpg",
+      "book": "books/98/book.json",
+      "sourceUrl": "https://storyweaver.org.in/en/stories/98-rani-s-first-day-at-school",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": 7,
+      "shelfOrder": 4,
+      "title": "Fat King Thin Dog",
+      "level": 1,
+      "pageCount": 9,
+      "authors": [
+        "Parismita"
+      ],
+      "illustrators": [
+        "Parismita"
+      ],
+      "thumb": "books/7/thumb.jpg",
+      "book": "books/7/book.json",
+      "sourceUrl": "https://storyweaver.org.in/en/stories/7-fat-king-thin-dog",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": 12294,
+      "shelfOrder": 5,
+      "title": "The Race",
+      "level": 1,
+      "pageCount": 6,
+      "authors": [
+        "Kanchan Bannerjee"
+      ],
+      "illustrators": [
+        "Kavya Singh",
+        "Natasha  Mehra"
+      ],
+      "thumb": "books/12294/thumb.jpg",
+      "book": "books/12294/book.json",
+      "sourceUrl": "https://storyweaver.org.in/en/stories/12294-the-race",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": 16411,
+      "shelfOrder": 6,
+      "title": "Too Big! Too Small!",
+      "level": 1,
+      "pageCount": 14,
+      "authors": [
+        "Lavanya Karthik"
+      ],
+      "illustrators": [
+        "Lavanya Karthik"
+      ],
+      "thumb": "books/16411/thumb.jpg",
+      "book": "books/16411/book.json",
+      "sourceUrl": "https://storyweaver.org.in/en/stories/16411-too-big-too-small",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": 1042,
+      "shelfOrder": 7,
+      "title": "My Best Friend",
+      "level": 1,
+      "pageCount": 12,
+      "authors": [
+        "Anupa Lal"
+      ],
+      "illustrators": [
+        "Suvidha Mistry"
+      ],
+      "thumb": "books/1042/thumb.jpg",
+      "book": "books/1042/book.json",
+      "sourceUrl": "https://storyweaver.org.in/en/stories/1042-my-best-friend",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": 49,
+      "shelfOrder": 8,
+      "title": "My fish! No, my fish!",
+      "level": 1,
+      "pageCount": 12,
+      "authors": [
+        "Suraj J Menon"
+      ],
+      "illustrators": [
+        "Soumya Menon"
+      ],
+      "thumb": "books/49/thumb.jpg",
+      "book": "books/49/book.json",
+      "sourceUrl": "https://storyweaver.org.in/en/stories/49-my-fish-no-my-fish",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": 37232,
+      "shelfOrder": 9,
+      "title": "The Bee and the Elephant",
+      "level": 1,
+      "pageCount": 10,
+      "authors": [
+        "Celia  Bolam"
+      ],
+      "illustrators": [
+        "Try Samphos"
+      ],
+      "thumb": "books/37232/thumb.jpg",
+      "book": "books/37232/book.json",
+      "sourceUrl": "https://storyweaver.org.in/en/stories/37232-the-bee-and-the-elephant",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": 351358,
+      "shelfOrder": 10,
+      "title": "How Many?",
+      "level": 1,
+      "pageCount": 16,
+      "authors": [
+        "Sudeshna  Shome Ghosh"
+      ],
+      "illustrators": [
+        "Sayan  Mukherjee"
+      ],
+      "thumb": "books/351358/thumb.jpg",
+      "book": "books/351358/book.json",
+      "sourceUrl": "https://storyweaver.org.in/en/stories/351358-how-many",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": 36641,
+      "shelfOrder": 11,
+      "title": "The Three Little Kittens",
+      "level": 1,
+      "pageCount": 14,
+      "authors": [
+        "Magdalena  Cooper"
+      ],
+      "illustrators": [
+        "Youm Kosal"
+      ],
+      "thumb": "books/36641/thumb.jpg",
+      "book": "books/36641/book.json",
+      "sourceUrl": "https://storyweaver.org.in/en/stories/36641-the-three-little-kittens",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": 11537,
+      "shelfOrder": 12,
+      "title": "The Mango Tree",
+      "level": 1,
+      "pageCount": 7,
+      "authors": [
+        "Kanchan Bannerjee"
+      ],
+      "illustrators": [
+        "Kavya Singh"
+      ],
+      "thumb": "books/11537/thumb.jpg",
+      "book": "books/11537/book.json",
+      "sourceUrl": "https://storyweaver.org.in/en/stories/11537-the-mango-tree",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": 10118,
+      "shelfOrder": 13,
+      "title": "Ammachi's Amazing Machines",
+      "level": 2,
+      "pageCount": 15,
+      "authors": [
+        "Rajiv Eipe"
+      ],
+      "illustrators": [
+        "Rajiv Eipe"
+      ],
+      "thumb": "books/10118/thumb.jpg",
+      "book": "books/10118/book.json",
+      "sourceUrl": "https://storyweaver.org.in/en/stories/10118-ammachi-s-amazing-machines",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": 1281,
+      "shelfOrder": 14,
+      "title": "It's All the Cat's Fault!",
+      "level": 2,
+      "pageCount": 10,
+      "authors": [
+        "Anushka Ravishankar"
+      ],
+      "illustrators": [
+        "Priya Kuriyan"
+      ],
+      "thumb": "books/1281/thumb.jpg",
+      "book": "books/1281/book.json",
+      "sourceUrl": "https://storyweaver.org.in/en/stories/1281-it-s-all-the-cat-s-fault",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": 10115,
+      "shelfOrder": 15,
+      "title": "What's Neema Eating Today?",
+      "level": 2,
+      "pageCount": 15,
+      "authors": [
+        "Bijal Vachharajani"
+      ],
+      "illustrators": [
+        "Priya Kuriyan"
+      ],
+      "thumb": "books/10115/thumb.jpg",
+      "book": "books/10115/book.json",
+      "sourceUrl": "https://storyweaver.org.in/en/stories/10115-what-s-neema-eating-today",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": 39753,
+      "shelfOrder": 16,
+      "title": "Rabbit Becomes a Chef",
+      "level": 2,
+      "pageCount": 16,
+      "authors": [
+        "Magdalena  Cooper"
+      ],
+      "illustrators": [
+        "Chamath Prasanga Lokuliyana"
+      ],
+      "thumb": "books/39753/thumb.jpg",
+      "book": "books/39753/book.json",
+      "sourceUrl": "https://storyweaver.org.in/en/stories/39753-rabbit-becomes-a-chef",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": 44659,
+      "shelfOrder": 17,
+      "title": "Meera and Ameera",
+      "level": 2,
+      "pageCount": 12,
+      "authors": [
+        "Nimmy Chacko"
+      ],
+      "illustrators": [
+        "Lavanya  Naidu"
+      ],
+      "thumb": "books/44659/thumb.jpg",
+      "book": "books/44659/book.json",
+      "sourceUrl": "https://storyweaver.org.in/en/stories/44659-meera-and-ameera",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": 355071,
+      "shelfOrder": 18,
+      "title": "Sweet Sunday",
+      "level": 3,
+      "pageCount": 9,
+      "authors": [
+        "Geetha Rao"
+      ],
+      "illustrators": [
+        "Sanika Phawde"
+      ],
+      "thumb": "books/355071/thumb.jpg",
+      "book": "books/355071/book.json",
+      "sourceUrl": "https://storyweaver.org.in/en/stories/355071-sweet-sunday",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": 14838,
+      "shelfOrder": 19,
+      "title": "The Tale of Peter Rabbit",
+      "level": 1,
+      "pageCount": 27,
+      "authors": [
+        "Beatrix Potter"
+      ],
+      "illustrators": [
+        "Beatrix Potter"
+      ],
+      "thumb": "books/14838/thumb.jpg",
+      "book": "books/14838/book.json",
+      "sourceUrl": "https://www.gutenberg.org/ebooks/14838",
+      "license": "Public Domain"
+    },
+    {
+      "id": 14407,
+      "shelfOrder": 20,
+      "title": "The Tale of Benjamin Bunny",
+      "level": 1,
+      "pageCount": 26,
+      "authors": [
+        "Beatrix Potter"
+      ],
+      "illustrators": [
+        "Beatrix Potter"
+      ],
+      "thumb": "books/14407/thumb.jpg",
+      "book": "books/14407/book.json",
+      "sourceUrl": "https://www.gutenberg.org/ebooks/14407",
+      "license": "Public Domain"
+    },
+    {
+      "id": 14872,
+      "shelfOrder": 21,
+      "title": "The Tale of Squirrel Nutkin",
+      "level": 2,
+      "pageCount": 26,
+      "authors": [
+        "Beatrix Potter"
+      ],
+      "illustrators": [
+        "Beatrix Potter"
+      ],
+      "thumb": "books/14872/thumb.jpg",
+      "book": "books/14872/book.json",
+      "sourceUrl": "https://www.gutenberg.org/ebooks/14872",
+      "license": "Public Domain"
+    },
+    {
+      "id": 14814,
+      "shelfOrder": 22,
+      "title": "The Tale of Jemima Puddle-Duck",
+      "level": 1,
+      "pageCount": 26,
+      "authors": [
+        "Beatrix Potter"
+      ],
+      "illustrators": [
+        "Beatrix Potter"
+      ],
+      "thumb": "books/14814/thumb.jpg",
+      "book": "books/14814/book.json",
+      "sourceUrl": "https://www.gutenberg.org/ebooks/14814",
+      "license": "Public Domain"
+    },
+    {
+      "id": 14837,
+      "shelfOrder": 23,
+      "title": "The Tale of Tom Kitten",
+      "level": 1,
+      "pageCount": 26,
+      "authors": [
+        "Beatrix Potter"
+      ],
+      "illustrators": [
+        "Beatrix Potter"
+      ],
+      "thumb": "books/14837/thumb.jpg",
+      "book": "books/14837/book.json",
+      "sourceUrl": "https://www.gutenberg.org/ebooks/14837",
+      "license": "Public Domain"
+    },
+    {
+      "id": 15077,
+      "shelfOrder": 24,
+      "title": "The Tale of Mr. Jeremy Fisher",
+      "level": 1,
+      "pageCount": 26,
+      "authors": [
+        "Beatrix Potter"
+      ],
+      "illustrators": [
+        "Beatrix Potter"
+      ],
+      "thumb": "books/15077/thumb.jpg",
+      "book": "books/15077/book.json",
+      "sourceUrl": "https://www.gutenberg.org/ebooks/15077",
+      "license": "Public Domain"
+    },
+    {
+      "id": 15137,
+      "shelfOrder": 25,
+      "title": "The Tale of Mrs. Tiggy-Winkle",
+      "level": 1,
+      "pageCount": 26,
+      "authors": [
+        "Beatrix Potter"
+      ],
+      "illustrators": [
+        "Beatrix Potter"
+      ],
+      "thumb": "books/15137/thumb.jpg",
+      "book": "books/15137/book.json",
+      "sourceUrl": "https://www.gutenberg.org/ebooks/15137",
+      "license": "Public Domain"
+    },
+    {
+      "id": 14868,
+      "shelfOrder": 26,
+      "title": "The Tailor of Gloucester",
+      "level": 2,
+      "pageCount": 27,
+      "authors": [
+        "Beatrix Potter"
+      ],
+      "illustrators": [
+        "Beatrix Potter"
+      ],
+      "thumb": "books/14868/thumb.jpg",
+      "book": "books/14868/book.json",
+      "sourceUrl": "https://www.gutenberg.org/ebooks/14868",
+      "license": "Public Domain"
+    },
+    {
+      "id": 14220,
+      "shelfOrder": 27,
+      "title": "The Tale of the Flopsy Bunnies",
+      "level": 2,
+      "pageCount": 26,
+      "authors": [
+        "Beatrix Potter"
+      ],
+      "illustrators": [
+        "Beatrix Potter"
+      ],
+      "thumb": "books/14220/thumb.jpg",
+      "book": "books/14220/book.json",
+      "sourceUrl": "https://www.gutenberg.org/ebooks/14220",
+      "license": "Public Domain"
+    },
+    {
+      "id": 45264,
+      "shelfOrder": 28,
+      "title": "The Tale of Two Bad Mice",
+      "level": 1,
+      "pageCount": 26,
+      "authors": [
+        "Beatrix Potter"
+      ],
+      "illustrators": [
+        "Beatrix Potter"
+      ],
+      "thumb": "books/45264/thumb.jpg",
+      "book": "books/45264/book.json",
+      "sourceUrl": "https://www.gutenberg.org/ebooks/45264",
+      "license": "Public Domain"
+    }
+  ]
+}

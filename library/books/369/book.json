@@ -1,0 +1,85 @@
+{
+  "id": 369,
+  "title": "The Red Raincoat",
+  "slug": "369-the-red-raincoat",
+  "sourceUrl": "https://storyweaver.org.in/en/stories/369-the-red-raincoat",
+  "language": "English",
+  "level": 1,
+  "orientation": "landscape",
+  "pageCount": 10,
+  "license": "CC BY 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "This book was made possible by Pratham Books' StoryWeaver platform. Content under Creative Commons licenses can be downloaded, translated and can even be used to create new stories ­ provided you give appropriate credit, and indicate if changes were made. To know more about this, and the full terms of use and attribution, please visit the following link. Story Attribution: This story: The Red Raincoat is written by Kiran Kasturia . © Pratham Books , 2015. Some rights reserved. Released under CC BY 4.0 license. Other Credits: This book has been published on StoryWeaver by Pratham Books. It was developed in a workshop of authors and illustrators organized by Pratham Books. The development of the print version of this book has been supported by HDFC Asset Management Company Limited (A joint Venture with Standard Life Investments). www.prathambooks.org Images Attributions: Cover page: Boy holding a red raincoat, by Zainab Tambawalla © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license. Page 2: Boy holding a red raincoat and lady talking, by Zainab Tambawalla © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license. Page 3: Boy and lady looking out of the window , by Zainab Tambawalla © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license. Page 4: Boy sitting on the stairs of a house with a red raincoat, by Zainab Tambawalla © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license. Page 5: Boy wearing a red raincoat and sun shining through the window, by Zainab Tambawalla © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license. Page 6: Boy holding a red raincoat and looking at the sky, by Zainab Tambawalla © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license. Page 7: Boy with red raincoat and peacock looking at cloudy sky, by Zainab Tambawalla © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license. Page 8: Boy, snail and frog enjoying the rain, by Zainab Tambawalla © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license. Page 9: Boy and frog enjoying the rain, by Zainab Tambawalla © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license. Page 10: Boy playing in the rain and lady watching, by Zainab Tambawalla © Pratham Books, 2015. Some rights reserved. Released under CC BY 4.0 license.",
+  "copyrightNotice": "This book has been published on StoryWeaver by Pratham Books. It was developed in a workshop of authors and illustrators organized by Pratham Books. The development of the print version of this book has been supported by HDFC Asset Management Company Limited (A joint Venture with Standard Life Investments). www.prathambooks.org",
+  "publisher": "Pratham Books",
+  "publishedYear": "2015",
+  "authors": [
+    "Kiran Kasturia"
+  ],
+  "illustrators": [
+    "Zainab Tambawalla"
+  ],
+  "shelfOrder": 1,
+  "pages": [
+    {
+      "n": 1,
+      "image": "page-01.jpg",
+      "text": "The Red Raincoat Author: Kiran Kasturia Illustrator: Zainab Tambawalla",
+      "audio": "audio/page-01.mp3"
+    },
+    {
+      "n": 2,
+      "image": "page-02.jpg",
+      "text": "On Sunday, Manu’s parents got him a red raincoat. “Ma, may I wear it now?” asked Manu. “No, my dear, the rains are near, but just now the sky is clear,” said Ma.",
+      "audio": "audio/page-02.mp3"
+    },
+    {
+      "n": 3,
+      "image": "page-03.jpg",
+      "text": "Monday was bright and sunny. “WILL it rain today, Mummy?” asked Manu. “No Manu, not today. If you wear your raincoat, you will look quite funny!” said Ma.",
+      "audio": "audio/page-03.mp3"
+    },
+    {
+      "n": 4,
+      "image": "page-04.jpg",
+      "text": "On Tuesday, the sky was blue. “Ma, WHEN will my wish come true?” asked Manu. “Not today, my dear, there is just one white cloud in the sky!” said Ma.",
+      "audio": "audio/page-04.mp3"
+    },
+    {
+      "n": 5,
+      "image": "page-05.jpg",
+      "text": "Wednesday was hot. “Ma, WHY doesn’t it rain?” asked Manu. “Son, I think it will rain very soon. Maybe even before it is noon,” said Ma.",
+      "audio": "audio/page-05.mp3"
+    },
+    {
+      "n": 6,
+      "image": "page-06.jpg",
+      "text": "On Thursday Manu went on a picnic. “Ma, WHAT if it rains? Shall I take the raincoat with me?” asked Manu. “No my dear, it will not rain today. The little white clouds are too high in the sky,” said Ma.",
+      "audio": "audio/page-06.mp3"
+    },
+    {
+      "n": 7,
+      "image": "page-07.jpg",
+      "text": "Friday was cloudy. “Ma, will it rain today?” asked Manu loudly. “It might, my dear. There are some dark clouds low down in the sky,” said Ma.",
+      "audio": "audio/page-07.mp3"
+    },
+    {
+      "n": 8,
+      "image": "page-08.jpg",
+      "text": "Saturday began with a bang! Badaboom! \"Ma, is that thunder I hear? Will it rain very soon?\" asked Manu.",
+      "audio": "audio/page-08.mp3"
+    },
+    {
+      "n": 9,
+      "image": "page-09.jpg",
+      "text": "And then at last, it started raining! “Oh, it’s raining, it’s raining,” sang Manu, running out.",
+      "audio": "audio/page-09.mp3"
+    },
+    {
+      "n": 10,
+      "image": "page-10.jpg",
+      "text": "“But Manu,” called Ma, running after him, “you forgot your raincoat!”",
+      "audio": "audio/page-10.mp3"
+    }
+  ]
+}

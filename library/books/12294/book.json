@@ -1,0 +1,62 @@
+{
+  "id": 12294,
+  "title": "The Race",
+  "slug": "12294-the-race",
+  "sourceUrl": "https://storyweaver.org.in/en/stories/12294-the-race",
+  "language": "English",
+  "level": 1,
+  "orientation": "landscape",
+  "pageCount": 6,
+  "license": "CC BY 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "This book was made possible by Pratham Books' StoryWeaver platform. Content under Creative Commons licenses can be downloaded, translated and can even be used to create new stories ­ provided you give appropriate credit, and indicate if changes were made. To know more about this, and the full terms of use and attribution, please visit the following link. Story Attribution: This story: The Race is written by Kanchan Bannerjee . © Pratham Books , 2013. Some rights reserved. Released under CC BY 4.0 license. Other Credits: 'The Race' has been published on StoryWeaver by Pratham Books. The illustration and design of this book has been undertaken by Srishti School of Art, Design and Technology. www.prathambooks.org Images Attributions: Cover page: Four friends sitting in front of four toy vehicles, by Natasha Mehra, Kavya Singh © Pratham Books, 2013. Some rights reserved. Released under CC BY 4.0 license. Page 2: Four children sitting together in front of toy vehicles, by Natasha Mehra, Kavya Singh © Pratham Books, 2013. Some rights reserved. Released under CC BY 4.0 license. Page 3: Two girls playing with toy vehicles, by Natasha Mehra, Kavya Singh © Pratham Books, 2013. Some rights reserved. Released under CC BY 4.0 license. Page 4: Two boys playing with toy vehicles, by Natasha Mehra, Kavya Singh © Pratham Books, 2013. Some rights reserved. Released under CC BY 4.0 license. Page 5: A dog approaching a street with four vehicles, by Natasha Mehra, Kavya Singh © Pratham Books, 2013. Some rights reserved. Released under CC BY 4.0 license. Page 6: A dog running with four toy vehicles in a race, by Natasha Mehra, Kavya Singh © Pratham Books, 2013. Some rights reserved. Released under CC BY 4.0 license.",
+  "copyrightNotice": "'The Race' has been published on StoryWeaver by Pratham Books. The illustration and design of this book has been undertaken by Srishti School of Art, Design and Technology. www.prathambooks.org",
+  "publisher": "Pratham Books",
+  "publishedYear": "2013",
+  "authors": [
+    "Kanchan Bannerjee"
+  ],
+  "illustrators": [
+    "Kavya Singh",
+    "Natasha  Mehra"
+  ],
+  "shelfOrder": 5,
+  "pages": [
+    {
+      "n": 1,
+      "image": "page-01.jpg",
+      "text": "The Race Author: Kanchan Bannerjee Illustrators: Kavya Singh, Natasha Mehra",
+      "audio": "audio/page-01.mp3"
+    },
+    {
+      "n": 2,
+      "image": "page-02.jpg",
+      "text": "Four friends want to have a race with their toys.",
+      "audio": "audio/page-02.mp3"
+    },
+    {
+      "n": 3,
+      "image": "page-03.jpg",
+      "text": "Veena has a green car. Meena has a yellow auto.",
+      "audio": "audio/page-03.mp3"
+    },
+    {
+      "n": 4,
+      "image": "page-04.jpg",
+      "text": "Sanju has a red bus. Manju has a blue lorry.",
+      "audio": "audio/page-04.mp3"
+    },
+    {
+      "n": 5,
+      "image": "page-05.jpg",
+      "text": "Ready 1-2-3, GO! Here comes Lucky. Ha-ha, Lucky has joined the race.",
+      "audio": "audio/page-05.mp3"
+    },
+    {
+      "n": 6,
+      "image": "page-06.jpg",
+      "text": "Look, look! Lucky is the fastest of them all. Lucky wins the race.",
+      "audio": "audio/page-06.mp3"
+    }
+  ]
+}

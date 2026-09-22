@@ -96,3 +96,39 @@ product and are excluded from every public build, per the Mixamo
 redistribution restriction; the shipped GLB contains only the compiled,
 retargeted result. See `MONETIZATION-AND-LICENSING.md` §2 for the full
 provenance record.
+
+---
+
+## StoryWeaver storybooks (library/)
+
+- The storybooks under `library/books/` are third-party story content from
+  **StoryWeaver by Pratham Books** (https://storyweaver.org.in), licensed
+  under **CC BY 4.0**. Copyright Pratham Books / the credited authors,
+  illustrators and rightsholders.
+- The story content is used unmodified (only image resolution differs).
+- Per-book attribution is in `library/CREDITS.md` and in each
+  `library/books/*/book.json` (`attribution` field, also shown in the game's
+  reader credits screen).
+- Source: https://storyweaver.org.in
+- License: https://creativecommons.org/licenses/by/4.0/
+
+---
+
+## Project Gutenberg storybooks (library/)
+
+- Ten public-domain Beatrix Potter storybooks under `library/books/` are
+  third-party story content from **Project Gutenberg**
+  (https://www.gutenberg.org): "The Tale of Peter Rabbit" (1902), "The Tale
+  of Benjamin Bunny" (1904), "The Tale of Squirrel Nutkin" (1903), "The
+  Tale of Jemima Puddle-Duck" (1908), "The Tale of Tom Kitten" (1907), "The
+  Tale of Mr. Jeremy Fisher" (1906), "The Tale of Mrs. Tiggy-Winkle"
+  (1905), "The Tailor of Gloucester" (1903), "The Tale of the Flopsy
+  Bunnies" (1909) and "The Tale of Two Bad Mice" (1904).
+- Text and original illustrations by Beatrix Potter (first published
+  1902-1909, Frederick Warne & Co.). Public domain in the USA.
+- The story content is used unmodified (only image resolution differs).
+- Per-book attribution is in `library/CREDITS.md` and in each
+  `library/books/*/book.json` (`attribution` field, also shown in the game's
+  reader credits screen).
+- Source: https://www.gutenberg.org (per-book eBook pages in
+  `library/CREDITS.md`)

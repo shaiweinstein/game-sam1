@@ -1,0 +1,102 @@
+{
+  "id": 2,
+  "title": "Smile Please!",
+  "slug": "2-smile-please",
+  "sourceUrl": "https://storyweaver.org.in/en/stories/2-smile-please",
+  "language": "English",
+  "level": 1,
+  "orientation": "landscape",
+  "pageCount": 13,
+  "license": "CC BY 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "This book was made possible by Pratham Books' StoryWeaver platform. Content under Creative Commons licenses can be downloaded, translated and can even be used to create new stories ­ provided you give appropriate credit, and indicate if changes were made. To know more about this, and the full terms of use and attribution, please visit the following link. Story Attribution: This story: Smile Please! is translated by Manisha Chaudhry . The © for this translation lies with Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Based on Original story: 'वह हँस दिया', by Sanjiv Jaiswal 'Sanjay' . © Pratham Books , 2007. Some rights reserved. Released under CC BY 4.0 license. Other Credits: This book has been published on StoryWeaver by Pratham Books. Pratham Books is a not-for-profit organization that publishes books in multiple Indian languages to promote reading among children. www.prathambooks.org Images Attributions: Cover page: Fawn & rabbit running, by Ajit Narayan © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Page 2: Fawn running, by Ajit Narayan © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Page 3: Fawn and rabbit running, by Ajit Narayan © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Page 4: Fawn and elephant running, by Ajit Narayan © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Page 5: Fawn leaping across stream, by Ajit Narayan © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Page 6: Fawn rushing past a wall, by Ajit Narayan © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Page 7: Fawn falling, by Ajit Narayan © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Page 8: Fawn crying, by Ajit Narayan © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Page 9: Monkey massaging fawn's legs, by Ajit Narayan © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Page 10: Bear picking fawn up, by Ajit Narayan © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Images Attributions: Page 11: Mother and young fawn, by Ajit Narayan © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Page 12: Mother and fawn laughing, by Ajit Narayan © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license. Page 13: Mother and fawn laughing, by Ajit Narayan © Pratham Books, 2007. Some rights reserved. Released under CC BY 4.0 license.",
+  "copyrightNotice": "This book has been published on StoryWeaver by Pratham Books. Pratham Books is a not-for-profit organization that publishes books in multiple Indian languages to promote reading among children. www.prathambooks.org",
+  "publisher": "Pratham Books",
+  "publishedYear": "2007",
+  "authors": [
+    "Manisha Chaudhry"
+  ],
+  "illustrators": [
+    "Ajit Narayan"
+  ],
+  "shelfOrder": 2,
+  "pages": [
+    {
+      "n": 1,
+      "image": "page-01.jpg",
+      "text": "Smile Please! Author: Sanjiv Jaiswal 'Sanjay' Illustrator: Ajit Narayan Translator: Manisha Chaudhry",
+      "audio": "audio/page-01.mp3"
+    },
+    {
+      "n": 2,
+      "image": "page-02.jpg",
+      "text": "A fawn was racing in the forest.",
+      "audio": "audio/page-02.mp3"
+    },
+    {
+      "n": 3,
+      "image": "page-03.jpg",
+      "text": "He was ahead of the rabbit.",
+      "audio": "audio/page-03.mp3"
+    },
+    {
+      "n": 4,
+      "image": "page-04.jpg",
+      "text": "He was ahead of the elephant.",
+      "audio": "audio/page-04.mp3"
+    },
+    {
+      "n": 5,
+      "image": "page-05.jpg",
+      "text": "He leapt and cleared the stream.",
+      "audio": "audio/page-05.mp3"
+    },
+    {
+      "n": 6,
+      "image": "page-06.jpg",
+      "text": "He ran past the crumbling wall.",
+      "audio": "audio/page-06.mp3"
+    },
+    {
+      "n": 7,
+      "image": "page-07.jpg",
+      "text": "There was a large boulder on the grassy plain. He stumbled and fell down.",
+      "audio": "audio/page-07.mp3"
+    },
+    {
+      "n": 8,
+      "image": "page-08.jpg",
+      "text": "He burst into tears.",
+      "audio": "audio/page-08.mp3"
+    },
+    {
+      "n": 9,
+      "image": "page-09.jpg",
+      "text": "The monkey massaged his leg. Tears flowed from the fawn's eyes.",
+      "audio": "audio/page-09.mp3"
+    },
+    {
+      "n": 10,
+      "image": "page-10.jpg",
+      "text": "Brother Bear picked him up. The fawn didn't stop crying.",
+      "audio": "audio/page-10.mp3"
+    },
+    {
+      "n": 11,
+      "image": "page-11.jpg",
+      "text": "His mother came. She said, “Look, we’ll beat up this bad boulder!”",
+      "audio": "audio/page-11.mp3"
+    },
+    {
+      "n": 12,
+      "image": "page-12.jpg",
+      "text": "The fawn said, “Oh, don’t do that or he will also start crying.” His mother laughed. So did the fawn.",
+      "audio": "audio/page-12.mp3"
+    },
+    {
+      "n": 13,
+      "image": "page-13.jpg",
+      "text": ""
+    }
+  ]
+}

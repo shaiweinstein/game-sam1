@@ -174,6 +174,25 @@
     btn.classList.toggle("hidden", locationId !== "beach");
   }
 
+  /* The 📚 Enter the Library! button — same contract as the beach
+     button (parallel function, least invasive): visible only while
+     she is AT the library; opens the 3D library overlay
+     (beach3d/library3d.js → window.LibraryScene). */
+  function updateLibraryPlayButton(locationId) {
+    const btn = document.getElementById("library-play-button");
+    if (!btn) return;
+    btn.classList.toggle("hidden", locationId !== "library");
+  }
+
+  /* LibraryScene boot failure (module absent or open() === false,
+     e.g. no WebGL): answer with a friendly talk-bubble line instead
+     of a dead button — the GameUI.setTalk pattern used across the
+     app (hungryTalk above, welcome.js, kitchen.js). */
+  const LIBRARY_NO_WEBGL_TALK =
+    "The library is dark right now — this device can't light up the 3D books! 🕯️";
+  const LIBRARY_MISSING_TALK =
+    "The library is still being built! Come back soon! 📚";
+
   /* ---------- 🛣 roads + 🌳 town dressing ---------- */
 
   /* One SVG layer, viewBox 0..100 on both axes with
@@ -554,6 +573,7 @@
   function onStateChanged(snapshot) {
     updateCurrentPlaceText(snapshot.location);
     updateBeachPlayButton(snapshot.location.id);
+    updateLibraryPlayButton(snapshot.location.id);
     // Idempotent re-render: keeps the marker on the right place and
     // refreshes her outfit + the name copy too (cheap, and never
     // double-renders ghosts).
@@ -600,8 +620,27 @@
         if (window.BeachScene) window.BeachScene.open();
       });
     }
+    /* Library play button (task 1, same markup block): open() itself
+       reveals #library-stage and creates the canvas host inside it
+       (beach3d/library3d.js). #library-close + Escape are wired inside
+       that module — the library has no separate shell file, so the
+       scene module owns its overlay the way js/beach.js owns the
+       beach's. Missing module / no WebGL → friendly talk line, never
+       a dead button or a stuck-empty overlay. */
+    const libraryPlayBtn = document.getElementById("library-play-button");
+    if (libraryPlayBtn) {
+      libraryPlayBtn.addEventListener("click", function () {
+        const scene = window.LibraryScene;
+        const stage = document.getElementById("library-stage");
+        if (scene && typeof scene.open === "function" && scene.open(stage) !== false) return;
+        if (window.GameUI) {
+          window.GameUI.setTalk(scene ? LIBRARY_NO_WEBGL_TALK : LIBRARY_MISSING_TALK);
+        }
+      });
+    }
     if (window.GameState) {
       updateBeachPlayButton(window.GameState.getLocation().id);
+      updateLibraryPlayButton(window.GameState.getLocation().id);
     }
 
     boardEl = document.getElementById("map-board");

@@ -23,3 +23,8 @@ Exclusions — third-party-derived content:
     NOT be redistributed — they are deliberately absent from this repository.
   * All vendored code libraries under lib/ keep their own licenses (MIT —
     see THIRD-PARTY-NOTICES.md and the license files shipped in-tree).
+
+The storybooks under library/books/** are StoryWeaver story content (see
+THIRD-PARTY-NOTICES.md) under CC BY 4.0, not the CC BY-NC license above;
+per-book attribution is in library/CREDITS.md. library/books/** also includes
+public-domain Beatrix Potter titles from Project Gutenberg.

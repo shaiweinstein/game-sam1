@@ -1,0 +1,10 @@
+{
+  "designPrompt": "A young woman in her twenties with a warm, friendly storybook-reading voice. Clear American (US) accent. Medium speaking pace. Gentle, expressive, patient, calm and clear - perfect for reading picture books aloud to young children.",
+  "specimen": "Good morning, little friend. Shall we spend a quiet hour with a story? Outside, the garden is bright and still, and somewhere a kettle is just beginning to hum. Take your time settling in. There is no hurry at all today.",
+  "modelDesign": "mimo-v2.5-tts-voicedesign",
+  "modelClone": "mimo-v2.5-tts-voiceclone",
+  "takes": 3,
+  "chosenTake": 2,
+  "date": "2026-09-22",
+  "bytes": 107304
+}

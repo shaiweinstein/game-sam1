@@ -201,6 +201,14 @@ function cacheSoleSupport(root, clips) {
    VFX + speech hook, wired by beach3d.js to world.splash and
    BeachScene.say. */
 export function createCharacter(renderer, scene, reducedMotion, fx, movement = {}) {
+  /* Library task 3 (additive): a scene with its own flat floor (the
+     library room) opts out of the beach height field and the
+     sand/foam/sea zone map. Both default to the exact beach functions,
+     so the beach path (movement only ever carries bounds/obstacles/
+     speedScale) is byte-for-byte unchanged. */
+  const groundOf = movement.groundY || ((x, z) => sandY(x, z));
+  const zoneOf = movement.zoneAt || ((x, z) => zoneAt(x, z));
+
   const mixRoot = new THREE.Group();      /* position + yaw */
   const model = new THREE.Group();        /* root lift lives here */
   mixRoot.add(model);
@@ -234,6 +242,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
   foamRing.position.set(0, 0, 0.06);          /* chest sits fwd of origin */
   foamRing.renderOrder = 4;                   /* above water 2, sheets 3 */
   foamRing.visible = false;
+  foamRing.name = "foamRing";               /* QA lookup name (no behavior) */
   mixRoot.add(foamRing);
 
   const loco = {
@@ -244,12 +253,12 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
     enabled: true,
     moving: false,
     stance: "stand",
-    zone: zoneAt(WORLD.rest.x, WORLD.rest.z),
+    zone: zoneOf(WORLD.rest.x, WORLD.rest.z),
     speed01: 1,
     /* B2 sea glide and shared root height. Ground contact follows the
        blended pose; water entry/exit eases without lagging the land gait. */
     vx: 0, vz: 0,
-    rootY: sandY(WORLD.rest.x, WORLD.rest.z),
+    rootY: groundOf(WORLD.rest.x, WORLD.rest.z),
     snapY: false,                           /* teleport → plant instantly */
     foam: 0                                 /* waterline break fade 0..1 */
   };
@@ -267,6 +276,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
   let lastWaveT = 0;
   let soleSupport = [];
   const solePoint = new THREE.Vector3();
+  let soleSupportProvider = null;
   let groundOffset = 0; // only water/ride exits ease; never lag the land gait
   const materials = new Map();
   const suitMeshes = { one: [], tank: [], crop: [] };
@@ -276,6 +286,9 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
   let requestedHair = "hair1", appliedHair = null;
   let requestedExtra = null, appliedExtra = null, extras = null;
   let appliedSuit = null, appliedFriend = null, suitKey = null;
+  /* Library task 2: dressed characters hide the swimsuit outright.
+     Beach never touches this flag, so its behavior is unchanged. */
+  let suitVisible = true;
   let pendingFriend = null;
   let visible = true, ballPose = null;
   const poseBones = [];
@@ -350,7 +363,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
       const key = [id, colors.main, colors.trim, colors.bottom, group].join("|");
       if (suitKey === key) return true;
       for (const [name, meshes] of Object.entries(suitMeshes)) {
-        for (const mesh of meshes) mesh.visible = name === group;
+        for (const mesh of meshes) mesh.visible = suitVisible && name === group;
       }
       const prefix = group === "one" ? "suit" : group === "tank" ? "suitTank" : "suitCrop";
       recolor(prefix + "Main", colors.main, true);
@@ -362,6 +375,23 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
       suitKey = key;
       return true;
     } catch (e) { return false; }
+  }
+
+  /* Library task 2 (additive): hide/show the whole swimsuit so a
+     dressed character doesn't wear it. Beach never calls this; the
+     default (true) leaves every existing beach path untouched. */
+  const suitGroupOf = (id) => {
+    const c = window.CharacterRenderer?.catalog?.swimsuit?.[id]?.colors;
+    return c && c.twoPiece ? (id === "suit5" ? "crop" : "tank") : "one";
+  };
+  function setSwimsuitVisible(on) {
+    suitVisible = !!on;
+    if (disposed || !ready) return false;
+    const group = suitGroupOf(requestedSuit);
+    for (const [name, meshes] of Object.entries(suitMeshes)) {
+      for (const mesh of meshes) mesh.visible = suitVisible && name === group;
+    }
+    return true;
   }
 
   function setHair(id) {
@@ -697,7 +727,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
      water line exists — "Splash! 🌊" (beach-boat disembark) — ported
      on entry; leaving the water stays wordless, like the 2D. */
   function refreshZone() {
-    const zn = zoneAt(loco.x, loco.z);
+    const zn = zoneOf(loco.x, loco.z);
     if (zn === loco.zone) return zn;
     const was = loco.zone;
     loco.zone = zn;
@@ -840,7 +870,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
        the swing foot retains its authored clearance, and support can pass
        between heel/toe/feet without a planting latch or a yaw-dependent pop. */
     const cfg = stanceCfg();
-    const gy = sandY(loco.x, loco.z);
+    const gy = groundOf(loco.x, loco.z);
     const surf = waterSurfaceY(loco.x, loco.z, t);
     const bob = (cfg.bob && !reducedMotion())
       ? BOB_AMP * Math.sin(t * 2 * Math.PI * BOB_HZ) : 0;
@@ -848,9 +878,23 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
     if (!cfg.water) {
       targetY = -Infinity;
       mixRoot.updateMatrixWorld(true);
-      for (const { mesh, index } of soleSupport) {
-        mesh.getVertexPosition(index, solePoint).applyMatrix4(mesh.matrixWorld);
-        targetY = Math.max(targetY, sandY(solePoint.x, solePoint.z) - solePoint.y);
+      let provided = 0;
+      if (soleSupportProvider) {
+        // Opt-in wardrobe support, evaluated AFTER the blended pose/world
+        // matrices, using the current model lift. Callbacks emit world-space
+        // positions synchronously; they must not move the character or bones.
+        soleSupportProvider.sample(point => {
+          if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y) || !Number.isFinite(point.z)) return;
+          provided++;
+          targetY = Math.max(targetY, groundOf(point.x, point.z) - point.y);
+        }, groundOf);
+      }
+      if (!provided) {
+        // Exact existing barefoot/beach path, also the empty-provider fallback.
+        for (const { mesh, index } of soleSupport) {
+          mesh.getVertexPosition(index, solePoint).applyMatrix4(mesh.matrixWorld);
+          targetY = Math.max(targetY, groundOf(solePoint.x, solePoint.z) - solePoint.y);
+        }
       }
       targetY = Number.isFinite(targetY) ? targetY + model.position.y + SOLE_CLEARANCE : gy;
     }
@@ -881,7 +925,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
     /* no puddle-shadow on her in deep water (it would sit on the
        seabed metres below; the water hides it anyway — fade it out
        early so nothing dark bleeds through the translucent plane) */
-    shadow.visible = visible && zoneAt(loco.x, loco.z) !== "sea";
+    shadow.visible = visible && zoneOf(loco.x, loco.z) !== "sea";
   }
 
   /* ---------- locomotion public surface (mirrors BeachGame) ---------- */
@@ -902,9 +946,28 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
       };
     },
     setSuit,
+    setSwimsuitVisible,
     setHair,
     setExtra,
     setFriend,
+    /* Optional library footwear hook: provider(emitWorldPoint, groundY).
+       groundY may offer sampleTriangle(a,b,c,emit) for height discontinuities.
+       Returns an owner-safe unregister function; replacing a provider does
+       not let the previous owner's later disposal clear the replacement.
+       Null/empty support restores the original barefoot solver. */
+    setSoleSupportProvider(provider) {
+      if (provider !== null && typeof provider !== "function") throw new TypeError("Sole support provider must be a function or null");
+      if (disposed) return () => false;
+      const registration = provider ? { sample: provider } : null;
+      soleSupportProvider = registration;
+      if (!stanceCfg().water) groundOffset = 0;
+      return () => {
+        if (soleSupportProvider !== registration) return false;
+        soleSupportProvider = null;
+        if (!stanceCfg().water) groundOffset = 0;
+        return true;
+      };
+    },
     setVisible(on) {
       visible = !!on;
       mixRoot.visible = visible;
@@ -951,7 +1014,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
     detachRide() {
       if (rideDriven && reducedMotion() && current) current.action.stop();
       rideDriven = ridePaddling = false;
-      loco.zone = zoneAt(loco.x, loco.z);
+      loco.zone = zoneOf(loco.x, loco.z);
       loco.speed01 = 1;
       setStance(loco.zone === "sea" ? "float" : "stand");
     },
@@ -996,13 +1059,20 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
     isMoving() { return !!(loco.enabled && loco.moving); },
     getAnchor() { return { x: loco.x, z: loco.z, zone: loco.zone }; },
     stanceName() { return loco.stance; },
+    /* QA read-only: which clip currently OWNS the mixer — the stance clip
+       (Idle/Walk/Swim/…) or a one-shot like Cheer while it runs. Pure
+       getters over the existing `current` bookkeeping; zero behavioural
+       change (nothing here writes). `time` is the clip-local phase clock,
+       i.e. seconds into the Walk cycle — poll it to catch stride poses. */
+    currentClipName() { return current ? current.clipName : null; },
+    currentClipTime() { return current ? current.action.time : 0; },
     /* QA/test hook: snap-place instantly (no walk time) */
     teleport(x, z) {
       const p = clampPoint(x, z);
       loco.x = p.x; loco.z = p.z;
       loco.target = null; loco.targetSrc = null; loco.moving = false;
       loco.vx = loco.vz = 0; loco.snapY = true;
-      loco.zone = zoneAt(p.x, p.z);
+      loco.zone = zoneOf(p.x, p.z);
     },
     /* eased root height + live zone (QA waterline asserts) */
     getRootY: () => model.position.y,
@@ -1065,6 +1135,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
       ready = false;
       if (mixer) { mixer.stopAllAction(); mixer.uncacheRoot(model.children[0]); }
       soleSupport = [];
+      soleSupportProvider = null;
       if (extras) { extras.dispose(); extras = null; }
       appliedExtra = null;
       disposeMeshes(model);
@@ -1082,10 +1153,10 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
       loco.target = null; loco.targetSrc = null;
       loco.enabled = true; loco.moving = false;
       loco.vx = loco.vz = 0; loco.speed01 = 1;
-      loco.rootY = sandY(loco.x, loco.z);
+      loco.rootY = groundOf(loco.x, loco.z);
       groundOffset = 0;
       loco.snapY = true;
-      loco.zone = zoneAt(loco.x, loco.z);
+      loco.zone = zoneOf(loco.x, loco.z);
       if (ready) {
         loco.stance = "walk";          /* force the re-push */
         setStance("stand");

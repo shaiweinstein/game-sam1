@@ -2430,3 +2430,904 @@ b[data-char-name] {
     border-width: 3px;
   }
 }
+
+/* ============================================================
+   Library scene overlay — 3D task 1 (beach3d/library3d.js)
+   ------------------------------------------------------------
+   One full-screen overlay, same recipe as .beach-scene above
+   (fixed inset, z 300, never scrolls). The .beach-scene rules
+   are beach-id/class-specific, so this is a minimal sibling
+   section — no beach selector was touched. The Back button
+   reuses .beach-close (markup carries both classes); only the
+   hover tint gets a library-flavoured override.
+   Show/hide = the .hidden utility; this rule lives after it in
+   the cascade, so the compound selector below keeps hidden
+   winning (same trick as .beach-scene.hidden).
+   ============================================================ */
+
+.library-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 300; /* above the game, below the welcome overlay (1000) */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Warm interior wash behind the canvas — visible for the single
+     frame before three.js paints, and on unsupported devices that
+     never reach the canvas at all. */
+  background: linear-gradient(180deg, #4a3521 0%, #33210f 100%);
+}
+
+.library-stage.hidden {
+  display: none;
+}
+
+/* Same chunky pill as the beach Back button, library tint on hover. */
+.library-close:hover {
+  background: #f0c98a;
+}
+
+/* ============================================================
+   Library bookshelf chooser (js/books.js / window.BooksUI)
+   ------------------------------------------------------------
+   Two pieces inside #library-stage:
+   1. .library-read-button — the 📖 Read a book pill, the library's
+      BIG primary action: bottom-center like the beach activity bar
+      (.beach-actions), warm cream on chunky wood, soft drop shadow.
+      Camera-gate (beach3d/library_camera_test.py runs UNMODIFIED):
+      its 83 real-click walk routes × desktop+portrait project every
+      floor point through the live follow camera. Screen-y of a floor
+      point depends ONLY on z (the camera never changes height, depth,
+      FOV or pitch — it only translates in x), so a green run's clicks
+      land in the fixed rows y = 381.9–725.9 (1280×800) and
+      y = 402.9–765.8 (390×844). Lowest full route row = the z = 2.6
+      front edge (y ≈ 725.9 desktop / 765.8 portrait — the center-front
+      floor, carpeted every ~35–45px down the portrait center column).
+      The only click BELOW that row is the one beyond-edge stop tap
+      (z = 3) alone at (≈884±12, 766) desktop / (195±15, 808.5)
+      portrait. Clear bands for this pill's RECT (border box — hit
+      testing ignores the rounding):
+        desktop — keep top > 725.9 and right < 872:
+                  bottom 4px + min-height 64px → box y 732–796,
+                  width 400 centered → x 440–840 (1280×800). ~6px
+                  under the route row, 32px+ clear of the stop tap.
+        portrait — the free strip is the band BETWEEN the z = 2.6 row
+                  and the z = 3 stop tap: y ∈ (765.8, 808.5). Any
+                  bottom-center pill taller/lower than that band is a
+                  route intercept (the stop tap walks through x≈195),
+                  so ≤420px runs min-height 32px at bottom 40px →
+                  box y 772–802 (390×844), ~6px clear on both rows.
+                  Shrink/nudge here, never in the test.
+   2. .bookshelf — the chooser overlay, covering the whole stage
+      (same recipe spirit as the library overlay covering the
+      game). Cream cover cards on warm storytime wood; the grid
+      reflows 2 → 3 → 4 columns and scrolls when needed.
+   Show/hide = the .hidden utility; the compound rules below live
+   after it (and after .bookshelf's display) so hidden keeps
+   winning — the same trick as .beach-scene.hidden.
+   ============================================================ */
+
+/* One soft entrance bounce when the pill appears (library open /
+   shelf return). Ancestors' display:none gates it off while hidden,
+   so it replays exactly on each re-show; the reduced-motion block at
+   the end of the file kills it under prefers-reduced-motion. */
+@keyframes library-read-pop {
+  0% {
+    transform: scale(0.82);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.03);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.library-read-button {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  right: 0;
+  margin-inline: auto; /* centered without transform, so hover/anim can scale */
+  width: min(400px, calc(100% - 24px));
+  z-index: 11; /* same layer as .beach-close — above the canvas host (3) */
+  font-family: inherit;
+  font-size: 1.4rem;
+  line-height: 1.15;
+  font-weight: bold;
+  color: #4a2c0d; /* deep wood on warm cream — high contrast */
+  background: linear-gradient(180deg, #fff9ec 0%, #ffe6a8 100%);
+  border: 4px solid #5f3a1a;
+  border-radius: 999px;
+  padding: 12px 24px;
+  min-height: 64px; /* height stays exactly 64 — internals (12*2+4*2+~26) fit under it */
+  white-space: nowrap; /* one line only — see the camera-gate note above */
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(30, 16, 2, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.55);
+  transition: transform 0.15s ease, background 0.15s ease;
+  animation: library-read-pop 0.5s ease-out;
+}
+
+.library-read-button.hidden {
+  display: none;
+}
+
+.library-read-button:hover {
+  transform: scale(1.05);
+  background: var(--sunny-yellow);
+}
+
+.library-read-button:active {
+  transform: scale(0.95);
+}
+
+/* ~390 portrait: only the y (765.8, 808.5) clear band is available —
+   a wide shallow bottom bar, still centered, still high-contrast.
+   32px not 56px on purpose: the band is 42px tall and the z = 3 stop
+   click runs through the center column at y ≈ 808.5. */
+@media (max-width: 420px) {
+  .library-read-button {
+    bottom: 40px;
+    width: min(340px, calc(100% - 20px));
+    min-height: 32px;
+    font-size: 1.05rem;
+    padding: 2px 14px;
+    border-width: 3px;
+  }
+}
+
+.bookshelf {
+  position: absolute;
+  inset: 0;
+  z-index: 20; /* over the canvas host (3) and both top pills (11) */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Warm storytime wood behind cream cards — the same wood/cream
+     family as the library interior and the game's cream panels. */
+  background: linear-gradient(180deg, #f6d9a4 0%, #e8b96f 38%, #d9a86a 100%);
+}
+
+.bookshelf.hidden {
+  display: none;
+}
+
+/* Header: the ⬅️ Back pill floats top-left (it reuses .beach-close,
+   same spirit as #library-close); the title sits centered below the
+   top band so the two never collide on narrow screens. */
+.bookshelf-header {
+  flex: none;
+  padding: 64px 16px 6px;
+  text-align: center;
+}
+
+.bookshelf-title {
+  margin: 0;
+  font-size: clamp(1.15rem, 4vw, 1.6rem);
+  font-weight: bold;
+  color: var(--text-color); /* dark on light wood — readable contrast */
+}
+
+/* Same chunky pill as #library-close; storytime wood hover tint. */
+.bookshelf-close:hover {
+  background: #f0c98a;
+}
+
+.bookshelf-grid {
+  flex: 1;
+  min-height: 0; /* the grid scrolls — the page never does */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* 2 cols at ~390px */
+  /* Rows must be max-content, NOT plain auto: a width:100% +
+     aspect-ratio thumb contributes ~0 height to auto track sizing,
+     auto rows then collapse to the text lines and stretch-equalize
+     across this fixed-height scroll box — covers overflow their
+     cards and overlap the next row. max-content measures each card
+     at its real column width (text wraps included) and keeps the
+     square cover inside its card. align-content:start keeps short
+     pages from stretching rows to fill. */
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: 12px;
+  padding: 10px 14px calc(16px + env(safe-area-inset-bottom));
+  scrollbar-color: var(--pink-dark) #f3dfb6;
+}
+
+/* …three columns on large phones/small desktops, four on wide screens */
+@media (min-width: 700px) {
+  .bookshelf-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1000px) {
+  .bookshelf-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* One cover card = one big ≥44px tap target (thumb + title + by-line
+   + level badge). */
+.bookshelf-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 8px 10px;
+  min-height: 44px;
+  font-family: inherit;
+  color: var(--text-color);
+  text-align: center;
+  background: var(--cream);
+  border: var(--border-chunky);
+  border-radius: 18px;
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.bookshelf-card:hover {
+  transform: scale(1.03);
+  background: #fffdf4;
+}
+
+.bookshelf-card:active {
+  transform: scale(0.97);
+}
+
+.bookshelf-card-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 2px solid var(--text-color);
+  background: #e8d9b8; /* wood-ish placeholder while the cover decodes */
+}
+
+.bookshelf-card-title {
+  font-weight: bold;
+  font-size: 0.95rem;
+  line-height: 1.15;
+}
+
+.bookshelf-card-by {
+  font-size: 0.78rem;
+  line-height: 1.15;
+  color: var(--text-color);
+}
+
+.bookshelf-card-level {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 2px 10px;
+  border: 2px solid var(--text-color);
+  border-radius: 999px;
+  background: var(--sunny-yellow);
+  font-size: 0.72rem;
+  font-weight: bold;
+  line-height: 1.3;
+}
+
+/* Loading / "Can't load the bookshelf" retry state / polite notes —
+   one full-width cream card inside the grid. */
+.bookshelf-message {
+  grid-column: 1 / -1;
+  margin: 8px auto;
+  max-width: 420px;
+  padding: 18px 22px;
+  text-align: center;
+  background: var(--cream);
+  border: var(--border-chunky);
+  border-radius: 18px;
+  box-shadow: var(--shadow-soft);
+}
+
+.bookshelf-message-loading {
+  padding: 14px 18px;
+  border: none;
+  border-radius: 18px;
+  background: none;
+  box-shadow: none;
+  font-weight: bold;
+  font-size: 1.05rem;
+  color: var(--text-color);
+}
+
+.bookshelf-message-title {
+  margin: 0 0 6px;
+  font-size: 1.15rem;
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+.bookshelf-message-hint {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  line-height: 1.3;
+  color: var(--text-color);
+}
+
+.bookshelf-retry {
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--text-color);
+  background: var(--sunny-yellow);
+  border: var(--border-chunky);
+  border-radius: 999px;
+  padding: 10px 20px;
+  min-height: 44px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.bookshelf-retry:hover {
+  transform: scale(1.05);
+  background: var(--white);
+}
+
+.bookshelf-retry:active {
+  transform: scale(0.95);
+}
+
+/* ============================================================
+   Storybook reader (js/books.js / window.BooksUI.openBook)
+   ------------------------------------------------------------
+   #bookreader covers the same stage as #bookshelf (which stays
+   warm but hidden while a book is open). Portrait-first sheet:
+   illustration on top, BIG kid-readable text under it, fixed
+   control bar at the bottom (prev / "3 / 12" / next). The 🎉
+   The End credits sheet (#bookreader-credits) replaces the page
+   view after the last page and carries the verbatim CC BY
+   attribution. Same cream/wood palette as the shelf; every tap
+   target ≥44px. Show/hide = the .hidden utility, with the
+   compound rules at the END of this section so they keep winning
+   the cascade (same trick as .bookshelf.hidden).
+   ============================================================ */
+
+.bookreader {
+  position: absolute;
+  inset: 0;
+  z-index: 21; /* over .bookshelf (20), the canvas host (3), pills (11) */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Warm storytime wood behind the centered cream sheet — the same
+     wash as the bookshelf chooser. */
+  background: linear-gradient(180deg, #f6d9a4 0%, #e8b96f 38%, #d9a86a 100%);
+}
+
+/* Header band: 📚 Bookshelf (left), title (center), ℹ️ Credits (right). */
+.bookreader-header {
+  flex: none;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px 6px;
+}
+
+/* Reuses .beach-close's chunky pill, but laid out in the header grid
+   (the beach pill is absolutely positioned — override that here). */
+.bookreader-close {
+  position: static;
+  padding: 8px 14px;
+  white-space: nowrap;
+}
+
+.bookreader-close:hover {
+  background: #f0c98a;
+}
+
+.bookreader-title {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  font-size: clamp(1rem, 3.6vw, 1.35rem);
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+.bookreader-credits-btn {
+  font-family: inherit;
+  font-size: clamp(0.85rem, 3vw, 1rem);
+  font-weight: bold;
+  color: var(--text-color);
+  background: var(--white);
+  border: var(--border-chunky);
+  border-radius: 999px;
+  padding: 8px 14px;
+  min-width: 44px;
+  min-height: 44px;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.bookreader-credits-btn:hover {
+  transform: scale(1.05);
+  background: var(--sunny-yellow);
+}
+
+.bookreader-credits-btn:active {
+  transform: scale(0.95);
+}
+
+/* Body: the swipe surface (touch-action keeps vertical text scroll
+   native; books.js owns horizontal flicks). Centered sheet column. */
+.bookreader-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  padding: 4px 12px 0;
+  touch-action: pan-y;
+}
+
+/* Page view = one centered cream sheet with a soft shadow. */
+.bookreader-pageview {
+  flex: 1;
+  min-height: 0;
+  width: min(860px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  background: var(--cream);
+  border: var(--border-chunky);
+  border-radius: 18px;
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+/* Illustration: top half, never stretched (object-fit: contain). */
+.bookreader-figure {
+  flex: 0 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bookreader-img {
+  display: block;
+  max-width: 100%;
+  max-height: 44vh; /* phones: leave room for the big text below */
+  object-fit: contain;
+  border-radius: 12px;
+  border: 3px solid var(--text-color);
+  background: #e8d9b8;
+  transition: opacity 0.12s ease;
+}
+
+/* ≤150ms opacity swap on page commit (books.js toggles the class);
+   instant under reduced motion (below). */
+.bookreader-img.bookreader-swap {
+  animation: bookreader-fade 0.14s ease;
+}
+
+@keyframes bookreader-fade {
+  from { opacity: 0.35; }
+  to   { opacity: 1; }
+}
+
+/* Landscape books are wide — a little less height keeps them from
+   crowding the text; desktop sheets allow up to ~60vh either way. */
+@media (min-width: 700px) {
+  .bookreader-img {
+    max-height: 56vh;
+  }
+
+  .bookreader-landscape .bookreader-img {
+    max-height: 52vh;
+    max-width: 100%;
+  }
+}
+
+/* Text under the picture: BIG kid-readable type, scrolls INSIDE its
+   box so the control bar never leaves the screen. */
+.bookreader-textbox {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-color: var(--pink-dark) #f3dfb6;
+}
+
+.bookreader-text {
+  margin: 0;
+  font-size: 22px; /* ≥22px on mobile */
+  line-height: 1.55;
+  color: var(--text-color);
+  white-space: pre-wrap; /* page text keeps its line breaks */
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 700px) {
+  .bookreader-text {
+    font-size: 27px; /* 26–30px on desktop */
+    line-height: 1.6;
+  }
+}
+
+/* Text-only page (image ""): no <img> at all — the words take the
+   whole sheet, centered and even larger. */
+.bookreader-textonly .bookreader-figure {
+  display: none;
+}
+
+.bookreader-textonly .bookreader-textbox {
+  display: flex;
+  align-items: center;
+}
+
+.bookreader-textonly .bookreader-text {
+  width: 100%;
+  text-align: center;
+  font-size: 28px;
+  line-height: 1.5;
+}
+
+@media (min-width: 700px) {
+  .bookreader-textonly .bookreader-text {
+    font-size: 30px;
+  }
+}
+
+/* Image-only page (text ""): no empty text box — art gets the sheet. */
+.bookreader-imageonly .bookreader-textbox {
+  display: none;
+}
+
+.bookreader-imageonly .bookreader-figure {
+  flex: 1;
+}
+
+/* ---------- credits sheet (🎉 The End + verbatim CC BY text) ----------
+
+   Layout contract: the end/title/by-lines sit on top, the license +
+   source links and the Read again / Bookshelf actions are ALWAYS
+   visible at the bottom, and the long verbatim attribution scrolls
+   INSIDE its own box between them (never pushes the actions off). */
+.bookreader-credits {
+  flex: 1;
+  min-height: 0;
+  width: min(860px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  padding: 18px 20px;
+  background: var(--cream);
+  border: var(--border-chunky);
+  border-radius: 18px;
+  box-shadow: var(--shadow-soft);
+}
+
+.bookreader-credits-end {
+  flex: none;
+  margin: 0;
+  font-size: 1.9rem;
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+.bookreader-credits-title {
+  flex: none;
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: bold;
+  text-align: center;
+  color: var(--text-color);
+}
+
+.bookreader-credits-by {
+  flex: none;
+  margin: 0;
+  font-size: 1.05rem;
+  text-align: center;
+  color: var(--text-color);
+}
+
+.bookreader-credits-by:empty {
+  display: none;
+}
+
+.bookreader-credits-heading {
+  flex: none;
+  margin: 8px 0 0;
+  font-size: 0.95rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-color);
+}
+
+/* The CC BY requirement: the book's verbatim attribution, complete,
+   with line breaks preserved (white-space: pre-wrap + textContent),
+   scrolling inside its own bounded box. */
+.bookreader-credits-attribution {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-color: var(--pink-dark) #f3dfb6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  text-align: left;
+  color: var(--text-color);
+  background: var(--white);
+  border: 2px solid var(--text-color);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.bookreader-credits-license,
+.bookreader-credits-source {
+  flex: none;
+  margin: 0;
+  text-align: center;
+}
+
+/* Visible links (user-initiated navigation only — zero automatic
+   external requests), padded to the ≥44px target floor. */
+.bookreader-credits-license a,
+.bookreader-credits-source a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 10px;
+  font-weight: bold;
+  color: var(--pink-dark);
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+
+.bookreader-credits-source a {
+  font-size: 0.85rem;
+  font-weight: normal;
+}
+
+.bookreader-credits-actions {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.bookreader-again,
+.bookreader-credits-close {
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: bold;
+  color: var(--text-color);
+  border: var(--border-chunky);
+  border-radius: 999px;
+  padding: 10px 20px;
+  min-height: 48px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.bookreader-again {
+  background: var(--sunny-yellow);
+}
+
+.bookreader-credits-close {
+  background: var(--white);
+}
+
+.bookreader-again:hover,
+.bookreader-credits-close:hover {
+  transform: scale(1.05);
+  background: var(--white);
+}
+
+.bookreader-again:active,
+.bookreader-credits-close:active {
+  transform: scale(0.95);
+}
+
+/* ---------- fixed control bar: prev / "3 / 12" / next ---------- */
+
+.bookreader-controls {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px calc(12px + env(safe-area-inset-bottom));
+}
+
+/* Mid cluster: the "3 / 12" pill plus the 🔊 Read page narration
+   button (books.js flips it to ⏹ Stop while the page is speaking).
+   Wraps as a safety valve on very narrow screens; stays one row at
+   390px. */
+.bookreader-controls-mid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bookreader-nav {
+  font-family: inherit;
+  font-size: 1.7rem;
+  line-height: 1;
+  color: var(--text-color);
+  background: var(--white);
+  border: var(--border-chunky);
+  border-radius: 999px;
+  min-width: 64px;
+  min-height: 56px; /* comfortably ≥44px */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+}
+
+/* 🔊 Read page / ⏹ Stop (js/books.js TTS): same chunky pill language
+   as the nav arrows, text-sized like the credits actions, ≥44px. */
+.bookreader-tts {
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: bold;
+  white-space: nowrap;
+  color: var(--text-color);
+  background: var(--white);
+  border: var(--border-chunky);
+  border-radius: 999px;
+  padding: 10px 16px;
+  min-height: 48px; /* comfortably ≥44px */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+}
+
+.bookreader-tts:hover:not(:disabled) {
+  transform: scale(1.05);
+  background: var(--sunny-yellow);
+}
+
+.bookreader-tts:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+/* ⏹ Stop while it reads — warm fill so kids see the toggle. */
+.bookreader-tts.is-playing {
+  background: var(--sunny-yellow);
+}
+
+/* No page audio and no local en voice on this device: greyed but
+   still visible (title explains why). */
+.bookreader-tts:disabled {
+  opacity: 0.45;
+  cursor: default;
+  background: #efe3c2;
+  box-shadow: none;
+}
+
+.bookreader-nav:hover:not(:disabled) {
+  transform: scale(1.05);
+  background: var(--sunny-yellow);
+}
+
+.bookreader-nav:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+/* Disabled at the bounds (prev on page 1; next only past the end on
+   the credits sheet — on the LAST page next becomes the credits
+   entry and stays enabled). */
+.bookreader-nav:disabled {
+  opacity: 0.45;
+  cursor: default;
+  background: #efe3c2;
+  box-shadow: none;
+}
+
+.bookreader-page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 88px;
+  padding: 8px 16px;
+  font-size: 1.15rem;
+  font-weight: bold;
+  letter-spacing: 0.03em;
+  color: var(--text-color);
+  background: var(--cream);
+  border: var(--border-chunky);
+  border-radius: 999px;
+}
+
+/* ~390px portrait: tighter chrome, targets stay ≥44px. */
+@media (max-width: 420px) {
+  .bookreader-close {
+    padding: 8px 10px;
+    font-size: 0.88rem;
+  }
+
+  .bookreader-credits-btn {
+    padding: 8px 10px;
+    font-size: 0.82rem;
+  }
+
+  .bookreader-nav {
+    min-width: 56px;
+    min-height: 52px;
+    font-size: 1.5rem;
+  }
+
+  .bookreader-tts {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    min-height: 44px; /* the ≥44px floor */
+  }
+
+  .bookreader-controls {
+    gap: 8px;
+    padding: 8px 12px calc(12px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Respect reduced-motion preferences: the page swap goes instant,
+   and the read pill's entrance pop is disabled entirely. */
+@media (prefers-reduced-motion: reduce) {
+  .bookreader-img,
+  .bookreader-nav,
+  .bookreader-tts,
+  .bookreader-close,
+  .bookreader-credits-btn,
+  .bookreader-again,
+  .bookreader-credits-close {
+    transition: none;
+  }
+
+  .bookreader-img.bookreader-swap {
+    animation: none;
+  }
+
+  .library-read-button {
+    animation: none;
+  }
+}
+
+/* Compound .hidden rules LAST so they win the cascade over every
+   display rule above (the .hidden utility lives much earlier in the
+   file — same trick as .bookshelf.hidden). */
+.bookreader.hidden,
+.bookreader-pageview.hidden,
+.bookreader-credits.hidden,
+.bookreader-textbox.hidden,
+.bookreader-img.hidden,
+.bookreader-tts.hidden {
+  display: none;
+}
