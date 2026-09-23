@@ -25,6 +25,8 @@ Hard guarantees (real asserts at the end — the script fails LOUDLY):
     storybook credits — licensing requires both)
   * no *-login.md, no "mixamo" in any path
   * deploy/index.html is the LANDING page, not the root game index
+  * favicon.ico at deploy root is a real 3-image ICO (16/32/48 PNG payloads)
+    and both shipped pages link /favicon.ico (no inline data-URI SVG icon)
   * every pages[].audio clip ships next to its book.json, >2KB, with the
     mp3/wav magic its extension claims; every non-empty-text page carries
     its pages[].audio stamp (full-narration coverage; empty-text pages
@@ -37,6 +39,7 @@ Run from anywhere: paths resolve relative to this file.
 import json
 import re
 import shutil
+import struct
 import sys
 import xml.dom.minidom
 from pathlib import Path
@@ -69,6 +72,14 @@ TTS_CREDIT_LINE_CLONE = (
     "synthesized with mimo-v2.5-tts-voiceclone).")
 BASE_VOICE_SAMPLE = REPO / "tools" / "voice" / "base.mp3"
 AUDIO_SUFFIXES = (".mp3", ".wav")
+
+# Favicon / app-icon set shipped at the deploy ROOT. Googlebot-Image 404'd
+# /favicon.ico while the pages carried only inline data-URI SVG icons (the
+# SERP favicon program wants a real icon file at a crawlable URL).
+ICON_FILES = ("favicon.ico", "icon.svg",
+              "icon-16.png", "icon-32.png", "icon-48.png",
+              "icon-180.png", "icon-192.png", "icon-512.png",
+              "apple-touch-icon.png")
 
 # Deterministic <lastmod> stamped into every sitemap.xml <url> at build time.
 # A FIXED date — never date.today() — so the generated file is reproducible.
@@ -155,6 +166,14 @@ def main() -> int:
     assert n_loc == 3, f"sitemap.xml should hold 3 <loc> URLs, found {n_loc}"
     (DEPLOY / "sitemap.xml").write_text(sitemap, encoding="utf-8")
 
+    # 2b) favicon + app icons at the deploy ROOT — /favicon.ico must exist
+    #     as a REAL file (Googlebot-Image 404'd it; inline data-URI SVG icons
+    #     don't qualify for Google's SERP favicon program)
+    for name in ICON_FILES:
+        assert (REPO / name).is_file(), f"missing icon source: {name}"
+        assert forbidden(Path(name)) is None, f"forbidden public file: {name}"
+        shutil.copy2(REPO / name, DEPLOY / name)
+
     # 3) landing/ assets: landing.css (+ any top-level landing js) and the
     #    css/js/img subdirs — copy_tree never allows .py
     n_landing = 0
@@ -198,6 +217,31 @@ def main() -> int:
         "deploy/index.html is not the landing page"
     assert (DEPLOY / "play" / "index.html").read_text(encoding="utf-8") \
         == root_index, "play/index.html is not the game's index"
+    # favicon.ico is a REAL 3-image ICO (16/32/48 PNG payloads) and both
+    # shipped pages link it from the site root (absolute /favicon.ico so the
+    # game under /play/ resolves it too) — no inline data-URI SVG icon left
+    for name in ICON_FILES:
+        assert (DEPLOY / name).is_file(), f"icon missing at deploy root: {name}"
+    ico = (DEPLOY / "favicon.ico").read_bytes()
+    assert ico[:4] == b"\x00\x00\x01\x00", "favicon.ico: bad ICONDIR header"
+    (ico_count,) = struct.unpack_from("<H", ico, 4)
+    assert ico_count == 3, f"favicon.ico: expected 3 images, found {ico_count}"
+    for i, want in enumerate((16, 32, 48)):
+        w, h, _cc, _res, _planes, _bpp, size, off = struct.unpack_from(
+            "<BBBBHHII", ico, 6 + 16 * i)
+        assert (w, h) == (want, want), \
+            f"favicon.ico entry {i}: {w}x{h} != {want}x{want}"
+        assert ico[off:off + 4] == b"\x89PNG", \
+            f"favicon.ico entry {i}: payload is not a PNG"
+        assert off + size <= len(ico), f"favicon.ico entry {i}: truncated payload"
+        iw, ih = struct.unpack_from(">II", ico, off + 16)  # IHDR dims
+        assert (iw, ih) == (want, want), \
+            f"favicon.ico entry {i}: PNG is {iw}x{ih}, expected {want}x{want}"
+    for page in ("index.html", "play/index.html"):
+        html = (DEPLOY / page).read_text(encoding="utf-8")
+        assert 'href="/favicon.ico"' in html, f"{page} lacks the /favicon.ico link"
+        assert "data:image/svg+xml" not in html, \
+            f"{page} still carries an inline data-URI SVG icon"
     # the seven card images made it
     assert len(list((DEPLOY / "landing" / "img").glob("*.png"))) == 7, \
         "landing/img did not ship all seven screenshots"

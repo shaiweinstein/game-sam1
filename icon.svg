@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>Lily's Dress-Up Adventure</title>
+  <!-- Palette reused verbatim from landing/landing.css :root —
+       cream #fff9ec, text/border #3a2e6e, pink #ff8fb8,
+       sky-blue #7ec8f7, grass-green #6bd66b, sunny-yellow #ffd93d.
+       Bold shapes only: must read at 16px. -->
+  <rect x="3" y="3" width="58" height="58" rx="13" fill="#fff9ec" stroke="#3a2e6e" stroke-width="3"/>
+  <g fill="none" stroke-width="5.5">
+    <path d="M10 53a22 22 0 0 1 44 0" stroke="#ff8fb8"/>
+    <path d="M18.5 53a13.5 13.5 0 0 1 27 0" stroke="#7ec8f7"/>
+    <path d="M27 53a5 5 0 0 1 10 0" stroke="#6bd66b"/>
+  </g>
+  <polygon points="32,8.5 34.64,12.86 39.61,14.03 36.28,17.89 36.7,22.97 32,21 27.3,22.97 27.72,17.89 24.39,14.03 29.36,12.86" fill="#ffd93d" stroke="#3a2e6e" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>
