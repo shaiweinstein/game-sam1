@@ -7,7 +7,7 @@ Stdlib only. Layout produced:
       index.html               ← landing.html (Play link rewritten to play/)
       privacy.html
       robots.txt               ← crawler rules + Sitemap: pointer
-      sitemap.xml              ← / , /play/ , /privacy.html
+      sitemap.xml              ← / , /play/ , /privacy.html (+ <lastmod>)
       THIRD-PARTY-NOTICES.md
       landing/                 ← css/, js/ (if present), img/ — never the
                                   capture script (.py files are banned outright)
@@ -69,6 +69,10 @@ TTS_CREDIT_LINE_CLONE = (
     "synthesized with mimo-v2.5-tts-voiceclone).")
 BASE_VOICE_SAMPLE = REPO / "tools" / "voice" / "base.mp3"
 AUDIO_SUFFIXES = (".mp3", ".wav")
+
+# Deterministic <lastmod> stamped into every sitemap.xml <url> at build time.
+# A FIXED date — never date.today() — so the generated file is reproducible.
+SITEMAP_LASTMOD = "2026-09-23"
 
 
 def forbidden(rel: Path) -> str | None:
@@ -139,9 +143,17 @@ def main() -> int:
     #    lived only on the server and died to `rsync --delete` — they are now
     #    first-class repo sources shipped through this same allowlist)
     for name in ("privacy.html", "THIRD-PARTY-NOTICES.md",
-                 "robots.txt", "sitemap.xml", "ads.txt"):
+                 "robots.txt", "ads.txt"):
         assert forbidden(Path(name)) is None, f"forbidden public file: {name}"
         shutil.copy2(REPO / name, DEPLOY / name)
+    # sitemap.xml is GENERATED (not copied): the repo URL list gets a
+    # deterministic <lastmod> stamped into every <url> (sitemap protocol
+    # order inside <url>: loc, lastmod, changefreq, priority).
+    sitemap, n_loc = re.subn(r"</loc>",
+                             f"</loc><lastmod>{SITEMAP_LASTMOD}</lastmod>",
+                             (REPO / "sitemap.xml").read_text(encoding="utf-8"))
+    assert n_loc == 3, f"sitemap.xml should hold 3 <loc> URLs, found {n_loc}"
+    (DEPLOY / "sitemap.xml").write_text(sitemap, encoding="utf-8")
 
     # 3) landing/ assets: landing.css (+ any top-level landing js) and the
     #    css/js/img subdirs — copy_tree never allows .py
@@ -156,10 +168,10 @@ def main() -> int:
         d = REPO / "landing" / sub
         if d.is_dir():
             n_landing += copy_tree(d, DEPLOY / "landing" / sub)
-    assert n_landing >= 1 + 6, "landing assets incomplete"
+    assert n_landing >= 1 + 7, "landing assets incomplete"
     assert (DEPLOY / "landing" / "landing.css").exists(), "landing.css missing"
-    assert len(list((DEPLOY / "landing" / "img").glob("*.png"))) == 6, \
-        "landing/img did not ship all six screenshots"
+    assert len(list((DEPLOY / "landing" / "img").glob("*.png"))) == 7, \
+        "landing/img did not ship all seven screenshots"
 
     # 4) play/ = the game only
     (DEPLOY / "play").mkdir()
@@ -186,9 +198,9 @@ def main() -> int:
         "deploy/index.html is not the landing page"
     assert (DEPLOY / "play" / "index.html").read_text(encoding="utf-8") \
         == root_index, "play/index.html is not the game's index"
-    # the six card images made it
-    assert len(list((DEPLOY / "landing" / "img").glob("*.png"))) == 6, \
-        "landing/img did not ship all six screenshots"
+    # the seven card images made it
+    assert len(list((DEPLOY / "landing" / "img").glob("*.png"))) == 7, \
+        "landing/img did not ship all seven screenshots"
     # crawler files shipped and are well-formed (rsync --delete lost the
     # server-only originals once; the bundle must never come out without them)
     robots = (DEPLOY / "robots.txt").read_text(encoding="utf-8")
@@ -201,6 +213,9 @@ def main() -> int:
     assert locs == ["https://lily.game/", "https://lily.game/play/",
                     "https://lily.game/privacy.html"], \
         f"sitemap.xml locs wrong: {locs}"
+    lastmods = [t.firstChild.data for t in dom.getElementsByTagName("lastmod")]
+    assert lastmods == [SITEMAP_LASTMOD] * 3, \
+        f"sitemap.xml lastmod wrong: {lastmods}"
     # ads.txt must declare our AdSense publisher — without it Google shows
     # "Not found" and serves no ads (it also died to rsync --delete once)
     ads = (DEPLOY / "ads.txt").read_text(encoding="utf-8")

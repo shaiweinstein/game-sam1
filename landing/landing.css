@@ -241,6 +241,15 @@ img {
   padding: 0;
 }
 
+/* Six cards now (the library joined the grid): 3 × 2 keeps both rows
+   even and gives every screenshot room to read — additive override,
+   the 2 → 1 column steps below are unchanged. */
+@media (min-width: 1024px) {
+  .cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .card {
   background: var(--white);
   border: 3px solid var(--text-color);

@@ -3,14 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lily's Dress-Up Adventure — free dress-up, kitchen &amp; beach game for kids</title>
-  <meta name="description" content="Lily's Dress-Up Adventure is a free browser game for kids ages ~4-9: dress up, cook in the kitchen, and play on a 3D beach with swimming, surfing, a duck boat and a sandcastle builder. No install, no sign-up, nothing saved to a server.">
+  <title>Lily's Dress-Up Adventure — free dress-up &amp; beach game for kids</title>
+  <link rel="canonical" href="https://lily.game/">
+  <meta name="description" content="Lily's Dress-Up Adventure is a free browser game for kids ages ~4-9: dress up, cook in the kitchen, and play on a 3D beach. No install, no sign-up, nothing saved.">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Lily's Dress-Up Adventure — dress up, cook, and build castles at the beach!">
   <meta property="og:description" content="A free, friendly browser game: six outfits, a yummy kitchen, and a 3D beach with surfing, a duck boat and a sandcastle that stays. No sign-up, no install.">
-  <!-- Before going live, prefer an absolute URL here (https://your-domain/landing/img/hero-beach.png)
-       so social cards always resolve; the relative path still works for this page. -->
-  <meta property="og:image" content="landing/img/hero-beach.png">
+  <meta property="og:image" content="https://lily.game/landing/img/hero-beach.png">
+  <meta property="og:url" content="https://lily.game/">
+  <meta property="og:site_name" content="Lily's Dress-Up Adventure">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Lily's Dress-Up Adventure — dress up, cook, and build castles at the beach!">
+  <meta name="twitter:description" content="A free, friendly browser game: six outfits, a yummy kitchen, and a 3D beach with surfing, a duck boat and a sandcastle that stays. No sign-up, no install.">
+  <meta name="twitter:image" content="https://lily.game/landing/img/hero-beach.png">
   <meta name="theme-color" content="#7ec8f7">
   <!-- Inline favicon (same data URI as the game's index.html) — no favicon.ico request -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text x='0' y='14' font-size='14'>🌈</text></svg>">
@@ -18,6 +23,62 @@
   <!-- AdSense verification/loader tag — owner's publisher id ca-pub-8606608049292845.
        Required for AdSense onboarding: this is how Google verifies site ownership. -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8606608049292845" crossorigin="anonymous"></script>
+  <!-- Structured data: VideoGame markup with absolute https://lily.game URLs.
+       Deliberately NO aggregateRating/Review — we never fake ratings. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "Lily's Dress-Up Adventure",
+    "url": "https://lily.game/",
+    "image": [
+      "https://lily.game/landing/img/card-beach-play.png",
+      "https://lily.game/landing/img/card-dressup.png",
+      "https://lily.game/landing/img/card-kitchen.png",
+      "https://lily.game/landing/img/card-sandcastle-baked.png",
+      "https://lily.game/landing/img/card-sandcastle-build.png",
+      "https://lily.game/landing/img/hero-beach.png"
+    ],
+    "screenshot": [
+      "https://lily.game/landing/img/card-beach-play.png",
+      "https://lily.game/landing/img/card-dressup.png",
+      "https://lily.game/landing/img/card-kitchen.png",
+      "https://lily.game/landing/img/card-sandcastle-baked.png",
+      "https://lily.game/landing/img/card-sandcastle-build.png",
+      "https://lily.game/landing/img/hero-beach.png",
+      "https://lily.game/landing/img/card-library.png"
+    ],
+    "description": "Lily's Dress-Up Adventure is a free browser game for kids ages ~4-9: dress up, cook in the kitchen, and play on a 3D beach. No install, no sign-up, nothing saved.",
+    "applicationCategory": "GameApplication",
+    "gamePlatform": ["Web browser", "HTML5"],
+    "operatingSystem": "Any",
+    "playMode": "SinglePlayer",
+    "genre": ["Dress-up game", "Kids game", "Cooking game", "Beach game"],
+    "inLanguage": "en",
+    "isFamilyFriendly": true,
+    "datePublished": "2026-09-18",
+    "audience": {
+      "@type": "PeopleAudience",
+      "suggestedMinAge": 4,
+      "suggestedMaxAge": 9
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Lily's Dress-Up Adventure",
+      "url": "https://lily.game/"
+    },
+    "author": {
+      "@type": "Organization",
+      "name": "Lily's Dress-Up Adventure",
+      "url": "https://lily.game/"
+    }
+  }
+  </script>
 </head>
 <body>
 
@@ -128,6 +189,19 @@
             <p>Cook and serve: apples and bananas, warm soup, fluffy pancakes, juice and smoothies.
                Every treat fills Lily's energy bar so there's always room for another adventure.
                Veggies first and pancakes last — that part is between you two.</p>
+          </div>
+        </li>
+        <li class="card">
+          <img src="landing/img/card-library.png" width="1280" height="800" loading="lazy"
+               alt="Screenshot: the library's Choose a story bookshelf — a grid of colorful picture-book covers with title, author and Level badge on every card — ready for a reader to pick one.">
+          <div class="card-body">
+            <h3>📚 28 storybooks you can read — and hear</h3>
+            <p>There's a real little library inside the game with 28 picture books —
+               gentle originals and Beatrix Potter classics like The Tale of Peter Rabbit.
+               Every page has a "Read page" button, so a warm narrator reads it aloud —
+               a cozy read-along for bedtime, and a big help as kids start reading themselves.
+               The short Level 1–3 books suit early readers, and like everything here the
+               library is free: no install, no sign-up.</p>
           </div>
         </li>
         <li class="card">
@@ -322,6 +396,18 @@
         <details>
           <summary>Why are there ads on the page?</summary>
           <p>One honest reason: ad income on this landing page pays for hosting and lets the game grow — new outfits, new games — while staying free. Ads never appear inside the game itself, never sit next to the play controls, and because the site is child-directed they are contextual (non-personalized) only.</p>
+        </details>
+        <details>
+          <summary>What ages is it for?</summary>
+          <p>About 4 to 9. Little ones love the big buttons — and the read-aloud stories with a grown-up — while older kids read the short Level 1–3 books themselves and build bigger sandcastles.</p>
+        </details>
+        <details>
+          <summary>Do we need to install or sign up?</summary>
+          <p>No. There is nothing to download and no app store — open the page and play. No account, no email address, no password, on a phone, tablet or computer.</p>
+        </details>
+        <details>
+          <summary>What books are in the library?</summary>
+          <p>28 free picture books: gentle originals and Beatrix Potter classics like The Tale of Peter Rabbit, in short Level 1–3 lengths — and every page can be read aloud by a warm narrator.</p>
         </details>
       </div>
     </div>
