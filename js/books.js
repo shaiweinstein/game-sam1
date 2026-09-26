@@ -890,6 +890,12 @@
       const names = (curBook.illustrators || []).join(", ");
       illustrators.textContent = names ? "Illustrated by " + names : "";
     }
+    const translators = byId("bookreader-credits-translators");
+    if (translators) {
+      const names = (curBook.translators || []).join(", ");
+      translators.textContent = names ? "Translated by " + names : "";
+      translators.hidden = !names;
+    }
 
     /* license + licenseUrl — visible link (navigates only on click). */
     const license = byId("bookreader-credits-license");

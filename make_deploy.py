@@ -255,14 +255,17 @@ def books_html() -> str:
         assert blurb, f"site/data/books.json has no blurb for book {e['id']} ({e['title']})"
         who = ", ".join(book["authors"])
         art = ", ".join(book.get("illustrators") or [])
-        translator = ""
-        # StoryWeaver title pages carry the real credit line. For translated
-        # books book.json lists the TRANSLATOR under "authors", so prefer the
-        # title page ("Author: X Illustrator: Y Translator: Z") when present.
+        translator = ", ".join(book.get("translators") or [])
+        # book.json credits come from each StoryWeaver title page ("Author: X
+        # Illustrator: Y Translator: Z", tools/fetch_books.py). The API's own
+        # authors field once named the translator for 4 books; never again.
         credit = re.search(r"Authors?: (.+?) Illustrators?: (.+?)(?: Translators?: (.+))?$",
                            " ".join((book["pages"][0].get("text") or "").split()))
         if credit:
-            who, art, translator = credit.group(1), credit.group(2), credit.group(3) or ""
+            assert (who, translator) == (credit.group(1), credit.group(3) or ""), \
+                f"book {e['id']} credits {who!r}/{translator!r} disagree with its title page " \
+                f"{credit.group(1)!r}/{credit.group(3)!r} — run: python3 tools/fetch_books.py manifest"
+            assert e["authors"] == book["authors"], f"manifest.json authors stale for book {e['id']}"
         byline = f"by {who}" + (f", illustrated by {art}" if art and art != who else "") \
             + (f", translated by {translator}" if translator else "")
         lic = "Public domain" if book["license"] == "Public Domain" else book["license"]

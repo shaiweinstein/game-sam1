@@ -18,6 +18,7 @@
       "illustrators": [
         "Zainab Tambawalla"
       ],
+      "translators": [],
       "thumb": "books/369/thumb.jpg",
       "book": "books/369/book.json",
       "sourceUrl": "https://storyweaver.org.in/en/stories/369-the-red-raincoat",
@@ -30,10 +31,13 @@
       "level": 1,
       "pageCount": 13,
       "authors": [
-        "Manisha Chaudhry"
+        "Sanjiv Jaiswal 'Sanjay'"
       ],
       "illustrators": [
         "Ajit Narayan"
+      ],
+      "translators": [
+        "Manisha Chaudhry"
       ],
       "thumb": "books/2/thumb.jpg",
       "book": "books/2/book.json",
@@ -52,6 +56,7 @@
       "illustrators": [
         "Mayur Mistry"
       ],
+      "translators": [],
       "thumb": "books/98/thumb.jpg",
       "book": "books/98/book.json",
       "sourceUrl": "https://storyweaver.org.in/en/stories/98-rani-s-first-day-at-school",
@@ -69,6 +74,7 @@
       "illustrators": [
         "Parismita"
       ],
+      "translators": [],
       "thumb": "books/7/thumb.jpg",
       "book": "books/7/book.json",
       "sourceUrl": "https://storyweaver.org.in/en/stories/7-fat-king-thin-dog",
@@ -85,8 +91,9 @@
       ],
       "illustrators": [
         "Kavya Singh",
-        "Natasha  Mehra"
+        "Natasha Mehra"
       ],
+      "translators": [],
       "thumb": "books/12294/thumb.jpg",
       "book": "books/12294/book.json",
       "sourceUrl": "https://storyweaver.org.in/en/stories/12294-the-race",
@@ -104,6 +111,7 @@
       "illustrators": [
         "Lavanya Karthik"
       ],
+      "translators": [],
       "thumb": "books/16411/thumb.jpg",
       "book": "books/16411/book.json",
       "sourceUrl": "https://storyweaver.org.in/en/stories/16411-too-big-too-small",
@@ -121,6 +129,7 @@
       "illustrators": [
         "Suvidha Mistry"
       ],
+      "translators": [],
       "thumb": "books/1042/thumb.jpg",
       "book": "books/1042/book.json",
       "sourceUrl": "https://storyweaver.org.in/en/stories/1042-my-best-friend",
@@ -138,6 +147,7 @@
       "illustrators": [
         "Soumya Menon"
       ],
+      "translators": [],
       "thumb": "books/49/thumb.jpg",
       "book": "books/49/book.json",
       "sourceUrl": "https://storyweaver.org.in/en/stories/49-my-fish-no-my-fish",
@@ -150,10 +160,13 @@
       "level": 1,
       "pageCount": 10,
       "authors": [
-        "Celia  Bolam"
+        "Long Ravy"
       ],
       "illustrators": [
         "Try Samphos"
+      ],
+      "translators": [
+        "Celia Bolam"
       ],
       "thumb": "books/37232/thumb.jpg",
       "book": "books/37232/book.json",
@@ -167,11 +180,12 @@
       "level": 1,
       "pageCount": 16,
       "authors": [
-        "Sudeshna  Shome Ghosh"
+        "Sudeshna Shome Ghosh"
       ],
       "illustrators": [
-        "Sayan  Mukherjee"
+        "Sayan Mukherjee"
       ],
+      "translators": [],
       "thumb": "books/351358/thumb.jpg",
       "book": "books/351358/book.json",
       "sourceUrl": "https://storyweaver.org.in/en/stories/351358-how-many",
@@ -184,10 +198,13 @@
       "level": 1,
       "pageCount": 14,
       "authors": [
-        "Magdalena  Cooper"
+        "Chou Chinith"
       ],
       "illustrators": [
         "Youm Kosal"
+      ],
+      "translators": [
+        "Magdalena Cooper"
       ],
       "thumb": "books/36641/thumb.jpg",
       "book": "books/36641/book.json",
@@ -206,6 +223,7 @@
       "illustrators": [
         "Kavya Singh"
       ],
+      "translators": [],
       "thumb": "books/11537/thumb.jpg",
       "book": "books/11537/book.json",
       "sourceUrl": "https://storyweaver.org.in/en/stories/11537-the-mango-tree",
@@ -223,6 +241,7 @@
       "illustrators": [
         "Rajiv Eipe"
       ],
+      "translators": [],
       "thumb": "books/10118/thumb.jpg",
       "book": "books/10118/book.json",
       "sourceUrl": "https://storyweaver.org.in/en/stories/10118-ammachi-s-amazing-machines",
@@ -240,6 +259,7 @@
       "illustrators": [
         "Priya Kuriyan"
       ],
+      "translators": [],
       "thumb": "books/1281/thumb.jpg",
       "book": "books/1281/book.json",
       "sourceUrl": "https://storyweaver.org.in/en/stories/1281-it-s-all-the-cat-s-fault",
@@ -257,6 +277,7 @@
       "illustrators": [
         "Priya Kuriyan"
       ],
+      "translators": [],
       "thumb": "books/10115/thumb.jpg",
       "book": "books/10115/book.json",
       "sourceUrl": "https://storyweaver.org.in/en/stories/10115-what-s-neema-eating-today",
@@ -269,10 +290,13 @@
       "level": 2,
       "pageCount": 16,
       "authors": [
-        "Magdalena  Cooper"
+        "Chammi Iresha"
       ],
       "illustrators": [
         "Chamath Prasanga Lokuliyana"
+      ],
+      "translators": [
+        "Magdalena Cooper"
       ],
       "thumb": "books/39753/thumb.jpg",
       "book": "books/39753/book.json",
@@ -289,8 +313,9 @@
         "Nimmy Chacko"
       ],
       "illustrators": [
-        "Lavanya  Naidu"
+        "Lavanya Naidu"
       ],
+      "translators": [],
       "thumb": "books/44659/thumb.jpg",
       "book": "books/44659/book.json",
       "sourceUrl": "https://storyweaver.org.in/en/stories/44659-meera-and-ameera",
@@ -308,6 +333,7 @@
       "illustrators": [
         "Sanika Phawde"
       ],
+      "translators": [],
       "thumb": "books/355071/thumb.jpg",
       "book": "books/355071/book.json",
       "sourceUrl": "https://storyweaver.org.in/en/stories/355071-sweet-sunday",
@@ -325,6 +351,7 @@
       "illustrators": [
         "Beatrix Potter"
       ],
+      "translators": [],
       "thumb": "books/14838/thumb.jpg",
       "book": "books/14838/book.json",
       "sourceUrl": "https://www.gutenberg.org/ebooks/14838",
@@ -342,6 +369,7 @@
       "illustrators": [
         "Beatrix Potter"
       ],
+      "translators": [],
       "thumb": "books/14407/thumb.jpg",
       "book": "books/14407/book.json",
       "sourceUrl": "https://www.gutenberg.org/ebooks/14407",
@@ -359,6 +387,7 @@
       "illustrators": [
         "Beatrix Potter"
       ],
+      "translators": [],
       "thumb": "books/14872/thumb.jpg",
       "book": "books/14872/book.json",
       "sourceUrl": "https://www.gutenberg.org/ebooks/14872",
@@ -376,6 +405,7 @@
       "illustrators": [
         "Beatrix Potter"
       ],
+      "translators": [],
       "thumb": "books/14814/thumb.jpg",
       "book": "books/14814/book.json",
       "sourceUrl": "https://www.gutenberg.org/ebooks/14814",
@@ -393,6 +423,7 @@
       "illustrators": [
         "Beatrix Potter"
       ],
+      "translators": [],
       "thumb": "books/14837/thumb.jpg",
       "book": "books/14837/book.json",
       "sourceUrl": "https://www.gutenberg.org/ebooks/14837",
@@ -410,6 +441,7 @@
       "illustrators": [
         "Beatrix Potter"
       ],
+      "translators": [],
       "thumb": "books/15077/thumb.jpg",
       "book": "books/15077/book.json",
       "sourceUrl": "https://www.gutenberg.org/ebooks/15077",
@@ -427,6 +459,7 @@
       "illustrators": [
         "Beatrix Potter"
       ],
+      "translators": [],
       "thumb": "books/15137/thumb.jpg",
       "book": "books/15137/book.json",
       "sourceUrl": "https://www.gutenberg.org/ebooks/15137",
@@ -444,6 +477,7 @@
       "illustrators": [
         "Beatrix Potter"
       ],
+      "translators": [],
       "thumb": "books/14868/thumb.jpg",
       "book": "books/14868/book.json",
       "sourceUrl": "https://www.gutenberg.org/ebooks/14868",
@@ -461,6 +495,7 @@
       "illustrators": [
         "Beatrix Potter"
       ],
+      "translators": [],
       "thumb": "books/14220/thumb.jpg",
       "book": "books/14220/book.json",
       "sourceUrl": "https://www.gutenberg.org/ebooks/14220",
@@ -478,6 +513,7 @@
       "illustrators": [
         "Beatrix Potter"
       ],
+      "translators": [],
       "thumb": "books/45264/thumb.jpg",
       "book": "books/45264/book.json",
       "sourceUrl": "https://www.gutenberg.org/ebooks/45264",

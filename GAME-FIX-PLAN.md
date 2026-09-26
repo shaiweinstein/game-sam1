@@ -14,7 +14,7 @@ and tap targets are ≥ 40 px everywhere except one (P3.1).
 
 ## P1 — correctness
 
-### P1.1 Translators credited as authors for 4 books (CC BY attribution) — **fix first**
+### P1.1 Translators credited as authors for 4 books (CC BY attribution) — ✅ fixed 2026-09-26
 - **Seen:** *Smile Please!* shows **"by Manisha Chaudhry"** on its shelf card and **"Written by Manisha Chaudhry"** on
   "The End" credits. Manisha Chaudhry is the *translator*; the author is **Sanjiv Jaiswal 'Sanjay'** (the book's own
   title page says so). Same pattern for *The Bee and the Elephant* (author Long Ravy, tr. Celia Bolam), *The Three

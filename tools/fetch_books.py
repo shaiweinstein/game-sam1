@@ -272,6 +272,48 @@ def name_list(value) -> list[str]:
     return [n for n in out if n]
 
 
+TITLE_PAGE_CREDITS_RE = re.compile(
+    r"Authors?:\s*(?P<authors>.+?)\s+Illustrators?:\s*(?P<illustrators>.+?)"
+    r"(?:\s+Translators?:\s*(?P<translators>.+?))?\s*$")
+
+
+def title_page_credits(pages: list[dict]) -> dict[str, list[str]] | None:
+    """Author / illustrator / translator names from a StoryWeaver title page.
+
+    Page 1 of every StoryWeaver book reads "<title> Author: X Illustrator(s): Y
+    [Translator: Z]". This is the book's own credit line and the one to trust:
+    for translated books the API's ``authors`` field holds the TRANSLATOR
+    (e.g. "Smile Please!" -> Manisha Chaudhry, who translated Sanjiv Jaiswal
+    'Sanjay''s story), which mis-attributed 4 CC BY books. None when page 1 has
+    no such line (e.g. the Project Gutenberg titles)."""
+    if not pages:
+        return None
+    text = " ".join(str(pages[0].get("text") or "").split())
+    match = TITLE_PAGE_CREDITS_RE.search(text)
+    if not match:
+        return None
+
+    def names(raw: str | None) -> list[str]:
+        return [n.strip() for n in (raw or "").split(",") if n.strip()]
+
+    return {"authors": names(match["authors"]), "illustrators": names(match["illustrators"]),
+            "translators": names(match["translators"])}
+
+
+def apply_title_page_credits(book: dict) -> bool:
+    """Set book["authors"/"illustrators"/"translators"] from its title page (if it has one).
+    Always leaves a ``translators`` list. Returns True when anything changed."""
+    before = (book.get("authors"), book.get("illustrators"), book.get("translators"))
+    credits = title_page_credits(book.get("pages") or [])
+    if credits:
+        book["authors"] = credits["authors"]
+        book["illustrators"] = credits["illustrators"] or list(book.get("illustrators") or [])
+        book["translators"] = credits["translators"]
+    else:
+        book["translators"] = list(book.get("translators") or [])
+    return (book.get("authors"), book.get("illustrators"), book.get("translators")) != before
+
+
 def cover_thumb_url(book: dict) -> str | None:
     """Smallest available cover size (thumb is fine for the curation sheet)."""
     sizes = ((book.get("coverImage") or {}).get("sizes")) or []
@@ -1174,9 +1216,11 @@ def download_book(
         "publishedYear": published_year,
         "authors": name_list(data.get("authors")),
         "illustrators": name_list(data.get("illustrators")),
+        "translators": name_list(data.get("translators")),
         "shelfOrder": shelf_order,
         "pages": [{"n": p["n"], "image": p["image"], "text": p["text"]} for p in pages],
     }
+    apply_title_page_credits(book_json)  # the title page's credit line beats the API's fields
     (book_dir / "book.json").write_text(
         json.dumps(book_json, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
@@ -1846,6 +1890,7 @@ def manifest_entry(book: dict) -> dict:
         "pageCount": int(book["pageCount"]),
         "authors": list(book.get("authors") or []),
         "illustrators": list(book.get("illustrators") or []),
+        "translators": list(book.get("translators") or []),
         "thumb": f"books/{book_id}/thumb.jpg",
         "book": f"books/{book_id}/book.json",
         "sourceUrl": str(book["sourceUrl"]),
@@ -1880,6 +1925,8 @@ def cc_by_line(book: dict) -> str:
     """The standard CC BY attribution pattern for one book."""
     illustrators = book.get("illustrators") or []
     ill_part = f", illustrated by {name_join(illustrators)}" if illustrators else ""
+    translators = book.get("translators") or []
+    ill_part += f", translated by {name_join(translators)}" if translators else ""
     return (
         f'"{book["title"]}" by {name_join(book.get("authors") or [])}{ill_part}. '
         f'© {book.get("publishedYear")} {book.get("publisher")}. '
@@ -1895,6 +1942,7 @@ def credits_entry(n: int, book: dict) -> str:
         f'- **title:** {book["title"]}',
         f'- **authors:** {name_join(book.get("authors") or [])}',
         f'- **illustrators:** {name_join(book.get("illustrators") or [])}',
+        *([f'- **translators:** {name_join(book["translators"])}'] if book.get("translators") else []),
         f'- **publishedYear:** {book.get("publishedYear")}',
         f'- **publisher:** {book.get("publisher")}',
         f'- **sourceUrl:** {book["sourceUrl"]}',
@@ -2031,6 +2079,26 @@ def cmd_manifest(args: argparse.Namespace) -> int:
             print(f"  ! {err}")
         return 1
 
+    # Credits repair pass (idempotent, no network): every book.json takes its
+    # author / illustrator / translator names from its own title page, so
+    # the game, manifest.json and CREDITS.md all credit the right people.
+    fixed = []
+    for book in books:
+        if apply_title_page_credits(book):
+            translators = book.pop("translators")
+            ordered = {}
+            for key, value in book.items():  # keep translators next to illustrators
+                ordered[key] = value
+                if key == "illustrators":
+                    ordered["translators"] = translators
+            ordered.setdefault("translators", translators)
+            book.clear()
+            book.update(ordered)
+            path = books_root / str(book["id"]) / "book.json"
+            path.write_text(json.dumps(book, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            fixed.append(f'{book["id"]} {book["title"]}: authors {book["authors"]}, '
+                         f'translators {book["translators"]}')
+
     library_dir = books_root.parent
     manifest_path = library_dir / "manifest.json"
     credits_path = library_dir / "CREDITS.md"
@@ -2052,6 +2120,9 @@ def cmd_manifest(args: argparse.Namespace) -> int:
     print(f"credits            : {credits_path}")
     print(f"notices            : {notices_path} ({notices_action}, "
           f"pg {pg_notices_action})")
+    print(f"credits repaired   : {len(fixed)} book.json file(s)")
+    for line in fixed:
+        print(f"  ~ {line}")
     print()
     for book in books:
         entry = manifest_entry(book)

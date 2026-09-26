@@ -36,15 +36,16 @@ Page narration audio generated with Xiaomi MiMo TTS (base voice designed with mi
 ## 2. Smile Please! (id 2)
 
 - **title:** Smile Please!
-- **authors:** Manisha Chaudhry
+- **authors:** Sanjiv Jaiswal 'Sanjay'
 - **illustrators:** Ajit Narayan
+- **translators:** Manisha Chaudhry
 - **publishedYear:** 2007
 - **publisher:** Pratham Books
 - **sourceUrl:** https://storyweaver.org.in/en/stories/2-smile-please
 - **license:** CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 
-CC BY attribution: "Smile Please!" by Manisha Chaudhry, illustrated by Ajit
-Narayan. © 2007 Pratham Books. Source:
+CC BY attribution: "Smile Please!" by Sanjiv Jaiswal 'Sanjay', illustrated by
+Ajit Narayan, translated by Manisha Chaudhry. © 2007 Pratham Books. Source:
 https://storyweaver.org.in/en/stories/2-smile-please. License: CC BY 4.0
 (https://creativecommons.org/licenses/by/4.0/). Used unmodified; only image
 resolution differs.
@@ -103,14 +104,14 @@ Page narration audio generated with Xiaomi MiMo TTS (base voice designed with mi
 
 - **title:** The Race
 - **authors:** Kanchan Bannerjee
-- **illustrators:** Kavya Singh, Natasha  Mehra
+- **illustrators:** Kavya Singh, Natasha Mehra
 - **publishedYear:** 2013
 - **publisher:** Pratham Books
 - **sourceUrl:** https://storyweaver.org.in/en/stories/12294-the-race
 - **license:** CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 
 CC BY attribution: "The Race" by Kanchan Bannerjee, illustrated by Kavya
-Singh, Natasha  Mehra. © 2013 Pratham Books. Source:
+Singh, Natasha Mehra. © 2013 Pratham Books. Source:
 https://storyweaver.org.in/en/stories/12294-the-race. License: CC BY 4.0
 (https://creativecommons.org/licenses/by/4.0/). Used unmodified; only image
 resolution differs.
@@ -190,15 +191,16 @@ Page narration audio generated with Xiaomi MiMo TTS (base voice designed with mi
 ## 9. The Bee and the Elephant (id 37232)
 
 - **title:** The Bee and the Elephant
-- **authors:** Celia  Bolam
+- **authors:** Long Ravy
 - **illustrators:** Try Samphos
+- **translators:** Celia Bolam
 - **publishedYear:** 2015
 - **publisher:** Room to Read
 - **sourceUrl:** https://storyweaver.org.in/en/stories/37232-the-bee-and-the-elephant
 - **license:** CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 
-CC BY attribution: "The Bee and the Elephant" by Celia  Bolam, illustrated by
-Try Samphos. © 2015 Room to Read. Source:
+CC BY attribution: "The Bee and the Elephant" by Long Ravy, illustrated by Try
+Samphos, translated by Celia Bolam. © 2015 Room to Read. Source:
 https://storyweaver.org.in/en/stories/37232-the-bee-and-the-elephant. License:
 CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Used unmodified;
 only image resolution differs.
@@ -212,14 +214,14 @@ Page narration audio generated with Xiaomi MiMo TTS (base voice designed with mi
 ## 10. How Many? (id 351358)
 
 - **title:** How Many?
-- **authors:** Sudeshna  Shome Ghosh
-- **illustrators:** Sayan  Mukherjee
+- **authors:** Sudeshna Shome Ghosh
+- **illustrators:** Sayan Mukherjee
 - **publishedYear:** 2021
 - **publisher:** Pratham Books
 - **sourceUrl:** https://storyweaver.org.in/en/stories/351358-how-many
 - **license:** CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 
-CC BY attribution: "How Many?" by Sudeshna  Shome Ghosh, illustrated by Sayan
+CC BY attribution: "How Many?" by Sudeshna Shome Ghosh, illustrated by Sayan
 Mukherjee. © 2021 Pratham Books. Source:
 https://storyweaver.org.in/en/stories/351358-how-many. License: CC BY 4.0
 (https://creativecommons.org/licenses/by/4.0/). Used unmodified; only image
@@ -234,15 +236,16 @@ Page narration audio generated with Xiaomi MiMo TTS (base voice designed with mi
 ## 11. The Three Little Kittens (id 36641)
 
 - **title:** The Three Little Kittens
-- **authors:** Magdalena  Cooper
+- **authors:** Chou Chinith
 - **illustrators:** Youm Kosal
+- **translators:** Magdalena Cooper
 - **publishedYear:** 2013
 - **publisher:** Room to Read
 - **sourceUrl:** https://storyweaver.org.in/en/stories/36641-the-three-little-kittens
 - **license:** CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 
-CC BY attribution: "The Three Little Kittens" by Magdalena  Cooper,
-illustrated by Youm Kosal. © 2013 Room to Read. Source:
+CC BY attribution: "The Three Little Kittens" by Chou Chinith, illustrated by
+Youm Kosal, translated by Magdalena Cooper. © 2013 Room to Read. Source:
 https://storyweaver.org.in/en/stories/36641-the-three-little-kittens. License:
 CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Used unmodified;
 only image resolution differs.
@@ -344,15 +347,17 @@ Page narration audio generated with Xiaomi MiMo TTS (base voice designed with mi
 ## 16. Rabbit Becomes a Chef (id 39753)
 
 - **title:** Rabbit Becomes a Chef
-- **authors:** Magdalena  Cooper
+- **authors:** Chammi Iresha
 - **illustrators:** Chamath Prasanga Lokuliyana
+- **translators:** Magdalena Cooper
 - **publishedYear:** 2016
 - **publisher:** Room to Read
 - **sourceUrl:** https://storyweaver.org.in/en/stories/39753-rabbit-becomes-a-chef
 - **license:** CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 
-CC BY attribution: "Rabbit Becomes a Chef" by Magdalena  Cooper, illustrated
-by Chamath Prasanga Lokuliyana. © 2016 Room to Read. Source:
+CC BY attribution: "Rabbit Becomes a Chef" by Chammi Iresha, illustrated by
+Chamath Prasanga Lokuliyana, translated by Magdalena Cooper. © 2016 Room to
+Read. Source:
 https://storyweaver.org.in/en/stories/39753-rabbit-becomes-a-chef. License: CC
 BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Used unmodified; only
 image resolution differs.
@@ -367,7 +372,7 @@ Page narration audio generated with Xiaomi MiMo TTS (base voice designed with mi
 
 - **title:** Meera and Ameera
 - **authors:** Nimmy Chacko
-- **illustrators:** Lavanya  Naidu
+- **illustrators:** Lavanya Naidu
 - **publishedYear:** 2018
 - **publisher:** Pratham Books
 - **sourceUrl:** https://storyweaver.org.in/en/stories/44659-meera-and-ameera
