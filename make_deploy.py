@@ -4,13 +4,14 @@
 Stdlib only. Layout produced:
 
     deploy/
-      index.html               ← landing.html (Play link rewritten to play/)
-      privacy.html
+      index.html               ← the home page  ┐ every site/pages/*.html rendered
+      privacy.html, faq/, …    ← the website    ┘ through site/base.html
       robots.txt               ← crawler rules + Sitemap: pointer
-      sitemap.xml              ← / , /play/ , /privacy.html (+ <lastmod>)
-      THIRD-PARTY-NOTICES.md
-      landing/                 ← css/, js/ (if present), img/ — never the
-                                  capture script (.py files are banned outright)
+      sitemap.xml              ← GENERATED: every page + /play/ (+ <lastmod>)
+      THIRD-PARTY-NOTICES.md   (also rendered as /credits/)
+      landing/                 ← landing.css, img/, printables/ (paper-doll
+                                  PDFs from tools/make_printables.py) — never
+                                  the capture script (.py files are banned)
       play/                    ← ONLY the game: index.html, css/, js/, lib/,
                                   beach3d/** (incl. assets/), library/**
                                   (StoryWeaver books — manifest.json resolved
@@ -36,13 +37,16 @@ Hard guarantees (real asserts at the end — the script fails LOUDLY):
     has narration; book 14838 ships >= 20 clips (the trial tripwire)
 Run from anywhere: paths resolve relative to this file.
 """
+import html
 import json
 import re
 import shutil
 import struct
 import sys
 import xml.dom.minidom
+from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import urlparse
 
 REPO = Path(__file__).resolve().parent
 DEPLOY = REPO / "deploy"
@@ -83,7 +87,32 @@ ICON_FILES = ("favicon.ico", "icon.svg",
 
 # Deterministic <lastmod> stamped into every sitemap.xml <url> at build time.
 # A FIXED date — never date.today() — so the generated file is reproducible.
-SITEMAP_LASTMOD = "2026-09-23"
+# A page can override it with "lastmod" in its <!--page {...}--> header.
+SITEMAP_LASTMOD = "2026-09-26"
+
+# ---- the static website (ADSENSE-REAPPLY-PLAN.md §3) --------------------------
+# site/base.html is the one shared template; site/pages/*.html are content
+# fragments, each starting with a <!--page {json}--> header (path, title,
+# description, image, nav, crumbs, changefreq, priority) and an optional
+# <!--head-->...<!--/head--> block. Fragments may use {{books}}, {{notices}},
+# {{book_credits}}, {{printables}}, … which are generated below from the repo's
+# own data, so the book list and credits can never drift from the library.
+SITE = REPO / "site"
+SITE_URL = "https://lily.game"
+NAV = (("/activities/", "Activities", "activities"),
+       ("/printables/", "Printables", "printables"),
+       ("/library/", "Books", "library"),
+       ("/parents/", "Parents", "parents"),
+       ("/about/", "About", "about"))
+ADSENSE_LOADER = ("pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"
+                  "?client=ca-pub-8606608049292845")
+# Strings that must never ship: the old visible ad placeholders and
+# unfilled slot ids made the site look unfinished to the AdSense review
+# ("Low value content", 2026-09-26).
+PLACEHOLDER_MARKERS = ("ad-hint", "YYYYYYYYYY", "Advertisement placeholder",
+                       "nothing renders here", 'class="ad-slot')
+PAGE_META = re.compile(r"\A<!--page\s*(\{.*?\})\s*-->\s*", re.S)
+HEAD_BLOCK = re.compile(r"<!--head-->\n?(.*?)<!--/head-->\n?", re.S)
 
 
 def forbidden(rel: Path) -> str | None:
@@ -124,47 +153,247 @@ def copy_tree(src: Path, dst: Path) -> int:
     return n
 
 
+def md_inline(text: str) -> str:
+    """Escape one line of markdown and apply `code`, **bold**, [links](url) and bare-URL links."""
+    out = []
+    for i, chunk in enumerate(re.split(r"(`[^`]*`)", text)):
+        if i % 2:
+            out.append(f"<code>{html.escape(chunk[1:-1])}</code>")
+            continue
+        s = html.escape(chunk, quote=False)
+        s = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)
+        s = re.sub(r"\[([^\]]+)\]\((https?://[^)\s]+)\)", r'<a href="\2">\1</a>', s)
+        s = re.sub(r'(?<!href=")(?<![">/])(https?://[^\s<)]+[^\s<).,;:])', r'<a href="\1">\1</a>', s)
+        s = re.sub(r"(?<![\w/.])(www\.[a-z0-9.-]+\.[a-z]{2,})(?![\w/])", r'<a href="https://\1">\1</a>', s)
+        out.append(s)
+    return "".join(out)
+
+
+def md_to_html(text: str) -> str:
+    """Tiny stdlib markdown renderer for the two notice files (headings, lists, blockquotes, rules,
+    paragraphs). The file's own '# title' line is dropped and levels shift down one (## -> h2)."""
+    blocks, para, items, quote = [], [], [], []
+
+    def flush():
+        if para:
+            blocks.append("<p>" + md_inline(" ".join(para)) + "</p>")
+            para.clear()
+        if items:
+            blocks.append("<ul>" + "".join(f"<li>{md_inline(' '.join(i))}</li>" for i in items) + "</ul>")
+            items.clear()
+        if quote:
+            blocks.append("<blockquote><p>" + md_inline(" ".join(quote)) + "</p></blockquote>")
+            quote.clear()
+
+    for line in text.splitlines():
+        stripped = line.strip()
+        heading = re.match(r"(#{1,4})\s+(.*)", stripped)
+        if heading:
+            flush()
+            level = len(heading.group(1))
+            if level > 1:
+                slug = re.sub(r"[^a-z0-9]+", "-", heading.group(2).lower()).strip("-")
+                blocks.append(f'<h{level} id="{slug}">{md_inline(heading.group(2))}</h{level}>')
+        elif stripped in ("---", "***"):
+            flush()
+            blocks.append("<hr>")
+        elif not stripped:
+            flush()
+        elif stripped.startswith("> "):
+            if para or items:
+                flush()
+            quote.append(stripped[2:])
+        elif re.match(r"[-*] ", stripped):
+            if para or quote:
+                flush()
+            items.append([stripped[2:]])
+        elif items and line.startswith("  "):
+            items[-1].append(stripped)            # continuation of the last list item
+        else:
+            if items or quote:
+                flush()
+            para.append(stripped)
+    flush()
+    return "\n".join(blocks)
+
+
+def load_pages() -> list[dict]:
+    pages = []
+    for f in sorted((SITE / "pages").glob("*.html")):
+        text = f.read_text(encoding="utf-8")
+        m = PAGE_META.match(text)
+        assert m, f"site/pages/{f.name}: missing <!--page {{json}}--> header"
+        meta = json.loads(m.group(1))
+        body = text[m.end():]
+        head = ""
+        hm = HEAD_BLOCK.search(body)
+        if hm:
+            head, body = hm.group(1).rstrip(), body[:hm.start()] + body[hm.end():]
+        for key in ("path", "title", "description", "image"):
+            assert meta.get(key), f"site/pages/{f.name}: page header lacks {key!r}"
+        assert meta["path"].startswith("/"), f"site/pages/{f.name}: path must start with /"
+        meta.update(source=f.name, head_extra=head, body=body.rstrip())
+        pages.append(meta)
+    paths = [p["path"] for p in pages]
+    assert len(paths) == len(set(paths)), f"duplicate page paths: {paths}"
+    return pages
+
+
+def page_file(path: str) -> Path:
+    """URL path -> file inside deploy/ ('/' -> index.html, '/faq/' -> faq/index.html)."""
+    rel = path.lstrip("/")
+    return DEPLOY / (rel + "index.html" if rel == "" or rel.endswith("/") else rel)
+
+
+def books_html() -> str:
+    manifest = json.loads((REPO / "library" / "manifest.json").read_text(encoding="utf-8"))
+    blurbs = json.loads((SITE / "data" / "books.json").read_text(encoding="utf-8"))
+    out = ['    <ol class="book-list">']
+    for e in manifest["books"]:
+        book = json.loads((REPO / "library" / e["book"]).read_text(encoding="utf-8"))
+        blurb = blurbs.get(str(e["id"]))
+        assert blurb, f"site/data/books.json has no blurb for book {e['id']} ({e['title']})"
+        who = ", ".join(book["authors"])
+        art = ", ".join(book.get("illustrators") or [])
+        translator = ""
+        # StoryWeaver title pages carry the real credit line. For translated
+        # books book.json lists the TRANSLATOR under "authors", so prefer the
+        # title page ("Author: X Illustrator: Y Translator: Z") when present.
+        credit = re.search(r"Authors?: (.+?) Illustrators?: (.+?)(?: Translators?: (.+))?$",
+                           " ".join((book["pages"][0].get("text") or "").split()))
+        if credit:
+            who, art, translator = credit.group(1), credit.group(2), credit.group(3) or ""
+        byline = f"by {who}" + (f", illustrated by {art}" if art and art != who else "") \
+            + (f", translated by {translator}" if translator else "")
+        lic = "Public domain" if book["license"] == "Public Domain" else book["license"]
+        out.append(f"""      <li class="book">
+        <img src="/play/library/{html.escape(e['thumb'])}" alt="Cover of {html.escape(e['title'])}" loading="lazy" width="160" height="160">
+        <div>
+          <h2>{html.escape(e['title'])}</h2>
+          <p class="book-meta">{html.escape(byline)} · Level {e['level']} · {e['pageCount']} pages · {book['publishedYear']}</p>
+          <p>{html.escape(blurb)}</p>
+          <p class="book-source">{html.escape(book.get('publisher') or 'Project Gutenberg')} · {lic} · <a href="{html.escape(e['sourceUrl'])}">original source</a></p>
+        </div>
+      </li>""")
+    out.append("    </ol>")
+    assert len(manifest["books"]) == len([k for k in blurbs if not k.startswith("_")]), \
+        "site/data/books.json blurbs don't match the library manifest"
+    return "\n".join(out)
+
+
+def printables_fragments() -> dict:
+    data = json.loads((REPO / "landing" / "printables" / "printables.json").read_text(encoding="utf-8"))
+    cards = ['    <ul class="printables">']
+    for s in data["sheets"]:
+        kb = round(s["bytes"] / 1024)
+        cards.append(f"""      <li class="printable">
+        <img src="/landing/printables/{s['preview']}" alt="Paper doll of Lily with {html.escape(s['hairName'])} hair" loading="lazy" width="320" height="387">
+        <p class="printable-name">{html.escape(s['hairName'])}</p>
+        <a class="download-button" href="/landing/printables/{s['pdf']}" download>⬇ Download PDF <span>({kb} KB)</span></a>
+      </li>""")
+    cards.append("    </ul>")
+    names = {3: "tops", 4: "bottoms", 5: "shoes and swimsuits"}
+    previews = "\n".join(
+        f'      <figure><img src="/landing/printables/{p}" alt="Printable sheet page with {names.get(int(re.search(r"(\d+)", p).group(1)), "clothes")}, each piece with grey fold tabs" loading="lazy" width="640" height="828"></figure>'
+        for p in data["wardrobePreviews"])
+    first = data["sheets"][0]
+    return {"printables": "\n".join(cards), "wardrobe_previews": previews,
+            "printables_pieces": str(first["pieces"]), "printables_pages": str(first["pages"]),
+            "printables_paper": html.escape(data["paper"])}
+
+
+def render_site(pages: list[dict]) -> None:
+    base = (SITE / "base.html").read_text(encoding="utf-8")
+    generated = {
+        "books": books_html(),
+        "notices": md_to_html((REPO / "THIRD-PARTY-NOTICES.md").read_text(encoding="utf-8")),
+        "book_credits": md_to_html((REPO / "library" / "CREDITS.md").read_text(encoding="utf-8")),
+        **printables_fragments(),
+    }
+    for page in pages:
+        body = page["body"]
+        for key, value in generated.items():
+            body = body.replace("{{" + key + "}}", value)
+        nav = "\n".join(
+            f'          <li><a href="{href}"' + (' aria-current="page"' if page.get("nav") == key else "")
+            + f">{label}</a></li>" for href, label, key in NAV)
+        nav += '\n          <li><a class="nav-play" href="/play/">▶ Play</a></li>'
+        crumbs = ""
+        if page.get("crumbs"):
+            here = page.get("crumb") or page["title"].split(" — ")[0].split(":")[0]
+            trail = "".join(f'<li><a href="{href}">{html.escape(label)}</a></li>' for label, href in page["crumbs"])
+            crumbs = (f'  <nav class="crumbs wrap" aria-label="Breadcrumb"><ol><li><a href="/">Home</a></li>'
+                      f'{trail}<li aria-current="page">{html.escape(here)}</li></ol></nav>')
+        values = {"title": html.escape(page["title"]), "description": html.escape(page["description"]),
+                  "og_title": html.escape(page.get("og_title") or page["title"]),
+                  "path": page["path"], "image": page["image"], "head_extra": page["head_extra"],
+                  "nav": nav, "crumbs": crumbs, "body": body}
+        out = base
+        for key, value in values.items():
+            out = out.replace("{{" + key + "}}", value)
+        assert "{{" not in out, f"{page['source']}: unfilled placeholder {re.findall(r'{{[a-z_]+}}', out)}"
+        target = page_file(page["path"])
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(out, encoding="utf-8")
+
+
+def sitemap_xml(pages: list[dict]) -> str:
+    urls = [(p["path"], p.get("lastmod", SITEMAP_LASTMOD), p.get("changefreq", "monthly"),
+             p.get("priority", "0.5")) for p in pages]
+    urls.append(("/play/", SITEMAP_LASTMOD, "monthly", "0.9"))
+    urls.sort(key=lambda u: (u[0] != "/", u[0]))
+    rows = "\n".join(f"  <url><loc>{SITE_URL}{loc}</loc><lastmod>{mod}</lastmod>"
+                     f"<changefreq>{freq}</changefreq><priority>{prio}</priority></url>"
+                     for loc, mod, freq, prio in urls)
+    return ('<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + rows + "\n</urlset>\n")
+
+
+class LinkCollector(HTMLParser):
+    """Collects href/src values and <h1> count from one shipped page."""
+    def __init__(self):
+        super().__init__()
+        self.links, self.h1 = [], 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "h1":
+            self.h1 += 1
+        for name, value in attrs:
+            if name in ("href", "src") and value:
+                self.links.append(value)
+
+
 def main() -> int:
     # ---- sanity of the sources before touching anything ------------------
-    for must in ("landing.html", "privacy.html", "THIRD-PARTY-NOTICES.md",
-                 "robots.txt", "sitemap.xml", "ads.txt",
+    for must in ("site/base.html", "site/pages/index.html", "site/data/books.json",
+                 "THIRD-PARTY-NOTICES.md", "robots.txt", "ads.txt",
                  "index.html", "css", "js", "lib", "beach3d",
-                 "landing/img/hero-beach.png"):
+                 "landing/img/hero-beach.png", "landing/printables/printables.json"):
         src = REPO / must
         assert src.exists(), f"missing source {must} — nothing to deploy"
+    pages = load_pages()
 
     # ---- assemble ---------------------------------------------------------
     if DEPLOY.exists():
         shutil.rmtree(DEPLOY)
     DEPLOY.mkdir()
 
-    # 1) index.html ← landing.html with the Play link pointed at the game.
-    #    Unique anchor (not a blanket replace): the <a id="play-cta" ...>
-    #    tag itself must contain the href being rewritten.
-    landing = (REPO / "landing.html").read_text(encoding="utf-8")
-    pattern = re.compile(
-        r'(<a\b[^>]*\bid="play-cta"[^>]*\bhref=")index\.html(")', re.S)
-    rewritten, n = pattern.subn(r'\g<1>play/index.html\g<2>', landing)
-    assert n == 1, f"expected exactly 1 play-cta link in landing.html, found {n}"
-    assert 'href="play/index.html"' in rewritten and \
-        'href="index.html"' not in rewritten, "Play link rewrite failed"
-    (DEPLOY / "index.html").write_text(rewritten, encoding="utf-8")
+    # 1) the website: every site/pages/*.html rendered through site/base.html
+    #    (index.html = the home page, /privacy.html, /faq/index.html, …)
+    render_site(pages)
 
-    # 2) standalone public docs + crawler files (robots/sitemap/ads.txt once
-    #    lived only on the server and died to `rsync --delete` — they are now
-    #    first-class repo sources shipped through this same allowlist)
-    for name in ("privacy.html", "THIRD-PARTY-NOTICES.md",
-                 "robots.txt", "ads.txt"):
+    # 2) standalone public files + crawler files (robots/ads.txt once lived
+    #    only on the server and died to `rsync --delete` — they are now
+    #    first-class repo sources shipped through this same allowlist).
+    #    THIRD-PARTY-NOTICES.md still ships verbatim next to its rendered
+    #    /credits/ page.
+    for name in ("THIRD-PARTY-NOTICES.md", "robots.txt", "ads.txt"):
         assert forbidden(Path(name)) is None, f"forbidden public file: {name}"
         shutil.copy2(REPO / name, DEPLOY / name)
-    # sitemap.xml is GENERATED (not copied): the repo URL list gets a
-    # deterministic <lastmod> stamped into every <url> (sitemap protocol
-    # order inside <url>: loc, lastmod, changefreq, priority).
-    sitemap, n_loc = re.subn(r"</loc>",
-                             f"</loc><lastmod>{SITEMAP_LASTMOD}</lastmod>",
-                             (REPO / "sitemap.xml").read_text(encoding="utf-8"))
-    assert n_loc == 3, f"sitemap.xml should hold 3 <loc> URLs, found {n_loc}"
-    (DEPLOY / "sitemap.xml").write_text(sitemap, encoding="utf-8")
+    # sitemap.xml is GENERATED from the page list (+ /play/), with a
+    # deterministic <lastmod> in every <url> (protocol order inside <url>:
+    # loc, lastmod, changefreq, priority).
+    (DEPLOY / "sitemap.xml").write_text(sitemap_xml(pages), encoding="utf-8")
 
     # 2b) favicon + app icons at the deploy ROOT — /favicon.ico must exist
     #     as a REAL file (Googlebot-Image 404'd it; inline data-URI SVG icons
@@ -183,7 +412,7 @@ def main() -> int:
         (DEPLOY / "landing").mkdir(exist_ok=True)
         shutil.copy2(f, DEPLOY / "landing" / f.name)
         n_landing += 1
-    for sub in ("css", "js", "img"):
+    for sub in ("css", "js", "img", "printables"):
         d = REPO / "landing" / sub
         if d.is_dir():
             n_landing += copy_tree(d, DEPLOY / "landing" / sub)
@@ -210,11 +439,11 @@ def main() -> int:
         assert not any(p.startswith(("spike", "tests", "shots", ".git"))
                        or p == ".playwright-mcp" or "mixamo" in p for p in low), \
             f"excluded directory leaked: {rel}"
-    # deploy/index.html must be the landing page, not the game's old index
+    # deploy/index.html must be the home page, not the game's old index
     root_index = (REPO / "index.html").read_text(encoding="utf-8")
     shipped = (DEPLOY / "index.html").read_text(encoding="utf-8")
-    assert "play-cta" in shipped and shipped != root_index, \
-        "deploy/index.html is not the landing page"
+    assert 'id="play-cta" class="play-button" href="/play/"' in shipped \
+        and shipped != root_index, "deploy/index.html is not the home page"
     assert (DEPLOY / "play" / "index.html").read_text(encoding="utf-8") \
         == root_index, "play/index.html is not the game's index"
     # favicon.ico is a REAL 3-image ICO (16/32/48 PNG payloads) and both
@@ -237,11 +466,53 @@ def main() -> int:
         iw, ih = struct.unpack_from(">II", ico, off + 16)  # IHDR dims
         assert (iw, ih) == (want, want), \
             f"favicon.ico entry {i}: PNG is {iw}x{ih}, expected {want}x{want}"
-    for page in ("index.html", "play/index.html"):
-        html = (DEPLOY / page).read_text(encoding="utf-8")
-        assert 'href="/favicon.ico"' in html, f"{page} lacks the /favicon.ico link"
-        assert "data:image/svg+xml" not in html, \
-            f"{page} still carries an inline data-URI SVG icon"
+    site_files = [page_file(p["path"]) for p in pages]
+    for f in site_files + [DEPLOY / "play" / "index.html"]:
+        text = f.read_text(encoding="utf-8")
+        assert 'href="/favicon.ico"' in text, f"{f.relative_to(DEPLOY)} lacks the /favicon.ico link"
+        assert "data:image/svg+xml" not in text, \
+            f"{f.relative_to(DEPLOY)} still carries an inline data-URI SVG icon"
+    # the website pages: AdSense site code on every information page but
+    # never in the game; no placeholder ad boxes; one <h1>, a unique title and
+    # description each; and every internal link/src resolves to a shipped file
+    titles, descriptions = set(), set()
+    for f in site_files:
+        rel = f.relative_to(DEPLOY)
+        text = f.read_text(encoding="utf-8")
+        assert text.count(ADSENSE_LOADER) == 1, f"{rel}: AdSense site code missing or duplicated"
+        for marker in PLACEHOLDER_MARKERS:
+            assert marker not in text, f"{rel}: ad placeholder leaked ({marker!r})"
+        title = re.search(r"<title>(.*?)</title>", text).group(1)
+        desc = re.search(r'<meta name="description" content="(.*?)">', text).group(1)
+        assert title not in titles, f"{rel}: duplicate <title> {title!r}"
+        assert desc not in descriptions, f"{rel}: duplicate meta description"
+        titles.add(title)
+        descriptions.add(desc)
+        parser = LinkCollector()
+        parser.feed(text)
+        assert parser.h1 == 1, f"{rel}: expected exactly one <h1>, found {parser.h1}"
+        for link in parser.links:
+            url = urlparse(link)
+            if url.scheme in ("mailto", "tel") or link.startswith("#"):
+                continue
+            if url.scheme in ("http", "https") and url.netloc != "lily.game":
+                continue                          # external link (Google, StoryWeaver, licences, …)
+            assert url.scheme or link.startswith("/"), \
+                f"{rel}: relative link {link!r} (use /paths — pages live at different depths)"
+            target = DEPLOY / (url.path or "/").lstrip("/")
+            if url.path.endswith("/"):
+                target = target / "index.html"
+            assert target.is_file(), f"{rel}: broken link {link}"
+    play_html = (DEPLOY / "play" / "index.html").read_text(encoding="utf-8")
+    assert "adsbygoogle" not in play_html and "googlesyndication" not in play_html, \
+        "the game page must never carry ad code"
+    # printables: one PDF + preview per hairstyle, as printables.json lists
+    printables = json.loads((REPO / "landing" / "printables" / "printables.json").read_text(encoding="utf-8"))
+    for sheet in printables["sheets"]:
+        pdf = (DEPLOY / "landing" / "printables" / sheet["pdf"]).read_bytes()
+        assert pdf[:5] == b"%PDF-" and len(pdf) == sheet["bytes"], f"printable {sheet['pdf']} missing or stale"
+        assert (DEPLOY / "landing" / "printables" / sheet["preview"]).is_file(), f"missing {sheet['preview']}"
+    assert len(printables["sheets"]) == 6, f"expected 6 hairstyle PDFs, found {len(printables['sheets'])}"
     # the seven card images made it
     assert len(list((DEPLOY / "landing" / "img").glob("*.png"))) == 7, \
         "landing/img did not ship all seven screenshots"
@@ -254,11 +525,16 @@ def main() -> int:
         "robots.txt incomplete"
     dom = xml.dom.minidom.parse(str(DEPLOY / "sitemap.xml"))
     locs = [t.firstChild.data for t in dom.getElementsByTagName("loc")]
-    assert locs == ["https://lily.game/", "https://lily.game/play/",
-                    "https://lily.game/privacy.html"], \
-        f"sitemap.xml locs wrong: {locs}"
+    want = {SITE_URL + p["path"] for p in pages} | {SITE_URL + "/play/"}
+    assert set(locs) == want and len(locs) == len(want), \
+        f"sitemap.xml locs wrong: {sorted(set(locs) ^ want)}"
+    for loc in locs:
+        path = loc[len(SITE_URL):]
+        target = DEPLOY / path.lstrip("/")
+        assert (target / "index.html" if path.endswith("/") else target).is_file(), \
+            f"sitemap lists {loc} but no file ships for it"
     lastmods = [t.firstChild.data for t in dom.getElementsByTagName("lastmod")]
-    assert lastmods == [SITEMAP_LASTMOD] * 3, \
+    assert len(lastmods) == len(locs) and all(re.fullmatch(r"\d{4}-\d{2}-\d{2}", m) for m in lastmods), \
         f"sitemap.xml lastmod wrong: {lastmods}"
     # ads.txt must declare our AdSense publisher — without it Google shows
     # "Not found" and serves no ads (it also died to rsync --delete once)

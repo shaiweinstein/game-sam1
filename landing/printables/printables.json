@@ -1,0 +1,64 @@
+{
+  "paper": "US Letter",
+  "sheets": [
+    {
+      "hairId": "hair1",
+      "hairName": "Long Hair",
+      "pdf": "lily-paper-dolls-hair1.pdf",
+      "preview": "doll-hair1.png",
+      "bytes": 114022,
+      "pages": 6,
+      "pieces": 35
+    },
+    {
+      "hairId": "hair2",
+      "hairName": "Curly Pigtails",
+      "pdf": "lily-paper-dolls-hair2.pdf",
+      "preview": "doll-hair2.png",
+      "bytes": 130417,
+      "pages": 6,
+      "pieces": 35
+    },
+    {
+      "hairId": "hair3",
+      "hairName": "Bouncy Bob",
+      "pdf": "lily-paper-dolls-hair3.pdf",
+      "preview": "doll-hair3.png",
+      "bytes": 114020,
+      "pages": 6,
+      "pieces": 35
+    },
+    {
+      "hairId": "hair4",
+      "hairName": "Ponytail",
+      "pdf": "lily-paper-dolls-hair4.pdf",
+      "preview": "doll-hair4.png",
+      "bytes": 121936,
+      "pages": 6,
+      "pieces": 35
+    },
+    {
+      "hairId": "hair5",
+      "hairName": "Space Buns",
+      "pdf": "lily-paper-dolls-hair5.pdf",
+      "preview": "doll-hair5.png",
+      "bytes": 128025,
+      "pages": 6,
+      "pieces": 35
+    },
+    {
+      "hairId": "hair6",
+      "hairName": "Big Curly",
+      "pdf": "lily-paper-dolls-hair6.pdf",
+      "preview": "doll-hair6.png",
+      "bytes": 143899,
+      "pages": 6,
+      "pieces": 35
+    }
+  ],
+  "wardrobePreviews": [
+    "wardrobe-3.png",
+    "wardrobe-4.png",
+    "wardrobe-5.png"
+  ]
+}

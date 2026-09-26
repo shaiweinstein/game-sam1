@@ -27,7 +27,9 @@ Families policies. Details in `privacy.html` and
 | `lib/three`, `lib/phaser.min.js` | vendored engines (MIT — see `THIRD-PARTY-NOTICES.md`) |
 | `spike/`, `spike2/`, `spike3/` | development rigs (SVG character pipeline, DragonBones/SkelForm experiments, Blender GLB toolchain) — dev-only, excluded from deploys |
 | `beach3d/*_test.py`, `tests/` | Playwright/python regression suites (run against `serve.py` on :8123) |
-| `landing.html`, `make_deploy.py`, `deploy/` | public marketing/AdSense landing + the static-site deploy builder (asserts dev files never ship) |
+| `site/` | the public website: `base.html` (shared template), `pages/*.html` (one fragment per page), `data/books.json` (book-list blurbs) |
+| `landing/` | website CSS, screenshots (`capture_shots.py`) and `printables/` (paper-doll PDFs from `tools/make_printables.py`) |
+| `make_deploy.py`, `deploy/` | builds the website + game into `deploy/` and checks it (links, sitemap, no ad placeholders, dev files never ship) |
 
 ## Develop locally
 
@@ -35,6 +37,8 @@ Families policies. Details in `privacy.html` and
 python3 serve.py          # serves the repo at http://localhost:8123 (the game)
 python3 -B beach3d/sandcastle_test.py   # example regression suite
 python3 make_deploy.py    # builds the clean public bundle into deploy/
+python3 -m http.server 8124 -d deploy   # preview the built website at http://localhost:8124
+python3 tools/make_printables.py        # re-export the paper-doll PDFs after wardrobe changes
 ```
 
 The 3D beach loads as ES modules, so it requires an http:// origin (a plain
