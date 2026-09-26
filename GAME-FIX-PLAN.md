@@ -44,22 +44,31 @@ and tap targets are ≥ 40 px everywhere except one (P3.1).
 
 ## P2 — layout and usability
 
-### P2.1 Two different headers depending on the screen
+### P2.1 Two different headers depending on the screen — ✅ fixed 2026-09-26
 - **Seen (all sizes):** the Dress Up screen uses a compact header (title, energy and sound in one row, small nav
   chips), while Kitchen, Map and Friends use a tall stacked header (big title, energy on its own line, big round nav
   buttons). The page visibly jumps when switching tabs.
 - **Fix:** one header component for all four screens; pick the compact one (it's the one that fits phones).
 
-### P2.2 Desktop: Kitchen / Map / Friends squeezed into a narrow column
-- **Seen (1366×768):** these screens render in a ~430 px phone-width column with two-thirds of the window empty, yet
-  their content runs below the fold (the kitchen's second food row, the map's Home/School/Toy Shop/Beach cards).
-  The wardrobe on the same window uses the full width.
+### P2.2 Desktop: Kitchen / Map / Friends don't fit a laptop screen — ✅ fixed 2026-09-26
+- **Seen (1366×768):** these screens use the old 900 px shell (the wardrobe uses 1240 px) under the tall header,
+  so at a common laptop height their content runs below the fold (the kitchen's second food row, the map's
+  Home/School/Toy Shop/Beach cards) while the sides of the window stay empty. *(Corrected: a first reading of a
+  half-size screenshot said "~430 px"; the column is ~870 px.)*
 - **Fix:** give these screens the wardrobe's wide container on ≥ 1024 px (kitchen: Lily left, food grid right; map:
   board sized to the viewport height).
 
-### P2.3 Phone: the header eats ~40 % of the screen outside the wardrobe
+### P2.3 Phone: the header eats ~40 % of the screen outside the wardrobe — ✅ fixed 2026-09-26
 - **Seen (390×844):** on Kitchen the first food button starts at y≈717; on Friends only Lily's card is above the fold.
 - **Fix:** comes with P2.1 (compact header everywhere); also shrink the talk bubble + helper text on phones.
+
+**Done (P2.1–P2.3):** the wardrobe's compact shell (one-row header, small nav, 1240 px width) now applies to every
+screen. Content starts at y≈110 everywhere (was 227 on a laptop and 293 on a phone outside the wardrobe). Kitchen
+fits without scrolling on phone and laptop (8 foods in one row on laptop, 4×2 on phones with a smaller Lily);
+friends are centered and larger on wide screens (2×2 on phones); the town board sizes itself to the window
+(`clamp(380px, 100dvh − 385px, 640px)`) with compact place cards on laptop-height windows, so the whole map fits
+1366×768 with no overlapping cards. Remaining: on 1280×720 the map scrolls ~39 px (shrinking the board further
+makes cards overlap). All 17 suites pass.
 
 ### P2.4 Phone: the town map becomes a ~1,500 px vertical list
 - **Seen:** below tablet width the board turns into 7 tall full-width cards (roads and scenery gone); the Beach —

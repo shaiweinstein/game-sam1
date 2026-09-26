@@ -402,21 +402,22 @@ body {
   font-weight: bold;
 }
 
-/* Wardrobe-only compact shell: leave the other screens' sizing alone. */
-.wardrobe-open .game-area {
+/* Compact shell for every screen (was wardrobe-only; the other screens kept a
+   taller header that pushed Kitchen/Map below the fold — GAME-FIX-PLAN P2.1). */
+.game-area {
   max-width: 1240px;
   padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
 }
 
-.wardrobe-open .game-header { padding: 0 4px 6px; gap: 8px; flex-wrap: nowrap; }
-.wardrobe-open .game-title { font-size: clamp(1.1rem, 2.5vw, 1.8rem); animation: none; }
-.wardrobe-open .header-right { flex-wrap: nowrap; gap: 6px; }
-.wardrobe-open .energy-hud { padding: 4px 12px; gap: 6px; }
-.wardrobe-open .energy-track { width: 100px; height: 18px; }
-.wardrobe-open .screen-nav { gap: 10px; padding: 0 0 8px; }
-.wardrobe-open .nav-button { min-height: 44px; padding: 6px 20px; font-size: 1rem; transition: none; }
-.wardrobe-open .nav-button.active,
-.wardrobe-open .nav-button:hover { transform: none; color: var(--text-color); }
+.game-header { padding: 0 4px 6px; gap: 8px; flex-wrap: nowrap; }
+.game-title { font-size: clamp(1.1rem, 2.5vw, 1.8rem); animation: none; }
+.header-right { flex-wrap: nowrap; gap: 6px; }
+.energy-hud { padding: 4px 12px; gap: 6px; }
+.energy-track { width: 100px; height: 18px; }
+.screen-nav { gap: 10px; padding: 0 0 8px; }
+.nav-button { min-height: 44px; padding: 6px 20px; font-size: 1rem; transition: none; }
+.nav-button.active,
+.nav-button:hover { transform: none; color: var(--text-color); }
 .wardrobe-open .game-main { display: flex; flex-direction: column; padding: 12px; overflow: hidden; }
 .wardrobe-open #talk-bubble { display: none; }
 
@@ -626,15 +627,15 @@ body {
 .wardrobe-item.worn .wardrobe-item-marker { color: #256a25; font-weight: bold; }
 
 @media (max-width: 760px) {
-  .wardrobe-open .game-title { display: none; }
-  .wardrobe-open .game-header { justify-content: center; }
-  .wardrobe-open .energy-icon { font-size: 1rem; }
-  .wardrobe-open .energy-hud { border-width: 3px; }
-  .wardrobe-open .sound-toggle { min-width: 44px; min-height: 44px; width: 44px; height: 44px; padding: 4px; font-size: 1.1rem; }
-  .wardrobe-open .game-area { padding-inline: max(6px, env(safe-area-inset-left)) max(6px, env(safe-area-inset-right)); }
-  .wardrobe-open .game-main { padding: 8px; border-radius: 18px; }
-  .wardrobe-open .screen-nav { gap: 4px; }
-  .wardrobe-open .nav-button { flex: 1; min-width: 0; padding: 4px 2px; font-size: 0.85rem; border-width: 3px; white-space: nowrap; }
+  .game-title { display: none; }
+  .game-header { justify-content: center; }
+  .energy-icon { font-size: 1rem; }
+  .energy-hud { border-width: 3px; }
+  .sound-toggle { min-width: 44px; min-height: 44px; width: 44px; height: 44px; padding: 4px; font-size: 1.1rem; }
+  .game-area { padding-inline: max(6px, env(safe-area-inset-left)) max(6px, env(safe-area-inset-right)); }
+  .game-main, .wardrobe-open .game-main { padding: 8px; border-radius: 18px; }
+  .screen-nav { gap: 4px; }
+  .nav-button { flex: 1; min-width: 0; padding: 4px 2px; font-size: 0.85rem; border-width: 3px; white-space: nowrap; }
   .wardrobe-workspace { gap: 8px; }
   .wardrobe-fitting { padding: 6px; border-radius: 20px; }
   .wardrobe-return { font-size: 0.9rem; padding-inline: 8px; }
@@ -651,9 +652,9 @@ body {
 }
 
 @media (max-height: 650px) {
-  .wardrobe-open .game-header { padding-bottom: 2px; }
-  .wardrobe-open .screen-nav { padding-bottom: 4px; }
-  .wardrobe-open .game-main { padding: 6px; }
+  .game-header { padding-bottom: 2px; }
+  .screen-nav { padding-bottom: 4px; }
+  .game-main, .wardrobe-open .game-main { padding: 6px; }
   #screen-wardrobe.active { gap: 4px; }
   .wardrobe-feedback { display: none; }
   .wardrobe-picker { gap: 3px; }
@@ -668,7 +669,7 @@ body {
 }
 
 @media (max-width: 360px) and (max-height: 650px) {
-  .wardrobe-open .nav-icon { display: none; }
+  .nav-icon { display: none; }
   .wardrobe-workspace { grid-template-rows: minmax(0, 1fr) minmax(192px, 0.9fr); }
   .wardrobe-workspace:has(.wardrobe-hint:not([hidden])) { grid-template-rows: minmax(0, 1fr) minmax(212px, 0.9fr); }
   .wardrobe-item { display: grid; grid-template-columns: 38px minmax(0, 1fr); grid-template-rows: 1fr auto; min-height: 94px; padding: 4px; gap: 2px; }
@@ -1061,18 +1062,8 @@ body {
 }
 
 /* ---------- Narrow screens: simple vertical list ---------- */
-@media (max-width: 640px) {
-  /* The 4 chunky nav pills (emoji + label) exceed a narrow phone/tablet
-     width and push a ~9px horizontal scrollbar. Shrink gap + padding so
-     they always fit and the beach/map never scroll sideways. */
-  .screen-nav { gap: 8px; }
-  .nav-button { padding: 10px 12px; }
-}
-
-@media (max-width: 360px) {
-  .screen-nav { gap: 4px; }
-  .nav-button { flex: 1; min-width: 0; padding: 10px 4px; font-size: 0.9rem; }
-}
+/* (The old narrow-screen nav-pill overrides lived here; the compact shell's
+   phone rules — near the wardrobe section — now size the nav on every screen.) */
 
 @media (max-width: 640px) {
   .map-board {
@@ -3340,4 +3331,55 @@ b[data-char-name] {
 .bookreader-img.hidden,
 .bookreader-tts.hidden {
   display: none;
+}
+
+
+/* ============================================================
+   Screen layouts on the shared compact shell (GAME-FIX-PLAN P2.2/P2.3)
+   ============================================================ */
+
+/* Wide screens: the town board fits the window instead of running below the
+   fold (places are positioned in %, so they follow the board's size). */
+@media (min-width: 641px) {
+  .map-board {
+    min-height: 0;
+    height: clamp(380px, calc(100dvh - 385px), 640px);
+  }  #screen-map .helper-text { margin-bottom: 0; }
+}
+
+/* Laptop-height windows: the board is shorter, so the place cards get compact
+   (less room reserved for Lily, who shrinks to match) and Grandma's no longer
+   overlaps School. */
+@media (min-width: 641px) and (max-height: 900px) {
+  .place { padding: 6px 6px 40px; gap: 2px; }
+  .place-character { width: 34px; }
+}
+
+/* Friends: centered cards that grow on wide screens instead of four small
+   cards stuck to the left of an empty panel. */
+.friends-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 220px));
+  justify-content: center;
+}
+
+@media (min-width: 900px) {
+  .friend-card { min-height: 260px; }
+}
+
+/* Phones: a smaller talk bubble, a smaller Lily in the kitchen and four food
+   buttons per row, so the food is on screen instead of below the fold. */
+@media (max-width: 640px) {
+  .talk-bubble {
+    margin-bottom: 12px;
+    padding: 6px 14px;
+    font-size: 0.95rem;
+  }
+  .screen-title { font-size: 1.25rem; margin-bottom: 4px; }
+  #screen-kitchen .character-stage .character-big { height: clamp(110px, 20vh, 190px); }
+  #screen-kitchen .helper-text { margin-bottom: 8px; font-size: 0.95rem; }
+  .food-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .food-item { min-height: 64px; padding: 8px 2px; font-size: 0.8rem; border-width: 3px; border-radius: 14px; gap: 2px; }
+  .food-item-emoji { font-size: 1.7rem; }
+  .friends-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .friend-card { min-height: 180px; }
 }
