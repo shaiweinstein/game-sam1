@@ -460,6 +460,16 @@ body {
 .wardrobe-return { background: #8ee0e7; box-shadow: 0 3px 0 var(--text-color); }
 .wardrobe-print { background: #d7c6f2; box-shadow: 0 3px 0 var(--text-color); }
 .wardrobe-return[hidden], .wardrobe-hint[hidden] { display: none; }
+/* Small phones coming back from the beach: "Back to Beach" + the print button
+   don't both fit beside the title (the print button ran off-screen at 320 px
+   and squeezed Lily's picture), so the print button shrinks to its icon. It
+   keeps its 44 px target and its aria-label. */
+@media (max-width: 480px) {
+  .wardrobe-return:not([hidden]) ~ .wardrobe-print .wardrobe-print-label {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  .wardrobe-return:not([hidden]) ~ .wardrobe-print { padding-inline: 10px; }
+}
 .wardrobe-undo:disabled { opacity: 0.5; cursor: default; }
 .wardrobe-return:hover, .wardrobe-print:hover, .wardrobe-undo:not(:disabled):hover,
 .wardrobe-category-next:hover { background: var(--sunny-yellow); }
