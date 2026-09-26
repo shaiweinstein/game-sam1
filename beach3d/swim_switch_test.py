@@ -274,6 +274,8 @@ def extras(page, native, out, prefix):
         native.release();page.wait_for_timeout(700)
     rows['rm']=b
     page.emulate_media(reduced_motion='no-preference')
+    if not page.locator('[data-activity-id="swimsuits"]').is_visible():  # compact bar: behind Menu
+        page.get_by_role('button', name='Menu', exact=True).click()
     page.click('[data-activity-id="swimsuits"]')
     # Choose the latest preference while a fresh character load is outstanding.
     pending=[]

@@ -233,7 +233,10 @@ def beach_entry(page, move_before_change=False):
         page.evaluate("__beach3d.teleport(0, -3.5)")
         page.get_by_role("button", name="Start surfing").click()
         assert page.evaluate("__beach3d.state().surf.enabled")
-    page.locator('[data-activity-id="swimsuits"]').click()
+    swimsuits = page.locator('[data-activity-id="swimsuits"]')
+    if not swimsuits.is_visible():  # compact beach bar (<= 620 px): it lives behind Menu
+        page.get_by_role("button", name="Menu", exact=True).click()
+    swimsuits.click()
     expect(page.locator("#wardrobe-tab-swimsuit")).to_be_focused()
     expect(page.locator("#wardrobe-return")).to_be_visible()
     assert not page.evaluate("BeachScene.isOpen() || Beach3D.isOpen()")

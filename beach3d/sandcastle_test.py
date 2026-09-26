@@ -41,7 +41,7 @@ import sys
 import time
 from pathlib import Path
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import TimeoutError as PWTimeout, sync_playwright
 from ground_contact_test import enter
 
 
@@ -629,6 +629,13 @@ def main():
                     [grid1, decor1])
                 page.reload(wait_until='networkidle')
                 open_beach(page, via_continue=True)
+                # The v:1 field is rebuilt asynchronously after the beach opens; reading the
+                # state immediately was intermittently too early (seen 2026-09-26). Wait for
+                # the bake, then check; a real failure still times out into the check below.
+                try:
+                    page.wait_for_function("__beach3d.sandcastle?.state?.()?.baked === true", timeout=15000)
+                except PWTimeout:
+                    pass
                 st5 = sc(page)
                 check('v:1 (N=32) save migrates: baked on load + obstacle',
                       st5['baked'] is True and st5['phase'] == 'idle' and

@@ -474,10 +474,16 @@ def main():
                 {'before':warmed,'after':page.evaluate('__beach3d.performance()'),'characterRequests':len(assets)})
             for width,height in ((1280,800),(420,720)):
                 page.set_viewport_size({'width':width,'height':height})
+                page.wait_for_timeout(100)
+                if not select.is_visible():  # compact beach bar (<= 620 px): the picker lives behind Menu
+                    page.get_by_role('button', name='Menu', exact=True).click()
                 select.select_option('head-up'); a=page.locator('#beach-stage').bounding_box()
                 select.select_option('freestyle'); b=page.locator('#beach-stage').bounding_box()
                 check(f'{width}px stable layout and touch target', a==b and select.bounding_box()['height']>=44)
                 page.screenshot(path=str(out/f'controls-{width}.png'))
+            # From here on the viewport stays narrow, where the picker sits behind a closed Menu;
+            # role locators skip hidden elements, so read it by id.
+            select = page.locator('#beach-swim-style')
             page.get_by_role('button',name='Change swimsuit').click()
             page.click('#wardrobe-tab-hair');page.locator('.wardrobe-item[data-item-id="hair4"]').click()
             page.click('#wardrobe-tab-swimsuit');page.locator('.wardrobe-item[data-item-id="suit5"]').click()

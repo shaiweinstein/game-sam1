@@ -210,8 +210,18 @@ def main():
                 page.wait_for_function('__beach3d.state()?.boat?.ready && __beach3d.state()?.surf?.ready')
                 page.evaluate('__beach3d.waitReady()')
                 page.evaluate('__beach3d.teleport(-6.05,1.9)'); page.wait_for_timeout(100)
+                # The route is planned on the click and its first waypoint is consumed within a
+                # few frames, so a single read afterwards can miss it: keep the longest route seen.
+                page.evaluate("""() => { window.__qaRoute = []; let frames = 0;
+                    const tick = () => { const c = __beach3d.catch();
+                        if (c && c.playerPath && c.playerPath.length > window.__qaRoute.length)
+                            window.__qaRoute = c.playerPath.map(p => ({x: p.x, z: p.z}));
+                        if (++frames < 90) requestAnimationFrame(tick); };
+                    requestAnimationFrame(tick); }""")
                 page.get_by_role('button', name='Play catch', exact=True).click()
-                check('scripted approach routes around post rather than trapping', len(state(page)['playerPath']) > 1, state(page)['playerPath'])
+                page.wait_for_timeout(1600)
+                route = page.evaluate('window.__qaRoute')
+                check('scripted approach routes around post rather than trapping', len(route) > 1, route)
                 wait_phase(page, 'ready')
                 stop(page)
                 algorithms = page.evaluate("""async()=>{

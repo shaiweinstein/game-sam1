@@ -32,8 +32,15 @@ and tap targets are ≥ 40 px everywhere except one (P3.1).
   keep "by <author>" on the shelf. Add a `make_deploy.py` assert that each StoryWeaver book's first author matches
   its title-page "Author:" line.
 
-### P1.2 Four regression suites fail — the tests are out of date, not the game (§5)
-- Fix the tests so the suite is green again; otherwise real regressions will hide among known failures.
+### P1.2 Four regression suites fail — the tests are out of date, not the game (§5) — ✅ fixed 2026-09-26
+- Fixed the tests (open the beach **Menu** on compact screens; read the Swim Style picker by id; record the catch
+  route from the first frame; wait for the v:1 sandcastle bake). All 17 suites pass.
+- Repairing `wardrobe_test` exposed one **real** bug, fixed too: on a 320 px phone, returning from the beach put
+  "Dress Up Lily!", "Back to Beach" and "🖨️ Print paper dolls" in one row — the print button ran off-screen and
+  Lily's picture shrank to 140 px. Now, on phones ≤ 480 px with "Back to Beach" showing, the print button shrinks to
+  its 🖨️ icon (still 44 px, `aria-label="Print paper dolls"`); the picture is back to 176 px.
+- `sandcastle_test` was intermittently flaky ("v:1 save migrates: baked on load"): it read the state before the
+  asynchronous bake. It now waits for the bake (≤ 15 s).
 
 ## P2 — layout and usability
 
