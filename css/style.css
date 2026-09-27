@@ -2226,6 +2226,11 @@ b[data-char-name] {
 
 .print-scroll { flex: 1; overflow: auto; padding: 16px; }
 .print-pages { display: block; }
+/* Screen preview only: js/print-dolls.js fitPreview() sets the scale so the
+   paper-width pages fit a phone; print keeps the true mm sizes. */
+@media screen {
+  .print-pages { zoom: var(--print-preview-scale, 1); }
+}
 
 /* One printed sheet page. US Letter with 12.7mm (0.5in) margins leaves
    190.5 x 254mm of content; that is what @page below asks the printer for. */

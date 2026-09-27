@@ -264,7 +264,27 @@
       note.textContent = built.dolls + " dolls · " + built.pieces + " pieces · about " +
         built.pages + " pages of " + PAPER.label + " (portrait)";
     }
+    fitPreview();
     return built;
+  }
+
+  /* The on-screen preview is laid out at real paper width (190.5mm, ~720px),
+     which ran off the side of a phone. Shrink the PREVIEW to the pane's width
+     via --print-preview-scale (CSS applies it as zoom under @media screen
+     only), so the printed sheet keeps its exact millimetre sizes. */
+  function fitPreview() {
+    const root = sheetRoot();
+    const pages = element("print-pages");
+    if (!root || !pages || root.hasAttribute("hidden")) return;
+    const scroll = pages.parentElement;
+    const first = pages.querySelector(".print-page");
+    if (!scroll || !first) return;
+    pages.style.setProperty("--print-preview-scale", "1");
+    const cs = window.getComputedStyle(scroll);
+    const avail = scroll.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const natural = first.offsetWidth;
+    const scale = natural > 0 ? Math.min(1, avail / natural) : 1;
+    pages.style.setProperty("--print-preview-scale", scale.toFixed(4));
   }
 
   /* ---------- Hair picker (screen only — it is not part of the printout) ---------- */
@@ -322,7 +342,7 @@
     root.removeAttribute("hidden");
     document.body.classList.add("print-dolls-open");
     buildHairPicker();
-    const made = buildSheet();
+    const made = buildSheet();  // also fits the preview (now visible) to the pane
     say("Cut out your paper dolls and dress them up! 💕");
     const go = element("print-go");
     if (go) go.focus({ preventScroll: true });
@@ -357,6 +377,7 @@
       if (window.GameSounds) window.GameSounds.play("pop");
       sheetClose();
     });
+    window.addEventListener("resize", fitPreview);  // no-op while the sheet is closed
     root.addEventListener("keydown", function (event) {
       if (event.key === "Escape") { event.stopPropagation(); sheetClose(); }
     });

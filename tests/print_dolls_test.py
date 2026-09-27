@@ -351,6 +351,15 @@ def viewport_matrix(browser, url):
                 assert sheet[key], f"{name}: {key} failed ({sheet['go']}px)"
             assert sheet["lastHairOnScreen"], f"{name}: the last hairstyle chip is pushed off screen"
             assert not sheet["truncated"], f"{name}: hairstyle labels truncated: {sheet['truncated']}"
+            # The paper-width preview is scaled to fit the pane (it used to run off a phone's edge).
+            preview = page.evaluate("""() => {
+              const scroll = document.querySelector('.print-scroll'), pg = document.querySelector('.print-page');
+              const s = scroll.getBoundingClientRect(), p = pg.getBoundingClientRect();
+              return {pageLeft: p.left, pageRight: p.right, paneLeft: s.left, paneRight: s.right,
+                      sideways: scroll.scrollWidth > scroll.clientWidth + 1};
+            }""")
+            assert not preview["sideways"] and preview["pageRight"] <= preview["paneRight"] + 1 \
+                and preview["pageLeft"] >= preview["paneLeft"] - 1, f"{name}: preview doesn't fit: {preview}"
             results[name] = {"heading": heading, "sheet": sheet}
         finally:
             context.close()
