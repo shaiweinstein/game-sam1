@@ -8,12 +8,14 @@
 
     Places are positioned by their CENTER (cx/cy in % of the
     board); .place has transform: translate(-50%,-50%) in CSS.
+    Phones (<= 640 px) get a PORTRAIT town: the same places, roads
+    and walks on a tall board, from each place's `tall` [x, y] and
+    the TALL_DECOR / TALL_FOLK dressing (was a plain list of cards).
 
     Travelling now WALKS the chosen friend (in her current outfit)
     overland along the road network — a BFS route through the
-    ROADS graph — instead of teleporting a dot. On narrow screens
-    (list mode) or reduced-motion preferences the trip completes
-    instantly (teleport) since the 2D board isn't visible anyway.
+    ROADS graph — instead of teleporting a dot. With reduced-motion
+    preferences the trip completes instantly (teleport).
     Sound comes for free from sounds.js: the energy spend fires
     'travel', the arrival setLocation fires 'cheer'.
 
@@ -33,13 +35,15 @@
   /* ---------- Places (cx/cy = button CENTER in % of the board) ---------- */
 
   const PLACES = [
-    { id: "home",    name: "🏠 Home",      cx: 22, cy: 60, cost: 0  },
-    { id: "park",    name: "🌳 Park",      cx: 50, cy: 26, cost: 8  },
-    { id: "school",  name: "🏫 School",    cx: 78, cy: 52, cost: 10 },
-    { id: "library", name: "📚 Library",   cx: 26, cy: 20, cost: 8  },
-    { id: "shop",    name: "🛍️ Toy Shop", cx: 55, cy: 74, cost: 12 },
-    { id: "grandma", name: "💜 Grandma's", cx: 84, cy: 24, cost: 15 },
-    { id: "beach",   name: "🏖️ Beach",    cx: 85, cy: 80, cost: 15 }
+    /* tall = [x, y] on the portrait phone board: same neighbours and
+       roads, rearranged so ~84x80 px cards never overlap on ~360 px. */
+    { id: "home",    name: "🏠 Home",      cx: 22, cy: 60, tall: [18, 48], cost: 0  },
+    { id: "park",    name: "🌳 Park",      cx: 50, cy: 26, tall: [50, 29], cost: 8  },
+    { id: "school",  name: "🏫 School",    cx: 78, cy: 52, tall: [79, 48], cost: 10 },
+    { id: "library", name: "📚 Library",   cx: 26, cy: 20, tall: [21, 11], cost: 8  },
+    { id: "shop",    name: "🛍️ Toy Shop", cx: 55, cy: 74, tall: [48, 68], cost: 12 },
+    { id: "grandma", name: "💜 Grandma's", cx: 84, cy: 24, tall: [79, 11], cost: 15 },
+    { id: "beach",   name: "🏖️ Beach",    cx: 85, cy: 80, tall: [76, 87], cost: 15 }
   ];
 
   /* ---------- Road network: pairs of neighbouring place ids ---------- */
@@ -88,6 +92,32 @@
     { emoji: "🚶‍♂️", x: 12, y: 26, flip: true }   // walker up the library road
   ];
 
+  /* Portrait (phone) dressing: the same town, placed in the gaps of the
+     tall layout (a straight remap of the wide positions would land on cards). */
+  const TALL_DECOR = [
+    { emoji: "🌳", x: 50, y: 8, anim: "sway" },
+    { emoji: "🌲", x: 7,  y: 29 },
+    { emoji: "🌳", x: 92, y: 29, anim: "sway" },
+    { emoji: "🌴", x: 93, y: 72 },
+    { emoji: "🌷", x: 33, y: 38, size: "1rem" },
+    { emoji: "🌼", x: 66, y: 60, size: "1rem" },
+    { emoji: "🌸", x: 25, y: 80, size: "1rem" },
+    { emoji: "🌷", x: 91, y: 62, size: "1rem" },
+    { emoji: "⛲", x: 50, y: 50, size: "1.8rem", anim: "bob" },
+    { emoji: "🪑", x: 40, y: 56, size: "1.1rem" },
+    { emoji: "🏡", x: 9,  y: 93 },
+    { emoji: "🏡", x: 50, y: 95, size: "1.3rem" }
+  ];
+
+  const TALL_FOLK = [
+    { emoji: "🚶‍♀️", x: 59, y: 56, anim: "bob" },
+    { emoji: "🧍‍♀️", x: 63, y: 40 },
+    { emoji: "🧒", x: 22, y: 67, anim: "sway" },
+    { emoji: "🐕", x: 10, y: 75, flip: true },
+    { emoji: "👨‍👩‍👧", x: 57, y: 88 },
+    { emoji: "🚶‍♂️", x: 7, y: 62, flip: true }
+  ];
+
   const ALREADY_TALK = "We're already here! 💕";
 
   /* Dynamic copy: built with the chosen friend's name. */
@@ -116,10 +146,24 @@
   /* ---------- Module state ---------- */
 
   let boardEl = null;
+  let decorLayer = null;       // the decor/folk layer (re-filled when the layout switches)
+  const roadLines = [];        // { line, a, b } — SVG lines, re-positioned per layout
   let isWalking = false;      // blocks clicks while she is mid-trip
   let activeWalk = null;      // { el, flipEl, way, startTs, durationMs, rafId, done, onDone }
 
   /* ---------- Helpers ---------- */
+
+  /* Wide town board or portrait phone board — matches the CSS breakpoint. */
+  const TALL_QUERY = window.matchMedia ? window.matchMedia("(max-width: 640px)") : null;
+
+  function isTall() {
+    return !!(TALL_QUERY && TALL_QUERY.matches);
+  }
+
+  /* A place's center (% of the board) in the current layout. */
+  function posOf(place) {
+    return isTall() ? { x: place.tall[0], y: place.tall[1] } : { x: place.cx, y: place.cy };
+  }
 
   function findPlace(placeId) {
     for (let i = 0; i < PLACES.length; i++) {
@@ -216,11 +260,8 @@
       [["road", base], ["road-dash", dashes]].forEach(function (pair) {
         const line = document.createElementNS(SVG_NS, "line");
         line.setAttribute("class", pair[0]);
-        line.setAttribute("x1", a.cx);
-        line.setAttribute("y1", a.cy);
-        line.setAttribute("x2", b.cx);
-        line.setAttribute("y2", b.cy);
         pair[1].appendChild(line);
+        roadLines.push({ line: line, a: a, b: b });
       });
     });
 
@@ -248,18 +289,22 @@
   }
 
   function renderDecor() {
-    const layer = document.createElement("div");
+    const layer = decorLayer || document.createElement("div");
     layer.className = "map-decor";
     layer.setAttribute("aria-hidden", "true");
+    layer.replaceChildren();
 
-    DECOR.forEach(function (d) {
+    (isTall() ? TALL_DECOR : DECOR).forEach(function (d) {
       layer.appendChild(makeDecorItem(d));
     });
-    FOLK.forEach(function (p) {
+    (isTall() ? TALL_FOLK : FOLK).forEach(function (p) {
       layer.appendChild(makeDecorItem(p, "folk"));
     });
 
-    boardEl.appendChild(layer);
+    if (!decorLayer) {
+      decorLayer = layer;
+      boardEl.appendChild(layer);
+    }
   }
 
   /* ---------- 🛣 road graph + BFS routes ---------- */
@@ -322,12 +367,6 @@
       window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }
 
-  /* ≤640px the board becomes a vertical list (see style.css), so a
-     2D walk is meaningless there — complete the trip instantly. */
-  function isListMode() {
-    return !!(window.matchMedia &&
-      window.matchMedia("(max-width: 640px)").matches);
-  }
 
   /* "🏫 School" -> "School", for kid-readable walk chatter. */
   function shortPlaceName(placeId) {
@@ -473,16 +512,19 @@
     const route = findRoute(fromId, toId);
     route.forEach(function (id) {
       const place = findPlace(id);
-      if (place) walk.way.push({ xPct: place.cx, yPct: place.cy });
+      if (place) {
+        const p = posOf(place);
+        walk.way.push({ xPct: p.x, yPct: p.y });
+      }
     });
     if (walk.way.length < 2) {
       finishWalk(walk); // nothing to walk (bad ids / degenerate route)
       return;
     }
 
-    /* Instant-trip escapes: reduced motion, mobile list layout, or a
-       board that isn't visible/laid out right now. */
-    if (prefersReducedMotion() || isListMode() ||
+    /* Instant-trip escapes: reduced motion, or a board that isn't
+       visible/laid out right now. */
+    if (prefersReducedMotion() ||
         !boardEl || boardEl.clientWidth === 0) {
       finishWalk(walk);
       return;
@@ -588,10 +630,8 @@
       button.type = "button";
       button.className = "place";
       button.setAttribute("data-place-id", place.id);
-      /* cx/cy is the button center; CSS translate(-50%,-50%)
-         anchors the box around that point. */
-      button.style.left = place.cx + "%";
-      button.style.top = place.cy + "%";
+      /* Positioned by applyLayout(): the center point in % of the
+         board; CSS translate(-50%,-50%) anchors the box around it. */
 
       const label = document.createElement("span");
       label.className = "place-label";
@@ -610,6 +650,25 @@
       button.addEventListener("click", onPlaceClick);
       boardEl.appendChild(button);
     });
+  }
+
+  /* Place buttons + roads at the current layout's positions. */
+  function applyLayout() {
+    PLACES.forEach(function (place) {
+      const button = getPlaceButton(place.id);
+      if (!button) return;
+      const p = posOf(place);
+      button.style.left = p.x + "%";
+      button.style.top = p.y + "%";
+    });
+    roadLines.forEach(function (r) {
+      const a = posOf(r.a), b = posOf(r.b);
+      r.line.setAttribute("x1", a.x);
+      r.line.setAttribute("y1", a.y);
+      r.line.setAttribute("x2", b.x);
+      r.line.setAttribute("y2", b.y);
+    });
+    if (boardEl) boardEl.classList.toggle("map-tall", isTall());
   }
 
   function init() {
@@ -652,6 +711,18 @@
     renderRoads();
     renderDecor();
     renderPlaces();
+    applyLayout();
+    /* Rotating a phone / resizing across 640 px swaps wide <-> portrait
+       town. A walk in progress just arrives (cancel completes the trip). */
+    if (TALL_QUERY) {
+      const onLayoutChange = function () {
+        cancelActiveWalk();
+        renderDecor();
+        applyLayout();
+      };
+      if (TALL_QUERY.addEventListener) TALL_QUERY.addEventListener("change", onLayoutChange);
+      else if (TALL_QUERY.addListener) TALL_QUERY.addListener(onLayoutChange);
+    }
 
     const gs = window.GameState;
     const location = gs.getLocation();
@@ -678,7 +749,9 @@
     roads: ROADS,
     centerOf: function (placeId) {
       const place = findPlace(placeId);
-      return place ? { xPct: place.cx, yPct: place.cy } : null;
+      if (!place) return null;
+      const p = posOf(place);
+      return { xPct: p.x, yPct: p.y };
     },
     placeButtonEl: function (placeId) {
       return getPlaceButton(placeId);

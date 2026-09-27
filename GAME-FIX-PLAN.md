@@ -70,11 +70,17 @@ friends are centered and larger on wide screens (2×2 on phones); the town board
 1366×768 with no overlapping cards. Remaining: on 1280×720 the map scrolls ~39 px (shrinking the board further
 makes cards overlap). All 17 suites pass.
 
-### P2.4 Phone: the town map becomes a ~1,500 px vertical list
+### P2.4 Phone: the town map becomes a ~1,500 px vertical list — ✅ fixed 2026-09-26 (portrait town)
 - **Seen:** below tablet width the board turns into 7 tall full-width cards (roads and scenery gone); the Beach —
   the most-used place — is the last card, ~1,400 px down.
 - **Fix (pick one):** scale the real board to the phone width (it already works well at 820 px), or a compact 2-column
   grid of places with Beach and Library first.
+
+**Done (P2.4):** phones (≤ 640 px) get a portrait version of the real town instead of the list: every place has a
+second `tall: [x, y]` position in `js/map.js` (same neighbours and roads), with its own tree/people dressing
+(`TALL_DECOR`/`TALL_FOLK`), compact ~80×78 px cards and a board sized to the window. Lily now **walks** along the
+roads on phones too (the list mode used to teleport her); rotating mid-walk completes the trip and swaps layouts.
+No overlapping cards at 390×844, 360×740 or 320×568; no scrolling except on the 320×568 phone.
 
 ### P2.5 Phone: the print-paper-dolls preview overflows sideways
 - **Seen:** the sheet preview is laid out at printed-paper width, so the instructions and doll are cut off on the

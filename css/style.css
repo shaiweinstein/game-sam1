@@ -1065,42 +1065,42 @@ body {
 /* (The old narrow-screen nav-pill overrides lived here; the compact shell's
    phone rules — near the wardrobe section — now size the nav on every screen.) */
 
+/* Phones: a PORTRAIT town board (js/map.js switches every place, road and
+   decor item to its `tall` position at this same 640 px breakpoint) with
+   compact cards, instead of the old list of full-width cards. */
 @media (max-width: 640px) {
   .map-board {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
     min-height: 0;
-    padding: 12px;
+    height: clamp(430px, calc(100dvh - 325px), 680px);
   }
 
-  .map-board::before {
-    display: none;
-  }
+  /* The corner clouds would sit under the Library / Grandma's cards here. */
+  .map-board::before { display: none; }
 
-  /* The town art only makes sense on the big board: hide roads,
-     decor, people and the walker so the fallback is a clean
-     tappable list (map.js teleports in list mode too). */
-  .map-road,
-  .map-decor,
-  .map-walker {
-    display: none;
-  }
+  #screen-map .helper-text { margin-bottom: 0; font-size: 0.9rem; }
 
   .place {
-    position: relative;
-    top: auto !important;
-    left: auto !important;
-    /* back to normal flow: no centering translate needed */
-    transform: none !important;
-    width: 100%;
-    max-width: none;
-    padding: 12px 8px 64px;
+    width: 24%;
+    min-width: 78px;
+    max-width: 96px;
+    padding: 5px 3px 30px;
+    gap: 2px;
+    font-size: 0.78rem;
+    border-width: 3px;
+    border-radius: 14px;
   }
 
-  .place:hover {
-    animation: none;
+  .place .cost-badge {
+    font-size: 0.7rem;
+    padding: 0 6px;
+    border-width: 2px;
   }
+
+  .place-character { width: 26px; }
+  .map-walker-bob { width: 36px; }
+
+  .decor-emoji { font-size: 1.3rem; }
+  .folk .decor-emoji { font-size: 1.15rem; }
 }
 
 /* Respect reduced-motion preferences for the map animations too */
