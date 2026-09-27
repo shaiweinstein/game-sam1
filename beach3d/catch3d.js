@@ -49,12 +49,19 @@ export function createCatch(world, player, reducedMotion, bus) {
   function route(actor, target, bounds) {
     return routeAroundProps(actor.getAnchor(), target, world.obstacles(), bounds);
   }
-  function follow(actor, path) {
+  /* Lily trots (2x, step animation sped up to match) while more than
+     HURRY_FROM metres of route are left: from the far side of the beach the
+     walk to the ball took ~10 s at normal pace — a long wait after one tap. */
+  const HURRY_FROM = 3, HURRY = 2;
+  function follow(actor, path, hurry = false) {
     if (!path?.length) return true;
     const a = actor.getAnchor(), goal = path[0];
     if (Math.hypot(a.x - goal.x, a.z - goal.z) < 0.025) path.shift();
-    if (path.length) actor.setTarget(path[0].x, path[0].z, "catch");
-    else actor.clearTarget();
+    if (path.length) {
+      let left = Math.hypot(path[0].x - a.x, path[0].z - a.z);
+      for (let i = 1; i < path.length; i++) left += Math.hypot(path[i].x - path[i - 1].x, path[i].z - path[i - 1].z);
+      actor.setTarget(path[0].x, path[0].z, "catch", hurry && left > HURRY_FROM ? HURRY : 1);
+    } else actor.clearTarget();
     return path.length === 0;
   }
   function idlePlayer() {
@@ -173,7 +180,7 @@ export function createCatch(world, player, reducedMotion, bus) {
     syncUI();
     if (!busy()) return;
     elapsed += dt;
-    if (phase === "approach" && follow(player, playerPath)) {
+    if (phase === "approach" && follow(player, playerPath, true)) {
       player.facePoint(ball.root.position.x, ball.root.position.z);
       pickupFrom = position();
       setPhase("pickup", "Got it! Let's make room for our friend.");
@@ -200,7 +207,7 @@ export function createCatch(world, player, reducedMotion, bus) {
         friendPath = route(friend, FRIEND, NPC_BOUNDS);
         if (!friendPath) { stop(); return; }
       }
-      const playerThere = follow(player, playerPath);
+      const playerThere = follow(player, playerPath, true);
       const friendThere = entered && follow(friend, friendPath);
       if (playerThere && friendThere) {
         player.facePoint(FRIEND.x, FRIEND.z); friend.facePoint(PLAYER.x, PLAYER.z);

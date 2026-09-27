@@ -768,14 +768,17 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
       moveTo(t.x, t.z);                         /* arrival also respects props */
       loco.vx = loco.vz = 0;
       loco.moving = false;
-      loco.target = null; loco.targetSrc = null;
+      loco.target = null; loco.targetSrc = null; loco.targetHurry = 1;
       refreshZone();
       return;
     }
     const factor = clamp(
       LOCO_MIN_SPEED + (1 - LOCO_MIN_SPEED) * Math.min(1, dist / LOCO_EASE_RANGE),
       LOCO_MIN_SPEED, 1);
-    const v = (LOCO_SPEED[loco.zone] || LOCO_SPEED.sand) * factor * (movement.speedScale || 1);
+    /* targetHurry: a per-trip speed-up (setTarget's 4th argument, e.g. the
+       catch game's long walk to the ball) — 1 for every other target. */
+    const hurry = loco.targetHurry || 1;
+    const v = (LOCO_SPEED[loco.zone] || LOCO_SPEED.sand) * factor * (movement.speedScale || 1) * hurry;
     const dirx = dx / dist, dirz = dz / dist;
     const oldX = loco.x, oldZ = loco.z;
     if (loco.zone === "sea") {
@@ -792,7 +795,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
       if (stepLen > dist) stepLen = dist;        /* snap-arrive exactly */
       moveTo(loco.x + dirx * stepLen, loco.z + dirz * stepLen);
       loco.vx = loco.vz = 0;
-      loco.speed01 = factor * Math.min(1.6, movement.speedScale || 1);
+      loco.speed01 = factor * Math.min(1.6, (movement.speedScale || 1) * hurry);
     }
     loco.moving = Math.hypot(loco.x - oldX, loco.z - oldZ) > 1e-6;
     /* zone from the NEW position (2D uses the returned anchor);
@@ -1035,10 +1038,11 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
       }
       applyTimeScale();
     },
-    setTarget(x, z, src) {
+    setTarget(x, z, src, hurry) {
       if (!loco.enabled || !isFinite(x) || !isFinite(z)) return false;
       loco.target = clampPoint(x, z);
       loco.targetSrc = src || "program";
+      loco.targetHurry = hurry > 1 ? hurry : 1;
       return true;
     },
     /* release stops ONLY pointer-held targets (program targets —
@@ -1047,6 +1051,7 @@ export function createCharacter(renderer, scene, reducedMotion, fx, movement = {
       if (loco.target && (!src || loco.targetSrc === src)) {
         loco.target = null;
         loco.targetSrc = null;
+        loco.targetHurry = 1;
       }
     },
     setEnabled(b) {

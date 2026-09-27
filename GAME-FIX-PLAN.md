@@ -103,20 +103,27 @@ regenerated; it reads the same words as before.
 
 ## P3 — polish
 
-### P3.1 "📖 Read a book" button is 32 px tall on phones
+### P3.1 "📖 Read a book" button is 32 px tall on phones — ✅ fixed 2026-09-27 (redesigned, see below)
 - Below the 40–44 px minimum for small fingers. Give it `min-height: 44px` on narrow screens.
 
-### P3.2 Beach extras: `flatShading` ignored on toon material (console warning ×15)
+### P3.2 Beach extras: `flatShading` ignored on toon material (console warning ×15) — ✅ fixed 2026-09-27
 - `beach3d/extras3d.js:66` creates `MeshToonMaterial({ flatShading: true })`; three.js r170's toon material has no
   `flatShading`, so it warns on every extra and the intended faceted look is never applied.
 - **Fix:** drop the option (accept smooth shading) or bake flat normals (`geometry.toNonIndexed()` +
   `computeVertexNormals()`) to keep the cel look. Removes the console noise.
 
-### P3.3 "Play catch" from far away: ~10 s of walking before anything happens
+### P3.3 "Play catch" from far away: ~10 s of walking before anything happens — ✅ fixed 2026-09-27
 - **Seen:** from behind the umbrella, Lily walks ~10.5 m to the ball at ~1.1 m/s (10 s), then ~4 s back to the
   throwing spot. It works, but it is a long wait for a 4-year-old after one tap.
 - **Fix:** run instead of walk when the approach is longer than a few metres (the rig has a run clip), or start the
   friend walking toward Lily at the same time.
+
+**Done (P3):** the library's "📖 Read a book" moved from the bottom edge to the back wall under the LIBRARY sign as a
+big yellow button (380×82 desktop, 358×76 phone, slim 48 px top bar on short landscape) with "28 stories to choose
+from" and a soft glow (off with reduced motion); the wall is clear of every floor tap, so `library_camera_test`
+runs unmodified. Beach extras get per-face normals (the intended faceted look; 11 console warnings gone). In the
+catch game Lily trots at 2× while > 3 m of route are left: far-side "Play catch" now reaches the ball in 6.3 s
+(was ~10 s) and is ready to throw at 10 s (was ~14 s). All 17 suites pass.
 
 ## 5. Regression suites
 
