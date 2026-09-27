@@ -833,7 +833,7 @@
 
     if (textEl && textWrap) {
       if (text) {
-        textEl.textContent = text;   /* verbatim; white-space: pre-wrap */
+        renderPageText(textEl, text, curPage === 1);  /* verbatim; white-space: pre-wrap */
         textWrap.classList.remove("hidden");
       } else {
         textEl.textContent = "";     /* image-only page: no empty box */
@@ -853,6 +853,36 @@
     updateTtsButton();
     prefetchAround();
     return true;
+  }
+
+  /* A StoryWeaver title page reads "<Title> Author: X Illustrator: Y
+     [Translator: Z]" as one run-on line. Show the title large and each
+     credit on its own line. The words stay exactly the page's text (only
+     the separating spaces become line breaks), so textContent — which the
+     speech fallback reads aloud — is still the verbatim page text. */
+  const TITLE_PAGE_RE = /^([\s\S]*?)\s+(Authors?:[\s\S]*?)\s+(Illustrators?:[\s\S]*?)(?:\s+(Translators?:[\s\S]*))?$/;
+
+  function renderPageText(textEl, text, isFirstPage) {
+    textEl.classList.remove("bookreader-titlepage");
+    const match = isFirstPage ? TITLE_PAGE_RE.exec(text.trim()) : null;
+    if (!match || !match[1]) {
+      textEl.textContent = text;
+      return;
+    }
+    textEl.textContent = "";
+    textEl.classList.add("bookreader-titlepage");
+    const title = document.createElement("span");
+    title.className = "bookreader-titlepage-title";
+    title.textContent = match[1];
+    textEl.appendChild(title);
+    [match[2], match[3], match[4]].forEach(function (line) {
+      if (!line) return;
+      textEl.appendChild(document.createTextNode("\n"));
+      const credit = document.createElement("span");
+      credit.className = "bookreader-titlepage-credit";
+      credit.textContent = line;
+      textEl.appendChild(credit);
+    });
   }
 
   function renderCredits(token) {

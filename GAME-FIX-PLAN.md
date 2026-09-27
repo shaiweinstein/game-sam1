@@ -82,17 +82,24 @@ second `tall: [x, y]` position in `js/map.js` (same neighbours and roads), with 
 roads on phones too (the list mode used to teleport her); rotating mid-walk completes the trip and swaps layouts.
 No overlapping cards at 390×844, 360×740 or 320×568; no scrolling except on the 320×568 phone.
 
-### P2.5 Phone: the print-paper-dolls preview overflows sideways
+### P2.5 Phone: the print-paper-dolls preview overflows sideways — ✅ fixed 2026-09-27
 - **Seen:** the sheet preview is laid out at printed-paper width, so the instructions and doll are cut off on the
   right (the page itself doesn't scroll; the preview pane does, awkwardly).
 - **Fix:** scale the on-screen preview to fit the pane (`zoom`/`transform: scale()` on `.print-pages` for screen only);
   `@media print` stays untouched, so printed sizes don't change.
 
-### P2.6 Book title page: credits run together as one line
+### P2.6 Book title page: credits run together as one line — ✅ fixed 2026-09-27
 - **Seen:** page 1 of every StoryWeaver book reads *"The Red Raincoat Author: Kiran Kasturia Illustrator: Zainab
   Tambawalla"* as a single run-on sentence (and the narrator reads it that way).
 - **Fix:** in the reader, split a title page's text at "Author:", "Illustrator(s):" and "Translator:" and show them as
   lines under a larger title (narration can read "by Kiran Kasturia, illustrated by Zainab Tambawalla").
+
+**Done (P2.5, P2.6):** the print preview is scaled to the pane on screen (`--print-preview-scale` → CSS `zoom`
+under `@media screen`; 0.5 on a 390 px phone); printed PDFs are pixel-identical to before, and
+`print_dolls_test` now fails if the preview overflows. Title pages show the book title large with Author /
+Illustrator / Translator on their own lines — same words as the page text (only spaces became line breaks), so
+the speech fallback and the "verbatim" rule are unchanged. The pre-recorded narration of page 1 was not
+regenerated; it reads the same words as before.
 
 ## P3 — polish
 

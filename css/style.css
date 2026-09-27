@@ -2961,6 +2961,18 @@ b[data-char-name] {
   overflow-wrap: anywhere;
 }
 
+/* Title page (js/books.js renderPageText): the book title large, each
+   "Author: / Illustrator: / Translator:" credit on its own line. */
+.bookreader-text.bookreader-titlepage { text-align: center; }
+.bookreader-titlepage-title {
+  display: inline-block;
+  margin-bottom: 6px;
+  font-size: 1.35em;
+  font-weight: bold;
+  line-height: 1.25;
+}
+.bookreader-titlepage-credit { font-size: 0.85em; opacity: 0.85; }
+
 @media (min-width: 700px) {
   .bookreader-text {
     font-size: 27px; /* 26–30px on desktop */
