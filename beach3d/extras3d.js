@@ -14,7 +14,7 @@
 
    Colors mirror the 2D catalog (js/character.js ITEMS.extra) so the
    props read as the same dress-up items. MeshToonMaterial +
-   flatShading with the character's own toon ramp keeps the cel look.
+   flatShading-style facets (per-face normals, baked in geo()) with the character's own toon ramp keep the cel look.
    ============================================================ */
 
 import * as THREE from "three";
@@ -63,15 +63,24 @@ export function createExtras({ gradientMap } = {}) {
 
   function material(color) {
     if (!materials.has(color)) {
-      const m = new THREE.MeshToonMaterial({ color, flatShading: true });
+      /* MeshToonMaterial has no flatShading option (three.js warned once per
+         colour and drew the props smooth); the faceted look comes from the
+         per-face normals baked in geo() instead. */
+      const m = new THREE.MeshToonMaterial({ color });
       if (gradientMap) m.gradientMap = gradientMap;
       materials.set(color, m);
     }
     return materials.get(color);
   }
 
+  /* Every prop geometry is de-indexed and re-normalled, so each triangle
+     gets its own flat normal: the faceted low-poly look the toon ramp was
+     meant to have (flatShading, which the toon material ignores). */
   function geo(factory) {
-    const g = factory();
+    const source = factory();
+    const g = source.index ? source.toNonIndexed() : source;
+    if (g !== source) source.dispose();
+    g.computeVertexNormals();
     geometries.add(g);
     return g;
   }
