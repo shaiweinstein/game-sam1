@@ -2477,33 +2477,19 @@ b[data-char-name] {
    Library bookshelf chooser (js/books.js / window.BooksUI)
    ------------------------------------------------------------
    Two pieces inside #library-stage:
-   1. .library-read-button — the 📖 Read a book pill, the library's
-      BIG primary action: bottom-center like the beach activity bar
-      (.beach-actions), warm cream on chunky wood, soft drop shadow.
-      Camera-gate (beach3d/library_camera_test.py runs UNMODIFIED):
-      its 83 real-click walk routes × desktop+portrait project every
-      floor point through the live follow camera. Screen-y of a floor
-      point depends ONLY on z (the camera never changes height, depth,
-      FOV or pitch — it only translates in x), so a green run's clicks
-      land in the fixed rows y = 381.9–725.9 (1280×800) and
-      y = 402.9–765.8 (390×844). Lowest full route row = the z = 2.6
-      front edge (y ≈ 725.9 desktop / 765.8 portrait — the center-front
-      floor, carpeted every ~35–45px down the portrait center column).
-      The only click BELOW that row is the one beyond-edge stop tap
-      (z = 3) alone at (≈884±12, 766) desktop / (195±15, 808.5)
-      portrait. Clear bands for this pill's RECT (border box — hit
-      testing ignores the rounding):
-        desktop — keep top > 725.9 and right < 872:
-                  bottom 4px + min-height 64px → box y 732–796,
-                  width 400 centered → x 440–840 (1280×800). ~6px
-                  under the route row, 32px+ clear of the stop tap.
-        portrait — the free strip is the band BETWEEN the z = 2.6 row
-                  and the z = 3 stop tap: y ∈ (765.8, 808.5). Any
-                  bottom-center pill taller/lower than that band is a
-                  route intercept (the stop tap walks through x≈195),
-                  so ≤420px runs min-height 32px at bottom 40px →
-                  box y 772–802 (390×844), ~6px clear on both rows.
-                  Shrink/nudge here, never in the test.
+   1. .library-read-button — the 📖 Read a book button, the library's
+      BIG primary action. It sits on the back WALL under the LIBRARY sign,
+      not at the bottom edge (where it read like a status bar, and on
+      phones had to squeeze into a 42px strip between floor tap rows).
+      Camera-gate (beach3d/library_camera_test.py runs UNMODIFIED): its
+      83 real-click walk routes only ever tap FLOOR points, and the
+      follow camera only translates in x, so screen rows above the floor
+      stay wall: floor clicks start at y ≈ 381.9 (1280×800) / 402.9
+      (390×844) and scale with the stage height. The button's box stays
+      inside top 26% … top 26% + ~84px (y ≈ 208–292 at 800 / 219–303 at
+      844), clear of every route row. Short landscape windows (≤ 520px
+      tall) use a slim bar at the very top instead. Keep it above the
+      floor — never nudge the test.
    2. .bookshelf — the chooser overlay, covering the whole stage
       (same recipe spirit as the library overlay covering the
       game). Cream cover cards on warm storytime wood; the grid
@@ -2533,27 +2519,52 @@ b[data-char-name] {
 
 .library-read-button {
   position: absolute;
-  bottom: 4px;
+  top: 26%;
   left: 0;
   right: 0;
   margin-inline: auto; /* centered without transform, so hover/anim can scale */
-  width: min(400px, calc(100% - 24px));
+  width: min(380px, calc(100% - 32px));
   z-index: 11; /* same layer as .beach-close — above the canvas host (3) */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
   font-family: inherit;
-  font-size: 1.4rem;
-  line-height: 1.15;
   font-weight: bold;
-  color: #4a2c0d; /* deep wood on warm cream — high contrast */
-  background: linear-gradient(180deg, #fff9ec 0%, #ffe6a8 100%);
-  border: 4px solid #5f3a1a;
-  border-radius: 999px;
-  padding: 12px 24px;
-  min-height: 64px; /* height stays exactly 64 — internals (12*2+4*2+~26) fit under it */
-  white-space: nowrap; /* one line only — see the camera-gate note above */
+  line-height: 1.15;
+  color: var(--text-color);
+  background: linear-gradient(180deg, #ffe873 0%, var(--sunny-yellow) 100%);
+  border: 4px solid var(--text-color);
+  border-radius: 28px;
+  padding: 12px 22px 10px;
+  min-height: 76px;
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(30, 16, 2, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.55);
+  box-shadow: 0 6px 0 var(--text-color), 0 10px 22px rgba(30, 16, 2, 0.45);
   transition: transform 0.15s ease, background 0.15s ease;
-  animation: library-read-pop 0.5s ease-out;
+  animation: library-read-pop 0.5s ease-out, library-read-glow 2.4s ease-in-out 0.6s infinite;
+}
+
+.library-read-main {
+  font-size: 1.6rem;
+  white-space: nowrap;
+}
+
+.library-read-icon {
+  display: inline-block;
+  font-size: 1.15em;
+  transform: translateY(2px);
+}
+
+.library-read-sub {
+  font-size: 0.9rem;
+  font-weight: bold;
+  opacity: 0.8;
+}
+
+/* A soft, repeating halo so the one thing to do here is easy to spot. */
+@keyframes library-read-glow {
+  0%, 100% { box-shadow: 0 6px 0 var(--text-color), 0 10px 22px rgba(30, 16, 2, 0.45), 0 0 0 0 rgba(255, 233, 115, 0.0); }
+  50%      { box-shadow: 0 6px 0 var(--text-color), 0 10px 22px rgba(30, 16, 2, 0.45), 0 0 0 12px rgba(255, 233, 115, 0.55); }
 }
 
 .library-read-button.hidden {
@@ -2562,26 +2573,39 @@ b[data-char-name] {
 
 .library-read-button:hover {
   transform: scale(1.05);
-  background: var(--sunny-yellow);
+  background: linear-gradient(180deg, #fff3b0 0%, #ffe14d 100%);
 }
 
 .library-read-button:active {
-  transform: scale(0.95);
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 var(--text-color), 0 6px 14px rgba(30, 16, 2, 0.4);
 }
 
-/* ~390 portrait: only the y (765.8, 808.5) clear band is available —
-   a wide shallow bottom bar, still centered, still high-contrast.
-   32px not 56px on purpose: the band is 42px tall and the z = 3 stop
-   click runs through the center column at y ≈ 808.5. */
+.library-read-button:focus-visible {
+  outline: 4px solid var(--white);
+  outline-offset: 3px;
+}
+
 @media (max-width: 420px) {
+  .library-read-main { font-size: 1.35rem; }
+  .library-read-sub { font-size: 0.8rem; }
+}
+
+/* Short landscape windows: the floor starts near the top, so a slim bar
+   at the very top (beside ⬅️ Back) instead of on the wall. */
+@media (max-height: 520px) {
   .library-read-button {
-    bottom: 40px;
-    width: min(340px, calc(100% - 20px));
-    min-height: 32px;
-    font-size: 1.05rem;
-    padding: 2px 14px;
-    border-width: 3px;
+    top: 10px;
+    width: min(300px, calc(100% - 280px));
+    min-height: 48px;
+    padding: 4px 14px;
+    flex-direction: row;
+    justify-content: center;
+    border-radius: 999px;
+    box-shadow: 0 4px 0 var(--text-color), 0 6px 14px rgba(30, 16, 2, 0.4);
   }
+  .library-read-main { font-size: 1.1rem; }
+  .library-read-sub { display: none; }
 }
 
 .bookshelf {
