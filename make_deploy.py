@@ -37,6 +37,7 @@ Hard guarantees (real asserts at the end — the script fails LOUDLY):
     has narration; book 14838 ships >= 20 clips (the trial tripwire)
 Run from anywhere: paths resolve relative to this file.
 """
+import hashlib
 import html
 import json
 import re
@@ -305,8 +306,17 @@ def printables_fragments() -> dict:
             "printables_paper": html.escape(data["paper"])}
 
 
+def asset_version(path: Path) -> str:
+    """Short content fingerprint for cache-busting (?v=...). nginx sends CSS/JS with
+    max-age=86400, so an unchanged URL let returning visitors keep yesterday's
+    stylesheet under today's pages (seen live 2026-09-28: the new pages rendered
+    with the old landing.css)."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:10]
+
+
 def render_site(pages: list[dict]) -> None:
     base = (SITE / "base.html").read_text(encoding="utf-8")
+    css_version = asset_version(REPO / "landing" / "landing.css")
     generated = {
         "books": books_html(),
         "notices": md_to_html((REPO / "THIRD-PARTY-NOTICES.md").read_text(encoding="utf-8")),
@@ -330,7 +340,7 @@ def render_site(pages: list[dict]) -> None:
         values = {"title": html.escape(page["title"]), "description": html.escape(page["description"]),
                   "og_title": html.escape(page.get("og_title") or page["title"]),
                   "path": page["path"], "image": page["image"], "head_extra": page["head_extra"],
-                  "nav": nav, "crumbs": crumbs, "body": body}
+                  "nav": nav, "crumbs": crumbs, "body": body, "css_version": css_version}
         out = base
         for key, value in values.items():
             out = out.replace("{{" + key + "}}", value)
@@ -483,6 +493,9 @@ def main() -> int:
         rel = f.relative_to(DEPLOY)
         text = f.read_text(encoding="utf-8")
         assert text.count(ADSENSE_LOADER) == 1, f"{rel}: AdSense site code missing or duplicated"
+        css_ref = f'/landing/landing.css?v={asset_version(DEPLOY / "landing" / "landing.css")}'
+        assert css_ref in text, f"{rel}: stylesheet link isn't fingerprinted with the shipped landing.css"
+
         for marker in PLACEHOLDER_MARKERS:
             assert marker not in text, f"{rel}: ad placeholder leaked ({marker!r})"
         title = re.search(r"<title>(.*?)</title>", text).group(1)
